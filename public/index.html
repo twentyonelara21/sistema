@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Tickets</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Pantalla de Login -->
+    <div id="loginSection" class="section">
+      <h1>Sistema de Tickets</h1>
+      <h2>Iniciar Sesión</h2>
+      <div class="form-group">
+        <label for="loginUsername">Usuario</label>
+        <input type="text" id="loginUsername" placeholder="Nombre de usuario" required>
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Contraseña</label>
+        <input type="password" id="loginPassword" placeholder="Contraseña" required>
+      </div>
+      <button onclick="login()">Iniciar Sesión</button>
+      <p class="error" id="loginError"></p>
+    </div>
+
+    <!-- Pantalla de Gestión de Usuarios (Admin) -->
+    <div id="adminSection" class="section" style="display: none;">
+      <h1>Gestión de Usuarios</h1>
+      <p>Bienvenido, <span id="adminUser"></span> (Administrador)</p>
+      <button class="logout" onclick="logout()">Cerrar Sesión</button>
+      <button onclick="showTicketSystem()">Ir a Tickets</button>
+
+      <div class="form-section">
+        <h2>Crear Usuario</h2>
+        <div class="form-group">
+          <label for="registerUsername">Usuario *</label>
+          <input type="text" id="registerUsername" placeholder="Nombre de usuario" required>
+        </div>
+        <div class="form-group">
+          <label for="registerPassword">Contraseña *</label>
+          <input type="password" id="registerPassword" placeholder="Contraseña" required>
+        </div>
+        <div class="form-group">
+          <label for="registerEmail">Correo Electrónico *</label>
+          <input type="email" id="registerEmail" placeholder="correo@ejemplo.com" required>
+        </div>
+        <div class="form-group">
+          <label for="registerDepartment">Departamento *</label>
+          <select id="registerDepartment" required>
+            <option value="Mantenimiento">Mantenimiento</option>
+            <option value="Sistemas">Sistemas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="registerRole">Rol *</label>
+          <select id="registerRole" required>
+            <option value="user">Usuario</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <button onclick="register()">Crear Usuario</button>
+        <p class="error" id="registerError"></p>
+      </div>
+
+      <div class="users-section">
+        <h2>Lista de Usuarios</h2>
+        <div id="userList"></div>
+      </div>
+    </div>
+
+    <!-- Sistema de Tickets -->
+    <div id="ticketSystem" class="section" style="display: none;">
+      <h1>Sistema de Tickets</h1>
+      <p>Bienvenido, <span id="currentUser"></span> (<span id="currentDepartment"></span>)</p>
+      <button class="logout" onclick="logout()">Cerrar Sesión</button>
+      <button onclick="showAdminSection()" id="adminButton" style="display: none;">Volver a Gestión de Usuarios</button>
+      <button onclick="showChangePassword()">Cambiar Contraseña</button>
+
+      <div class="ticket-nav">
+        <button onclick="showCreateTicket()">Crear Solicitud</button>
+        <button onclick="showViewTickets()">Ver Tickets</button>
+        <button onclick="showMyTickets()">Mis Tickets</button>
+      </div>
+
+      <!-- Cambiar Contraseña -->
+      <div id="changePasswordSection" class="form-section" style="display: none;">
+        <h2>Cambiar Contraseña</h2>
+        <div class="form-group">
+          <label for="currentPassword">Contraseña Actual *</label>
+          <input type="password" id="currentPassword" placeholder="Contraseña actual" required>
+        </div>
+        <div class="form-group">
+          <label for="newPassword">Nueva Contraseña *</label>
+          <input type="password" id="newPassword" placeholder="Nueva contraseña" required>
+        </div>
+        <button onclick="changePassword()">Cambiar Contraseña</button>
+        <p class="error" id="changePasswordError"></p>
+      </div>
+
+      <!-- Crear Solicitud -->
+      <div id="createTicketSection" class="form-section" style="display: none;">
+        <h2>Nueva Solicitud</h2>
+        <div class="form-group">
+          <label for="requester">Solicitante *</label>
+          <input type="text" id="requester" readonly>
+        </div>
+        <div class="form-group">
+          <label for="date">Fecha *</label>
+          <input type="date" id="date" required>
+        </div>
+        <div class="form-group">
+          <label for="location">Lugar *</label>
+          <select id="location" required>
+            <option value="" disabled selected>Selecciona un lugar</option>
+            <option value="Cedis Celaya">Cedis Celaya</option>
+            <option value="Cedis Centro">Cedis Centro</option>
+            <option value="Cedis Mexico">Cedis México</option>
+            <option value="Cedis Leon">Cedis León</option>
+            <option value="Cedis Tijuana">Cedis Tijuana</option>
+            <option value="Corporativo">Corporativo</option>
+            <option value="Departamentos">Departamentos</option>
+            <option value="Labs">Labs</option>
+            <option value="Estadio">Estadio</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="department">Para *</label>
+          <select id="department" required onchange="updateCategories()">
+            <option value="" disabled selected>Selecciona un departamento</option>
+            <option value="Sistemas">Sistemas</option>
+            <option value="Mantenimiento">Mantenimiento</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="category">Categoría de la solicitud *</label>
+          <select id="category" required>
+            <option value="" disabled selected>Selecciona una categoría</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="description">Solicitud *</label>
+          <textarea id="description" placeholder="Describe el problema" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="priority">Prioridad *</label>
+          <select id="priority" required>
+            <option value="Baja">Baja</option>
+            <option value="Media">Media</option>
+            <option value="Alta">Alta</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="image">Imagen (opcional)</label>
+          <input type="file" id="image" accept="image/*">
+        </div>
+        <button onclick="createTicket()">Crear Ticket</button>
+      </div>
+
+      <!-- Ver Tickets -->
+      <div id="viewTicketsSection" class="tickets-section" style="display: none;">
+        <h2>Tickets del Departamento (<span id="ticketDepartment"></span>)</h2>
+        <div class="filter-section">
+          <div class="form-group">
+            <label for="filterStatus">Estado</label>
+            <select id="filterStatus">
+              <option value="">Todos</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="En Proceso">En Proceso</option>
+              <option value="Resuelto">Resuelto</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filterId">ID del Ticket</label>
+            <input type="number" id="filterId" placeholder="ID">
+          </div>
+          <div class="form-group">
+            <label for="filterRequester">Solicitante</label>
+            <input type="text" id="filterRequester" placeholder="Nombre">
+          </div>
+          <div class="form-group">
+            <label for="filterCategory">Categoría</label>
+            <select id="filterCategory">
+              <option value="">Todas</option>
+              <option value="Baños">Baños</option>
+              <option value="Pintura">Pintura</option>
+              <option value="Electricidad">Electricidad</option>
+              <option value="Carpintería">Carpintería</option>
+              <option value="Computadora">Computadora</option>
+              <option value="Internet">Internet</option>
+              <option value="Software">Software</option>
+              <option value="Hardware">Hardware</option>
+            </select>
+          </div>
+          <button onclick="listTickets()">Filtrar</button>
+        </div>
+        <table id="ticketTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Solicitante</th>
+              <th>Fecha</th>
+              <th>Prioridad</th>
+              <th>Categoría</th>
+              <th>Estado</th>
+              <th>Asignado a</th>
+              <th>Editar</th>
+            </tr>
+          </thead>
+          <tbody id="ticketList"></tbody>
+        </table>
+      </div>
+
+      <!-- Mis Tickets -->
+      <div id="myTicketsSection" class="tickets-section" style="display: none;">
+        <h2>Mis Tickets</h2>
+        <div class="filter-section">
+          <div class="form-group">
+            <label for="myFilterStatus">Estado</label>
+            <select id="myFilterStatus">
+              <option value="">Todos</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="En Proceso">En Proceso</option>
+              <option value="Resuelto">Resuelto</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="myFilterId">ID del Ticket</label>
+            <input type="number" id="myFilterId" placeholder="ID">
+          </div>
+          <div class="form-group">
+            <label for="myFilterCategory">Categoría</label>
+            <select id="myFilterCategory">
+              <option value="">Todas</option>
+              <option value="Baños">Baños</option>
+              <option value="Pintura">Pintura</option>
+              <option value="Electricidad">Electricidad</option>
+              <option value="Carpintería">Carpintería</option>
+              <option value="Computadora">Computadora</option>
+              <option value="Internet">Internet</option>
+              <option value="Software">Software</option>
+              <option value="Hardware">Hardware</option>
+            </select>
+          </div>
+          <button onclick="listMyTickets()">Filtrar</button>
+        </div>
+        <table id="myTicketTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Solicitante</th>
+              <th>Fecha</th>
+              <th>Prioridad</th>
+              <th>Categoría</th>
+              <th>Estado</th>
+              <th>Asignado a</th>
+              <th>Ver</th>
+            </tr>
+          </thead>
+          <tbody id="myTicketList"></tbody>
+        </table>
+      </div>
+
+      <!-- Modal para detalles del ticket -->
+      <div id="ticketModal" class="modal">
+        <div class="modal-content">
+          <span class="close" onclick="closeModal()">×</span>
+          <h2>Detalles del Ticket</h2>
+          <div id="ticketDetails"></div>
+          <h3>Historial de Estados</h3>
+          <div id="statusHistory"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let availableUsers = [];
+
+    async function loadAvailableUsers() {
+      try {
+        const response = await fetch(`/api/users/available?userId=${currentUser.id}`);
+        availableUsers = await response.json();
+      } catch (err) {
+        console.error('Error al cargar usuarios disponibles:', err);
+      }
+    }
+
+    function showLogin() {
+      document.getElementById('loginSection').style.display = 'block';
+      document.getElementById('adminSection').style.display = 'none';
+      document.getElementById('ticketSystem').style.display = 'none';
+      document.getElementById('loginError').textContent = '';
+    }
+
+    function showAdminSection() {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('adminSection').style.display = 'block';
+      document.getElementById('ticketSystem').style.display = 'none';
+      listUsers();
+    }
+
+    function showTicketSystem() {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('adminSection').style.display = 'none';
+      document.getElementById('ticketSystem').style.display = 'block';
+      document.getElementById('ticketDepartment').textContent = currentUser.role === 'admin' ? 'Todos' : currentUser.department;
+      loadAvailableUsers();
+      showCreateTicket();
+    }
+
+    function showCreateTicket() {
+      document.getElementById('createTicketSection').style.display = 'block';
+      document.getElementById('viewTicketsSection').style.display = 'none';
+      document.getElementById('myTicketsSection').style.display = 'none';
+      document.getElementById('changePasswordSection').style.display = 'none';
+      document.getElementById('requester').value = currentUser.username;
+      document.getElementById('date').value = new Date().toISOString().split('T')[0];
+      updateCategories();
+    }
+
+    function showViewTickets() {
+      document.getElementById('createTicketSection').style.display = 'none';
+      document.getElementById('viewTicketsSection').style.display = 'block';
+      document.getElementById('myTicketsSection').style.display = 'none';
+      document.getElementById('changePasswordSection').style.display = 'none';
+      listTickets();
+    }
+
+    function showMyTickets() {
+      document.getElementById('createTicketSection').style.display = 'none';
+      document.getElementById('viewTicketsSection').style.display = 'none';
+      document.getElementById('myTicketsSection').style.display = 'block';
+      document.getElementById('changePasswordSection').style.display = 'none';
+      listMyTickets();
+    }
+
+    function showChangePassword() {
+      document.getElementById('createTicketSection').style.display = 'none';
+      document.getElementById('viewTicketsSection').style.display = 'none';
+      document.getElementById('myTicketsSection').style.display = 'none';
+      document.getElementById('changePasswordSection').style.display = 'block';
+      document.getElementById('changePasswordError').textContent = '';
+    }
+
+    async function login() {
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+      const error = document.getElementById('loginError');
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await response.json();
+        if (data.error) {
+          error.textContent = data.error;
+          return;
+        }
+        currentUser = data;
+        console.log('Usuario logueado:', currentUser);
+        document.getElementById('currentUser').textContent = data.username;
+        document.getElementById('currentDepartment').textContent = data.department;
+        document.getElementById('adminUser').textContent = data.username;
+        document.getElementById('adminButton').style.display = data.role === 'admin' ? 'block' : 'none';
+        if (data.role === 'admin') {
+          showAdminSection();
+        } else {
+          showTicketSystem();
+        }
+      } catch (err) {
+        error.textContent = 'Error en el servidor';
+      }
+    }
+
+    async function register() {
+      const username = document.getElementById('registerUsername').value;
+      const password = document.getElementById('registerPassword').value;
+      const email = document.getElementById('registerEmail').value;
+      const department = document.getElementById('registerDepartment').value;
+      const role = document.getElementById('registerRole').value;
+      const error = document.getElementById('registerError');
+
+      if (!email || !email.includes('@')) {
+        error.textContent = 'Por favor, ingresa un correo electrónico válido';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, email, department, role, adminId: currentUser.id })
+        });
+        const data = await response.json();
+        if (data.error) {
+          error.textContent = data.error;
+          return;
+        }
+        alert('Usuario creado');
+        document.getElementById('registerUsername').value = '';
+        document.getElementById('registerPassword').value = '';
+        document.getElementById('registerEmail').value = '';
+        listUsers();
+      } catch (err) {
+        error.textContent = 'Error en el servidor';
+      }
+    }
+
+    async function listUsers() {
+      const userList = document.getElementById('userList');
+      try {
+        const response = await fetch(`/api/users?adminId=${currentUser.id}`);
+        const users = await response.json();
+        userList.innerHTML = '';
+        if (users.length === 0) {
+          userList.innerHTML = '<p>No hay usuarios registrados.</p>';
+          return;
+        }
+        users.forEach(user => {
+          const userDiv = document.createElement('div');
+          userDiv.className = 'ticket';
+          userDiv.innerHTML = `
+            <p><strong>ID:</strong> ${user.id}</p>
+            <p><strong>Usuario:</strong> ${user.username}</p>
+            <p><strong>Correo:</strong> ${user.email}</p>
+            <p><strong>Departamento:</strong> ${user.department}</p>
+            <p><strong>Rol:</strong> ${user.role}</p>
+          `;
+          userList.appendChild(userDiv);
+        });
+      } catch (err) {
+        userList.innerHTML = '<p>Error al cargar usuarios.</p>';
+      }
+    }
+
+    async function changePassword() {
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const error = document.getElementById('changePasswordError');
+
+      if (!currentPassword || !newPassword) {
+        error.textContent = 'Por favor, completa todos los campos';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/users/${currentUser.id}/password`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword, userId: currentUser.id })
+        });
+        const data = await response.json();
+        if (data.error) {
+          error.textContent = data.error;
+          return;
+        }
+        alert('Contraseña cambiada exitosamente');
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        showCreateTicket();
+      } catch (err) {
+        error.textContent = 'Error en el servidor';
+      }
+    }
+
+    async function createTicket() {
+      const requester = document.getElementById('requester').value;
+      const date = document.getElementById('date').value;
+      const location = document.getElementById('location').value;
+      const department = document.getElementById('department').value;
+      const categorySelect = document.getElementById('category');
+      const category = categorySelect.value || (department === 'Sistemas' ? 'Sistemas' : '');
+      const description = document.getElementById('description').value;
+      const priority = document.getElementById('priority').value;
+      const image = document.getElementById('image').files[0];
+
+      if (!requester || !date || !location || !category || !description || !priority || !department) {
+        alert('Por favor, completa todos los campos obligatorios.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('requester', requester);
+      formData.append('date', date);
+      formData.append('location', location);
+      formData.append('category', category);
+      formData.append('description', description);
+      formData.append('priority', priority);
+      formData.append('userId', currentUser.id);
+      formData.append('department', department);
+      if (image) formData.append('image', image);
+
+      console.log('Enviando ticket con:', { requester, date, location, category, description, priority, department, userId: currentUser.id });
+
+      try {
+        const response = await fetch('/api/tickets', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await response.json();
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('location').value = '';
+        document.getElementById('department').value = '';
+        categorySelect.innerHTML = '<option value="" disabled selected>Selecciona una categoría</option>';
+        document.getElementById('description').value = '';
+        document.getElementById('priority').value = 'Baja';
+        document.getElementById('image').value = '';
+        alert('Ticket creado exitosamente');
+        showMyTickets();
+      } catch (err) {
+        console.error('Error al crear ticket:', err);
+        alert('Error en el servidor');
+      }
+    }
+
+    async function listTickets() {
+      const ticketList = document.getElementById('ticketList');
+      const status = document.getElementById('filterStatus').value;
+      const ticketId = document.getElementById('filterId').value;
+      const requester = document.getElementById('filterRequester').value;
+      const category = document.getElementById('filterCategory').value;
+
+      if (!currentUser || !currentUser.id) {
+        console.error('Usuario no autenticado:', currentUser);
+        ticketList.innerHTML = '<tr><td colspan="8">Debes iniciar sesión para ver los tickets.</td></tr>';
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.append('userId', currentUser.id);
+      if (status && status !== 'Todos') params.append('status', status);
+      if (ticketId && ticketId !== '') params.append('ticketId', ticketId);
+      if (requester && requester !== '') params.append('requester', requester);
+      if (category && category !== 'Todas') params.append('category', category);
+
+      const query = `/api/tickets?${params.toString()}`;
+      console.log('Fetching tickets with URL:', query);
+
+      try {
+        const response = await fetch(query);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const tickets = await response.json();
+        ticketList.innerHTML = '';
+        if (tickets.length === 0) {
+          ticketList.innerHTML = '<tr><td colspan="8">No hay tickets para este criterio.</td></tr>';
+          return;
+        }
+        tickets.forEach(ticket => {
+          const row = document.createElement('tr');
+          row.style.cursor = 'pointer';
+          row.onclick = () => showTicketDetails(ticket);
+          const statusClass = ticket.status === 'Pendiente' ? 'status-pending' :
+                            ticket.status === 'En Proceso' ? 'status-in-progress' :
+                            'status-resolved';
+          const isResolved = ticket.status === 'Resuelto';
+          const isAdmin = currentUser.role === 'admin';
+          const editDisabled = isResolved && !isAdmin ? 'disabled' : '';
+          row.innerHTML = `
+            <td>${ticket.id}</td>
+            <td>${ticket.requester}</td>
+            <td>${ticket.created_at}</td>
+            <td>${ticket.priority}</td>
+            <td>${ticket.category || 'No especificada'}</td>
+            <td class="${statusClass}">${ticket.status}</td>
+            <td>${ticket.assigned_username || 'No asignado'}</td>
+            <td><button ${editDisabled} onclick="editTicket(${ticket.id}); event.stopPropagation()">Editar</button></td>
+          `;
+          row.querySelector('button').dataset.ticket = JSON.stringify(ticket);
+          ticketList.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Error fetching tickets:', err);
+        ticketList.innerHTML = '<tr><td colspan="8">Error al cargar tickets.</td></tr>';
+      }
+    }
+
+    async function listMyTickets() {
+      const ticketList = document.getElementById('myTicketList');
+      const status = document.getElementById('myFilterStatus').value;
+      const ticketId = document.getElementById('myFilterId').value;
+      const category = document.getElementById('myFilterCategory').value;
+
+      if (!currentUser || !currentUser.id || !currentUser.username) {
+        console.error('Usuario no autenticado o datos incompletos:', currentUser);
+        ticketList.innerHTML = '<tr><td colspan="8">Debes iniciar sesión para ver tus tickets.</td></tr>';
+        return;
+      }
+
+      console.log('Usuario actual:', currentUser);
+      const params = new URLSearchParams();
+      params.append('userId', currentUser.id);
+      params.append('createdByUser', 'true');
+      if (status && status !== 'Todos') params.append('status', status);
+      if (ticketId && ticketId !== '') params.append('ticketId', ticketId);
+      if (category && category !== 'Todas') params.append('category', category);
+
+      const query = `/api/tickets?${params.toString()}`;
+      console.log('Solicitud a:', query);
+
+      try {
+        const response = await fetch(query);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const tickets = await response.json();
+        console.log('Respuesta del servidor:', tickets);
+
+        const filteredTickets = tickets.filter(ticket => ticket.requester === currentUser.username && ticket.user_id === currentUser.id);
+
+        ticketList.innerHTML = '';
+        if (filteredTickets.length === 0) {
+          ticketList.innerHTML = '<tr><td colspan="8">No has creado tickets que coincidan con este criterio.</td></tr>';
+          return;
+        }
+        filteredTickets.forEach(ticket => {
+          const row = document.createElement('tr');
+          row.style.cursor = 'pointer';
+          row.onclick = () => showTicketDetails(ticket, false);
+          const statusClass = ticket.status === 'Pendiente' ? 'status-pending' :
+                            ticket.status === 'En Proceso' ? 'status-in-progress' :
+                            'status-resolved';
+          row.innerHTML = `
+            <td>${ticket.id}</td>
+            <td>${ticket.requester}</td>
+            <td>${ticket.created_at}</td>
+            <td>${ticket.priority}</td>
+            <td>${ticket.category || 'No especificada'}</td>
+            <td class="${statusClass}">${ticket.status}</td>
+            <td>${ticket.assigned_username || 'No asignado'}</td>
+            <td><button onclick="showTicketDetails(JSON.parse(JSON.stringify(${JSON.stringify(ticket)})), false); event.stopPropagation()">Ver</button></td>
+          `;
+          ticketList.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Error fetching my tickets:', err);
+        ticketList.innerHTML = '<tr><td colspan="8">Error al cargar tus tickets.</td></tr>';
+      }
+    }
+
+    async function autoAssignTicket(id) {
+      try {
+        const response = await fetch(`/api/tickets/${id}/assign`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, assignedTo: currentUser.id })
+        });
+        const data = await response.json();
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        listTickets();
+        listMyTickets();
+      } catch (err) {
+        alert('Error al autoasignar ticket');
+      }
+    }
+
+    async function assignTicket(id) {
+      const assignedTo = parseInt(document.getElementById(`assign_${id}`).value);
+      if (!assignedTo) {
+        alert('Por favor, selecciona un usuario para asignar.');
+        return;
+      }
+      try {
+        const response = await fetch(`/api/tickets/${id}/assign`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, assignedTo })
+        });
+        const data = await response.json();
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        listTickets();
+        listMyTickets();
+      } catch (err) {
+        alert('Error al asignar ticket');
+      }
+    }
+
+    async function updateStatus(id) {
+      const status = document.getElementById(`status_${id}`).value;
+      const observations = document.getElementById(`obs_${id}`).value;
+      const fileInput = document.getElementById(`file_${id}`);
+      const file = fileInput ? fileInput.files[0] : null;
+
+      const formData = new FormData();
+      formData.append('status', status);
+      formData.append('userId', currentUser.id);
+      formData.append('observations', observations);
+      if (file) formData.append('file', file);
+
+      console.log('Enviando actualización para ticket ID:', id, 'con datos:', { status, userId: currentUser.id, observations });
+
+      try {
+        const response = await fetch(`/api/tickets/${id}`, {
+          method: 'PUT',
+          body: formData
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        document.getElementById(`obs_${id}`).value = '';
+        if (fileInput) fileInput.value = '';
+        listTickets();
+        listMyTickets();
+      } catch (err) {
+        console.error('Error al actualizar estado:', err);
+        alert(err.message || 'Error al actualizar el estado del ticket');
+      }
+    }
+
+    async function reopenTicket(id) {
+      const observations = prompt('Ingresa observaciones para reabrir el ticket:');
+      if (observations === null) return;
+      try {
+        const response = await fetch(`/api/tickets/${id}/reopen`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, observations })
+        });
+        const data = await response.json();
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        listTickets();
+        listMyTickets();
+      } catch (err) {
+        alert('Error al reabrir ticket');
+      }
+    }
+
+    function calculateDuration(createdAt, resolvedAt) {
+      const [day, month, year, hour, minute, second] = createdAt.split(/[/ :]/);
+      const start = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+      const [rDay, rMonth, rYear, rHour, rMinute, rSecond] = resolvedAt.split(/[/ :]/);
+      const end = new Date(`${rYear}-${rMonth}-${rDay}T${rHour}:${rMinute}:${rSecond}`);
+      const diffMs = end - start;
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      let duration = '';
+      if (days > 0) duration += `${days} día${days > 1 ? 's' : ''} `;
+      if (hours > 0 || days > 0) duration += `${hours} hora${hours > 1 ? 's' : ''} `;
+      duration += `${minutes} minuto${minutes > 1 ? 's' : ''}`;
+      return duration.trim();
+    }
+
+async function showTicketDetails(ticket, editMode = false) {
+  const modal = document.getElementById('ticketModal');
+  const details = document.getElementById('ticketDetails');
+  const statusHistory = document.getElementById('statusHistory');
+
+  let detailsHtml = `
+    <p><strong>ID:</strong> ${ticket.id}</p>
+    <p><strong>Solicitante:</strong> ${ticket.requester}</p>
+    <p><strong>Fecha:</strong> ${ticket.date ? new Date(ticket.date).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }) : 'No especificada'}</p>
+    <p><strong>Lugar:</strong> ${ticket.location || 'No especificado'}</p>
+    <p><strong>Categoría:</strong> ${ticket.category || 'No especificada'}</p>
+    <p><strong>Solicitud:</strong> ${ticket.description || 'No especificada'}</p>
+    <p><strong>Prioridad:</strong> ${ticket.priority || 'No especificada'}</p>
+    <p><strong>Departamento:</strong> ${ticket.department || 'No especificado'}</p>
+    <p><strong>Estado:</strong> ${ticket.status || 'No especificado'}</p>
+    <p><strong>Asignado a:</strong> ${ticket.assigned_username || 'No asignado'}</p>
+    <p><strong>Creado:</strong> ${ticket.created_at || 'No especificado'}</p>
+  `;
+
+  // Manejo del archivo adjunto del ticket (si existe)
+  if (ticket.image) {
+    const fileExtension = ticket.image.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+      detailsHtml += `<img src="${ticket.image}" alt="Imagen del ticket" style="max-width: 100%; height: auto;">`;
+    } else if (fileExtension === 'pdf') {
+      detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar PDF</a></p>`;
+    } else if (fileExtension === 'xlsx') {
+      detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar Excel</a></p>`;
+    } else {
+      detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar archivo</a></p>`;
+    }
+  }
+
+  if (editMode) {
+    const hasAssignedUser = ticket.assigned_to !== null && ticket.assigned_to !== undefined;
+    const isAssignedToCurrentUser = ticket.assigned_to === currentUser.id;
+    const canAssign = currentUser.role === 'admin' || currentUser.role === 'supervisor';
+    const canEdit = currentUser.role === 'admin' || isAssignedToCurrentUser;
+    const canTransfer = currentUser.role === 'admin' || isAssignedToCurrentUser;
+
+    detailsHtml += `<h3>Editar Ticket</h3>`;
+
+    // Opción de autoasignarse (si no está asignado y el usuario no es supervisor)
+    if (!hasAssignedUser && currentUser.role !== 'supervisor') {
+      detailsHtml += `
+        <div class="form-group">
+          <label>Autoasignarme</label>
+          <button onclick="autoAssignTicket(${ticket.id}); closeModal();">Autoasignarme</button>
+        </div>
+      `;
+    }
+
+    // Opción de asignar a otro usuario (solo para admins y supervisores)
+    if (canAssign) {
+      detailsHtml += `
+        <div class="form-group">
+          <label>Asignar a</label>
+          <select id="assign_${ticket.id}">
+            <option value="">Seleccionar usuario</option>
+            ${availableUsers.map(user => `
+              <option value="${user.id}" ${ticket.assigned_to === user.id ? 'selected' : ''}>
+                ${user.username} (${user.department})
+              </option>
+            `).join('')}
+          </select>
+          <button onclick="assignTicket(${ticket.id}); closeModal();">Asignar</button>
+        </div>
+      `;
+    }
+
+    // Opciones de edición (observaciones, archivo, estado) solo para admins y el usuario asignado
+    if (canEdit) {
+      detailsHtml += `
+        <div class="form-group">
+          <label>Observaciones</label>
+          <input type="text" id="obs_${ticket.id}" placeholder="Observaciones">
+        </div>
+        <div class="form-group">
+          <label>Adjuntar Archivo (Imagen/PDF/XLSX)</label>
+          <input type="file" id="file_${ticket.id}" accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        </div>
+        <div class="form-group">
+          <label>Acción (Estado)</label>
+          <select id="status_${ticket.id}">
+            <option value="Pendiente" ${ticket.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+            <option value="En Proceso" ${ticket.status === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
+            <option value="Resuelto" ${ticket.status === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
+          </select>
+          <button onclick="updateStatus(${ticket.id}); closeModal();">Actualizar</button>
+        </div>
+      `;
+    }
+
+    // Opción de transferir departamento (solo para admins y el usuario asignado)
+    if (canTransfer) {
+      detailsHtml += `
+        <div class="form-group">
+          <label>Transferir a Departamento</label>
+          <select id="transferDepartment_${ticket.id}">
+            <option value="">Seleccionar departamento</option>
+            <option value="Sistemas" ${ticket.department === 'Sistemas' ? 'disabled' : ''}>Sistemas</option>
+            <option value="Mantenimiento" ${ticket.department === 'Mantenimiento' ? 'disabled' : ''}>Mantenimiento</option>
+          </select>
+          <button onclick="transferTicket(${ticket.id}); event.stopPropagation()">Transferir</button>
+        </div>
+      `;
+    }
+  }
+
+  try {
+    console.log('Solicitando historial para ticket ID:', ticket.id);
+    const response = await fetch(`/api/tickets/${ticket.id}/history?userId=${currentUser.id}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+    }
+    const history = await response.json();
+    console.log('Historial recibido:', history);
+
+    if (history.error) {
+      statusHistory.innerHTML = `<p>${history.error}</p>`;
+    } else if (history.length === 0) {
+      statusHistory.innerHTML = '<p>No hay historial de estados registrado.</p>';
+    } else {
+      let historyHtml = '<ul class="status-history">';
+      history.forEach(entry => {
+        let attachmentHtml = '';
+        if (entry.attachment) {
+          const fileExtension = entry.attachment.split('.').pop().toLowerCase();
+          if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+            attachmentHtml = `<img src="${entry.attachment}" alt="Archivo adjunto" style="max-width: 100%; height: auto;">`;
+          } else if (fileExtension === 'pdf') {
+            attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar PDF</a></p>`;
+          } else if (fileExtension === 'xlsx') {
+            attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar Excel</a></p>`;
+          } else {
+            attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar archivo</a></p>`;
+          }
+        }
+        historyHtml += `
+          <li>
+            <p><strong>Estado:</strong> ${entry.status}</p>
+            <p><strong>Fecha:</strong> ${entry.changed_at}</p>
+            <p><strong>Usuario:</strong> ${entry.username || 'Desconocido'}</p>
+            <p><strong>Observaciones:</strong> ${entry.observations || 'Ninguna'}</p>
+            ${attachmentHtml}
+          </li>
+        `;
+      });
+      historyHtml += '</ul>';
+
+      if (ticket.status === 'Resuelto') {
+        const resolvedEntry = history.find(entry => entry.status === 'Resuelto');
+        if (resolvedEntry) {
+          const duration = calculateDuration(ticket.created_at, resolvedEntry.changed_at);
+          detailsHtml += `<p><strong>Duración Total:</strong> ${duration}</p>`;
+        }
+      }
+
+      statusHistory.innerHTML = historyHtml;
+    }
+  } catch (err) {
+    console.error('Error al cargar historial:', err);
+    statusHistory.innerHTML = `<p>${err.message || 'Error al cargar historial'}</p>`;
+  }
+
+  details.innerHTML = detailsHtml;
+  modal.style.display = 'block';
+}
+
+    function closeModal() {
+      document.getElementById('ticketModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+      const modal = document.getElementById('ticketModal');
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      availableUsers = [];
+      showLogin();
+    }
+
+    function updateCategories() {
+      const department = document.getElementById('department').value;
+      const categorySelect = document.getElementById('category');
+      categorySelect.innerHTML = '<option value="" disabled selected>Selecciona una categoría</option>';
+
+      let categories = [];
+      if (department === 'Sistemas') {
+        categories = ['Computadora', 'Internet', 'Software', 'Hardware'];
+      } else if (department === 'Mantenimiento') {
+        categories = ['Baños', 'Pintura', 'Electricidad', 'Carpintería'];
+      }
+
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+      });
+    }
+
+    function editTicket(id) {
+      const button = event.target;
+      const ticket = JSON.parse(button.dataset.ticket);
+      showTicketDetails(ticket, true);
+    }
+
+    async function transferTicket(id) {
+      const newDepartment = document.getElementById(`transferDepartment_${id}`).value;
+      const observations = prompt('Ingresa observaciones para la transferencia:');
+      if (!newDepartment || newDepartment === '' || observations === null) {
+        alert('Por favor, selecciona un departamento y agrega observaciones.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/tickets/${id}/transfer`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, newDepartment, observations })
+        });
+        const data = await response.json();
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        alert('Ticket transferido exitosamente');
+        closeModal();
+        listTickets();
+        listMyTickets();
+      } catch (err) {
+        alert('Error al transferir el ticket');
+      }
+    }
+  </script>
+</body>
+</html>
