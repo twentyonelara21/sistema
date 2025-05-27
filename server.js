@@ -11,26 +11,34 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Crear directorio de uploads si no existe
+// Create uploads directory if it doesn't exist
+// WARNING: Render uses an ephemeral filesystem; files in ./uploads will be lost on restart.
+// Consider using AWS S3 for persistent storage in production.
 const uploadDir = './uploads';
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-// Configuración de MySQL
+// MySQL configuration for remote cPanel database
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'ticket_system',
+  host: process.env.DB_HOST, // Will be set to '192.232.251.94' in Render
+  user: process.env.DB_USER, // Will be set to 'healthy_tickets' in Render
+  password: process.env.DB_PASSWORD, // Will be set to 'T3cn0l0g14s20' in Render
+  database: process.env.DB_NAME, // Will be set to 'healthy_ticket_system' in Render
+  port: process.env.DB_PORT || 3306, // Default MySQL port; update if different
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  // Enable SSL for secure connection (uncomment if your cPanel MySQL supports SSL)
+  // ssl: {
+  //   rejectUnauthorized: true // Set to false if self-signed certificates are used
+  //   // ca: fs.readFileSync('/path/to/ca-cert.pem') // Provide CA certificate if required
+  // }
 });
 
 // Middleware
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL,
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
@@ -38,7 +46,7 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
-// Configuración de multer para subir archivos
+// Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: './uploads',
   filename: (req, file, cb) => {
@@ -64,33 +72,33 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ 
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // Límite de 5MB
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// Configuración de Nodemailer
+// Nodemailer configuration
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'mail.healthypeopleco.com',
-  port: process.env.SMTP_PORT || 587,
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT, 10) || 587,
   secure: false,
   auth: {
-    user: process.env.SMTP_USER || 'sistemas@healthypeopleco.com',
-    pass: process.env.SMTP_PASS || 'T3cn0l0g14s20'
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
   },
   tls: {
     rejectUnauthorized: false
   }
 });
 
-// Verificar conexión SMTP
+// Verify SMTP connection
 transporter.verify((error, success) => {
   if (error) {
-    console.log('Error al verificar el transporter:', error);
+    console.error('Error al verificar el transporter:', error);
   } else {
     console.log('Conexión SMTP verificada exitosamente');
   }
 });
 
-// Inicializar base de datos
+// Initialize database
 async function initDb() {
   let connection;
   try {
@@ -176,10 +184,10 @@ async function initDb() {
   }
 }
 
-// Función para enviar correo de bienvenida
+// Send welcome email
 async function sendWelcomeEmail(email, username, password) {
   const mailOptions = {
-    from: process.env.SMTP_FROM || 'sistemashp@healthypeopleco.com',
+    from: process.env.SMTP_FROM,
     to: email,
     subject: 'Bienvenido al Sistema de Tickets',
     text: `Hola ${username},\n\nBienvenido al Sistema de Tickets. Tus credenciales son:\nUsuario: ${username}\nContraseña: ${password}\n\nPor favor, cambia tu contraseña después de iniciar sesión.\n\nSaludos,\nEl equipo de Soporte`
@@ -188,13 +196,13 @@ async function sendWelcomeEmail(email, username, password) {
   try {
     await transporter.sendMail(mailOptions);
     console.log('Correo de bienvenida enviado a:', email);
-  } catch (err) {
-    console.error('Error al enviar correo de bienvenida:', err);
-    throw err;
+  } catch (error) {
+    console.error('Error al enviar correo de bienvenida:', error);
+    throw error;
   }
 }
 
-// Función para obtener los correos de todos los usuarios del departamento
+// Get department emails
 async function getDepartmentEmails(department) {
   try {
     const [users] = await pool.query(
@@ -211,14 +219,14 @@ async function getDepartmentEmails(department) {
       }
     }
     console.warn(`No se encontraron correos válidos para el departamento ${department}. Usando fallback.`);
-    return [process.env.SMTP_FALLBACK || 'soporte@healthypeopleco.com'];
-  } catch (err) {
-    console.error(`Error al obtener correos del departamento ${department}:`, err);
-    return [process.env.SMTP_FALLBACK || 'soporte@healthypeopleco.com'];
+    return [process.env.SMTP_FALLBACK];
+  } catch (error) {
+    console.error(`Error al obtener correos del departamento ${department}:`, error);
+    return [process.env.SMTP_FALLBACK];
   }
 }
 
-// Función para enviar correo al departamento cuando se crea un ticket
+// Send ticket creation email
 async function sendTicketCreationEmail(ticketId, department, requester, description) {
   const departmentEmails = await getDepartmentEmails(department);
   if (departmentEmails.length === 0 || !departmentEmails[0] || !departmentEmails[0].includes('@')) {
@@ -226,34 +234,34 @@ async function sendTicketCreationEmail(ticketId, department, requester, descript
     return;
   }
   const mailOptions = {
-    from: process.env.SMTP_FROM || 'sistemashp@healthypeopleco.com',
-    to: departmentEmails.join(', '),
+    from: process.env.SMTP_FROM,
+    to: departmentEmails.join(','),
     subject: `Nueva Solicitud de Ticket #${ticketId}`,
-    text: `Hola equipo del departamento de ${department},\n\nSe ha creado una nueva solicitud de ticket con los siguientes detalles:\n\n- ID del Ticket: ${ticketId}\n- Solicitante: ${requester}\n- Descripción: ${description}\n\nPor favor, revisa y asigna el ticket lo antes posible.\n\nSaludos,\nEl Sistema de Tickets`
+    text: `Hola equipo del departamento ${department},\n\nSe ha creado una nueva solicitud de ticket con los siguientes detalles:\n\n- ID del Ticket: ${ticketId}\n- Solicitante: ${requester}\n- Descripción: ${description}\n\nPor favor, revisa y asigna el ticket lo antes posible.\n\nSaludos,\nEl Sistema de Tickets`
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Correo enviado a los destinatarios del departamento:', departmentEmails.join(', '));
-  } catch (err) {
-    console.error('Error al enviar correo al departamento:', err);
+    console.log('Correo enviado a los destinatarios del departamento:', departmentEmails.join(','));
+  } catch (error) {
+    console.error('Error al enviar correo al departamento:', error);
   }
 }
 
-// Función para enviar correo al solicitante cuando cambia el estado
-async function sendStatusUpdateEmail(ticketId, requester, newStatus, observations, requesterEmail) {
+// Send status update email
+async function sendStatusUpdateEmail(ticketId, requester, newStatus, observations, email) {
   const mailOptions = {
-    from: process.env.SMTP_FROM || 'sistemashp@healthypeopleco.com',
-    to: requesterEmail,
+    from: process.env.SMTP_FROM,
+    to: email,
     subject: `Actualización del Ticket #${ticketId}`,
     text: `Hola ${requester},\n\nEl estado de tu ticket #${ticketId} ha sido actualizado:\n\n- Nuevo Estado: ${newStatus}\n- Observaciones: ${observations || 'Sin observaciones'}\n\nSi necesitas más información, contacta al soporte.\n\nSaludos,\nEl Sistema de Tickets`
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Correo enviado al solicitante:', requesterEmail);
-  } catch (err) {
-    console.error('Error al enviar correo al solicitante:', err);
+    console.log('Correo enviado al cliente:', email);
+  } catch (error) {
+    console.error('Error al enviar correo al cliente:', error);
   }
 }
 
@@ -275,13 +283,13 @@ app.post('/api/login', async (req, res) => {
     }
     console.log('Login exitoso:', username);
     res.json({ id: user.id, username: user.username, department: user.department, role: user.role });
-  } catch (err) {
-    console.error('Error en /api/login:', err);
+  } catch (error) {
+    console.error('Error en /api/login:', error);
     res.status(500).json({ error: 'Error en el servidor' });
   }
 });
 
-// Endpoint: Crear usuario (solo admin)
+// Endpoint: Create user (admin only)
 app.post('/api/users', async (req, res) => {
   const { username, password, email, department, role, adminId } = req.body;
   console.log('Creando usuario:', username);
@@ -312,19 +320,19 @@ app.post('/api/users', async (req, res) => {
     );
     try {
       await sendWelcomeEmail(email, username, password);
-    } catch (emailErr) {
-      console.error('No se pudo enviar el correo, pero el usuario fue creado:', emailErr);
+    } catch (emailError) {
+      console.error('No se pudo enviar el correo, pero el usuario fue creado:', emailError);
       return res.status(201).json({ message: 'Usuario creado, pero no se pudo enviar el correo de bienvenida' });
     }
     console.log('Usuario creado:', username);
     res.json({ message: 'Usuario creado' });
-  } catch (err) {
-    console.error('Error en /api/users:', err);
-    if (err.code === 'ER_DUP_ENTRY') {
-      if (err.sqlMessage.includes('username')) {
+  } catch (error) {
+    console.error('Error en /api/users:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      if (error.sqlMessage.includes('username')) {
         return res.status(400).json({ error: 'El nombre de usuario ya existe' });
       }
-      if (err.sqlMessage.includes('email')) {
+      if (error.sqlMessage.includes('email')) {
         return res.status(400).json({ error: 'El correo ya está registrado' });
       }
     }
@@ -332,7 +340,7 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Endpoint: Listar usuarios (solo admin)
+// Endpoint: List users (admin only)
 app.get('/api/users', async (req, res) => {
   const { adminId } = req.query;
   console.log('Listando usuarios, adminId:', adminId);
@@ -345,13 +353,13 @@ app.get('/api/users', async (req, res) => {
     const [users] = await pool.query('SELECT id, username, email, department, role FROM users');
     console.log('Usuarios listados:', users.length);
     res.json(users);
-  } catch (err) {
-    console.error('Error en /api/users:', err);
+  } catch (error) {
+    console.error('Error en /api/users:', error);
     res.status(500).json({ error: 'Error al listar usuarios' });
   }
 });
 
-// Endpoint: Listar usuarios disponibles para asignación
+// Endpoint: List available users for assignment
 app.get('/api/users/available', async (req, res) => {
   const { userId } = req.query;
   console.log('Listando usuarios disponibles, userId:', userId);
@@ -370,13 +378,13 @@ app.get('/api/users/available', async (req, res) => {
     }
     console.log('Usuarios disponibles:', availableUsers.length);
     res.json(availableUsers);
-  } catch (err) {
-    console.error('Error en /api/users/available:', err);
+  } catch (error) {
+    console.error('Error en /api/users/available:', error);
     res.status(500).json({ error: 'Error al listar usuarios disponibles' });
   }
 });
 
-// Endpoint: Cambiar contraseña
+// Endpoint: Change password
 app.put('/api/users/:id/password', async (req, res) => {
   const { id } = req.params;
   const { currentPassword, newPassword, userId } = req.body;
@@ -401,13 +409,13 @@ app.put('/api/users/:id/password', async (req, res) => {
     await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, id]);
     console.log('Contraseña cambiada para usuario ID:', id);
     res.json({ message: 'Contraseña cambiada exitosamente' });
-  } catch (err) {
-    console.error('Error en /api/users/:id/password:', err);
+  } catch (error) {
+    console.error('Error en /api/users/:id/password:', error);
     res.status(500).json({ error: 'Error al cambiar contraseña' });
   }
 });
 
-// Endpoint: Crear ticket
+// Endpoint: Create ticket
 app.post('/api/tickets', upload.single('image'), async (req, res) => {
   const { requester, date, location, category, description, priority, userId, department } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : null;
@@ -432,16 +440,16 @@ app.post('/api/tickets', upload.single('image'), async (req, res) => {
 
     await sendTicketCreationEmail(ticketId, department, requester, description);
     res.json({ message: 'Ticket creado', ticketId });
-  } catch (err) {
-    console.error('Error en /api/tickets:', err);
-    if (err.message.includes('Tipo de archivo no permitido')) {
-      return res.status(400).json({ error: err.message });
+  } catch (error) {
+    console.error('Error en /api/tickets:', error);
+    if (error.message.includes('Tipo de archivo no permitido')) {
+      return res.status(400).json({ error: error.message });
     }
-    res.status(500).json({ error: 'Error al crear ticket', details: err.message });
+    res.status(500).json({ error: 'Error al crear ticket', details: error.message });
   }
 });
 
-// Endpoint: Listar tickets (con filtros)
+// Endpoint: List tickets (with filters)
 app.get('/api/tickets', async (req, res) => {
   const { userId, status, ticketId, requester, category: filterCategory, createdByUser } = req.query;
   console.log('Listando tickets, userId:', userId, 'filters:', { status, ticketId, requester, filterCategory, createdByUser });
@@ -497,13 +505,13 @@ app.get('/api/tickets', async (req, res) => {
     const [tickets] = await pool.query(query, params);
     console.log('Tickets devueltos:', tickets.map(t => ({ id: t.id, user_id: t.user_id, requester: t.requester })));
     res.json(tickets);
-  } catch (err) {
-    console.error('Error en /api/tickets:', err);
-    res.status(500).json({ error: 'Error al listar tickets', details: err.message });
+  } catch (error) {
+    console.error('Error en /api/tickets:', error);
+    res.status(500).json({ error: 'Error al listar tickets', details: error.message });
   }
 });
 
-// Endpoint: Asignar ticket
+// Endpoint: Assign ticket
 app.put('/api/tickets/:id/assign', async (req, res) => {
   const { id } = req.params;
   const { userId, assignedTo } = req.body;
@@ -554,13 +562,13 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
     );
     console.log('Ticket asignado, ID:', id);
     res.json({ message: 'Ticket asignado' });
-  } catch (err) {
-    console.error('Error en /api/tickets/:id/assign:', err);
+  } catch (error) {
+    console.error('Error en /api/tickets/:id/assign:', error);
     res.status(500).json({ error: 'Error al asignar ticket' });
   }
 });
 
-// Endpoint: Transferir ticket
+// Endpoint: Transfer ticket
 app.put('/api/tickets/:id/transfer', async (req, res) => {
   const { id } = req.params;
   const { userId, newDepartment, observations } = req.body;
@@ -599,13 +607,13 @@ app.put('/api/tickets/:id/transfer', async (req, res) => {
     );
     console.log('Ticket transferido, ID:', id, 'a:', newDepartment);
     res.json({ message: 'Ticket transferido' });
-  } catch (err) {
-    console.error('Error en /api/tickets/:id/transfer:', err);
+  } catch (error) {
+    console.error('Error en /api/tickets/:id/transfer:', error);
     res.status(500).json({ error: 'Error al transferir ticket' });
   }
 });
 
-// Endpoint: Actualizar estado del ticket
+// Endpoint: Update ticket status
 app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
   const { id } = req.params;
   const { status, userId, observations } = req.body;
@@ -649,7 +657,7 @@ app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
     const [requesterInfo] = await pool.query('SELECT email FROM users WHERE id = ?', [ticket.user_id]);
     const requesterEmail = requesterInfo.length > 0 && requesterInfo[0].email && requesterInfo[0].email.includes('@') 
       ? requesterInfo[0].email 
-      : process.env.SMTP_FALLBACK || 'soporte@healthypeopleco.com';
+      : process.env.SMTP_FALLBACK;
 
     await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [status, id]);
     await pool.query(
@@ -663,16 +671,16 @@ app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
     }
 
     res.json({ message: 'Estado actualizado' });
-  } catch (err) {
-    console.error('Error en /api/tickets/:id:', err);
-    if (err.message.includes('Tipo de archivo no permitido')) {
-      return res.status(400).json({ error: err.message });
+  } catch (error) {
+    console.error('Error en /api/tickets/:id:', error);
+    if (error.message.includes('Tipo de archivo no permitido')) {
+      return res.status(400).json({ error: error.message });
     }
-    res.status(500).json({ error: 'Error al actualizar estado', details: err.message });
+    res.status(500).json({ error: 'Error al actualizar estado', details: error.message });
   }
 });
 
-// Endpoint: Reabrir ticket (solo admin)
+// Endpoint: Reopen ticket (admin only)
 app.put('/api/tickets/:id/reopen', async (req, res) => {
   const { id } = req.params;
   const { userId, observations } = req.body;
@@ -705,13 +713,13 @@ app.put('/api/tickets/:id/reopen', async (req, res) => {
     );
     console.log('Ticket reabierto, ID:', id);
     res.json({ message: 'Ticket reabierto' });
-  } catch (err) {
-    console.error('Error en /api/tickets/:id/reopen:', err);
+  } catch (error) {
+    console.error('Error en /api/tickets/:id/reopen:', error);
     res.status(500).json({ error: 'Error al reabrir ticket' });
   }
 });
 
-// Endpoint: Obtener historial de estados de un ticket
+// Endpoint: Get ticket status history
 app.get('/api/tickets/:id/history', async (req, res) => {
   const { id } = req.params;
   const { userId } = req.query;
@@ -755,25 +763,26 @@ app.get('/api/tickets/:id/history', async (req, res) => {
     );
     console.log('Historial devuelto:', history.map(h => ({ status: h.status, changed_at: h.changed_at, attachment: h.attachment })));
     res.json(history);
-  } catch (err) {
-    console.error('Error en /api/tickets/:id/history:', err);
+  } catch (error) {
+    console.error('Error en /api/tickets/:id/history:', error);
     res.status(500).json({ error: 'Error al obtener historial' });
   }
 });
 
-// Middleware de manejo de errores
-app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Error:', error.stack);
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-// Iniciar servidor
+// Start server
 initDb()
   .then(() => {
     app.listen(port, '0.0.0.0', () => {
       console.log(`Servidor corriendo en puerto ${port}`);
     });
   })
-  .catch(err => {
-    console.error('No se pudo iniciar el servidor:', err);
+  .catch(error => {
+    console.error('No se pudo iniciar el servidor:', error);
+    process.exit(1);
   });
