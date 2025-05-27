@@ -1,10 +1,10 @@
 /* Variables de color personalizadas */
 :root {
   --encabezadospagina: #FF0000; /* Rojo para encabezados */
-  --parrafos: #00877A; /* Verde oscuro para párrafos y botones */
+  --parrafos: #00877F; /* Verde oscuro para párrafos y botones */
   --fondo-principal: #f3f4f6; /* Fondo general */
   --borde-suave: #e5e7eb; /* Borde y sombra suave */
-  --boton-hover: #006B5E; /* Tono más oscuro para hover de botones */
+  --boton-hover: #006b5e; /* Tono más oscuro para hover de botones */
   --boton-reopen: #10b981; /* Verde para botón de reabrir */
   --boton-reopen-hover: #059669; /* Verde oscuro para hover */
   --boton-logout: #ef4444; /* Rojo para logout */
@@ -12,8 +12,10 @@
   --boton-pdf: #8b5cf6; /* Morado para botón PDF */
   --boton-pdf-hover: #7c3aed; /* Morado oscuro para hover */
   --fondo-tabla: #f9fafb; /* Fondo de tabla */
-  --hover-tablerow: #f1f5f9; /* Hover de filas */
+  --hover-tabla: #f1f5f9; /* Hover de filas */
   --sombra: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra general */
+  --link-color: #2563eb; /* Azul para enlaces */
+  --link-hover: #1e40af; /* Azul oscuro para hover */
 }
 
 /* Reset y configuración base */
@@ -30,7 +32,7 @@ body {
   padding: 1rem;
   color: var(--parrafos);
   line-height: 1.6;
-  font-size: 16px; /* Base font size for rem units */
+  font-size: 16px;
 }
 
 .container {
@@ -74,7 +76,7 @@ h3 {
 }
 
 .section:hover {
-  transform: translateY(-0.3rem);
+  transform: translateY(-0.2rem);
 }
 
 /* Formularios */
@@ -104,14 +106,35 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 5px rgba(255, 0, 0, 0.3);
 }
 
-input[type="checkbox"] {
-  width: auto;
-  margin-right: 0.5rem;
-}
-
 textarea {
   resize: vertical;
   min-height: 6rem;
+}
+
+/* Enlaces */
+.link {
+  color: var(--link-color);
+  text-align: center;
+  display: block;
+  margin-top: 0.75rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: underline;
+}
+
+.link:hover {
+  color: var(--link-hover);
+}
+
+/* Mensajes de éxito */
+.success {
+  color: var(--boton-reopen);
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: rgba(16, 185, 129, 0.1);
+  border-radius: 0.25rem;
 }
 
 /* Botones */
@@ -125,7 +148,6 @@ button {
   border-radius: 8px;
   transition: background-color 0.3s ease;
   font-size: 1rem;
-  touch-action: manipulation; /* Improve touch responsiveness */
 }
 
 button:hover {
@@ -153,6 +175,15 @@ button.logout {
 
 button.logout:hover {
   background-color: var(--boton-logout-hover);
+}
+
+button.back {
+  background-color: var(--link-color);
+  margin-top: 0.5rem;
+}
+
+button.back:hover {
+  background-color: var(--link-hover);
 }
 
 button.pdf-button {
@@ -233,14 +264,6 @@ th, td {
   font-size: 0.875rem;
 }
 
-td .status-pending,
-td .status-in-progress,
-td .status-resolved {
-  margin: 0 auto;
-  text-align: center;
-  width: fit-content;
-}
-
 th {
   background-color: var(--fondo-tabla);
   font-weight: 600;
@@ -248,7 +271,7 @@ th {
 }
 
 tr:hover {
-  background-color: var(--hover-tablerow);
+  background-color: var(--hover-tabla);
   cursor: pointer;
 }
 
@@ -283,7 +306,7 @@ td button {
   max-width: 36rem;
   max-height: 90vh;
   overflow-y: auto;
-  margin: 0 auto;
+  margin: 2rem auto;
   position: relative;
   text-align: center;
   box-shadow: var(--sombra);
@@ -438,7 +461,6 @@ img {
     margin-bottom: 1rem;
   }
 
-  /* Formularios */
   .form-group {
     margin-bottom: 0.75rem;
   }
@@ -453,6 +475,11 @@ img {
     font-size: 0.875rem;
   }
 
+  .link {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+  }
+
   .ticket-nav {
     flex-direction: column;
   }
@@ -463,13 +490,12 @@ img {
     padding: 0.75rem;
   }
 
-  /* Tablas */
   #ticketTable, #myTicketTable {
     display: block;
   }
 
   #ticketTable thead, #myTicketTable thead {
-    display: none; /* Ocultar encabezados en móviles */
+    display: none;
   }
 
   #ticketTable tbody, #myTicketTable tbody {
@@ -511,13 +537,11 @@ img {
     font-size: 0.875rem;
   }
 
-  /* Ajustar estados para que no se desborden */
   .status-pending, .status-in-progress, .status-resolved {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
   }
 
-  /* Filtros */
   .filter-section {
     flex-direction: column;
   }
@@ -526,20 +550,16 @@ img {
     min-width: 100%;
   }
 
-  /* Modal */
   .modal-content {
     width: 95%;
     padding: 1rem;
     max-height: 85vh;
+    margin: 1rem auto;
   }
 
   .modal-content button {
     width: 100%;
     padding: 0.75rem;
-  }
-
-  .modal-content select, .modal-content input[type="text"] {
-    width: 100%;
   }
 
   .close {
@@ -574,7 +594,6 @@ img {
     min-width: 8rem;
   }
 
-  /* Tablas */
   th, td {
     padding: 0.5rem;
     font-size: 0.8rem;
@@ -589,12 +608,10 @@ img {
     font-size: 0.8rem;
   }
 
-  /* Filtros */
   .filter-section .form-group {
     min-width: 10rem;
   }
 
-  /* Modal */
   .modal-content {
     width: 80%;
     max-width: 30rem;
