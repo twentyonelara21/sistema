@@ -21,7 +21,22 @@
         <input type="password" id="loginPassword" placeholder="Contraseña" required>
       </div>
       <button onclick="login()">Iniciar Sesión</button>
+      <p><a href="#" onclick="showForgotPassword()">¿Olvidaste tu contraseña?</a></p>
       <p class="error" id="loginError"></p>
+    </div>
+
+    <!-- Pantalla de Recuperar Contraseña -->
+    <div id="forgotPasswordSection" class="section" style="display: none;">
+      <h1>Sistema de Tickets</h1>
+      <h2>Recuperar Contraseña</h2>
+      <div class="form-group">
+        <label for="resetEmail">Correo Electrónico</label>
+        <input type="email" id="resetEmail" placeholder="correo@ejemplo.com" required>
+      </div>
+      <button onclick="requestPasswordReset()">Enviar Solicitud</button>
+      <button onclick="showLogin()">Volver al Login</button>
+      <p class="error" id="resetError"></p>
+      <p class="success" id="resetSuccess"></p>
     </div>
 
     <!-- Pantalla de Gestión de Usuarios (Admin) -->
@@ -290,13 +305,27 @@
 
     function showLogin() {
       document.getElementById('loginSection').style.display = 'block';
+      document.getElementById('forgotPasswordSection').style.display = 'none';
       document.getElementById('adminSection').style.display = 'none';
       document.getElementById('ticketSystem').style.display = 'none';
       document.getElementById('loginError').textContent = '';
+      document.getElementById('resetError').textContent = '';
+      document.getElementById('resetSuccess').textContent = '';
+    }
+
+    function showForgotPassword() {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('forgotPasswordSection').style.display = 'block';
+      document.getElementById('adminSection').style.display = 'none';
+      document.getElementById('ticketSystem').style.display = 'none';
+      document.getElementById('resetEmail').value = '';
+      document.getElementById('resetError').textContent = '';
+      document.getElementById('resetSuccess').textContent = '';
     }
 
     function showAdminSection() {
       document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('forgotPasswordSection').style.display = 'none';
       document.getElementById('adminSection').style.display = 'block';
       document.getElementById('ticketSystem').style.display = 'none';
       listUsers();
@@ -304,6 +333,7 @@
 
     function showTicketSystem() {
       document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('forgotPasswordSection').style.display = 'none';
       document.getElementById('adminSection').style.display = 'none';
       document.getElementById('ticketSystem').style.display = 'block';
       document.getElementById('ticketDepartment').textContent = currentUser.role === 'admin' ? 'Todos' : currentUser.department;
@@ -367,13 +397,48 @@
         document.getElementById('currentDepartment').textContent = data.department;
         document.getElementById('adminUser').textContent = data.username;
         document.getElementById('adminButton').style.display = data.role === 'admin' ? 'block' : 'none';
-        if (data.role === 'admin') {
+        
+        if (data.mustChangePassword) {
+          alert('Debes cambiar tu contraseña temporal.');
+          showTicketSystem();
+          showChangePassword();
+        } else if (data.role === 'admin') {
           showAdminSection();
         } else {
           showTicketSystem();
         }
       } catch (err) {
         error.textContent = 'Error en el servidor';
+      }
+    }
+
+    async function requestPasswordReset() {
+      const email = document.getElementById('resetEmail').value;
+      const error = document.getElementById('resetError');
+      const success = document.getElementById('resetSuccess');
+
+      if (!email || !email.includes('@')) {
+        error.textContent = 'Por favor, ingresa un correo electrónico válido';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (data.error) {
+          error.textContent = data.error;
+          success.textContent = '';
+          return;
+        }
+        success.textContent = 'Se ha enviado una contraseña temporal a tu correo.';
+        error.textContent = '';
+      } catch (err) {
+        error.textContent = 'Error en el servidor';
+        success.textContent = '';
       }
     }
 
@@ -462,6 +527,7 @@
         alert('Contraseña cambiada exitosamente');
         document.getElementById('currentPassword').value = '';
         document.getElementById('newPassword').value = '';
+        currentUser.mustChangePassword = false;
         showCreateTicket();
       } catch (err) {
         error.textContent = 'Error en el servidor';
@@ -762,175 +828,175 @@
       return duration.trim();
     }
 
-async function showTicketDetails(ticket, editMode = false) {
-  const modal = document.getElementById('ticketModal');
-  const details = document.getElementById('ticketDetails');
-  const statusHistory = document.getElementById('statusHistory');
+    async function showTicketDetails(ticket, editMode = false) {
+      const modal = document.getElementById('ticketModal');
+      const details = document.getElementById('ticketDetails');
+      const statusHistory = document.getElementById('statusHistory');
 
-  let detailsHtml = `
-    <p><strong>ID:</strong> ${ticket.id}</p>
-    <p><strong>Solicitante:</strong> ${ticket.requester}</p>
-    <p><strong>Fecha:</strong> ${ticket.date ? new Date(ticket.date).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }) : 'No especificada'}</p>
-    <p><strong>Lugar:</strong> ${ticket.location || 'No especificado'}</p>
-    <p><strong>Categoría:</strong> ${ticket.category || 'No especificada'}</p>
-    <p><strong>Solicitud:</strong> ${ticket.description || 'No especificada'}</p>
-    <p><strong>Prioridad:</strong> ${ticket.priority || 'No especificada'}</p>
-    <p><strong>Departamento:</strong> ${ticket.department || 'No especificado'}</p>
-    <p><strong>Estado:</strong> ${ticket.status || 'No especificado'}</p>
-    <p><strong>Asignado a:</strong> ${ticket.assigned_username || 'No asignado'}</p>
-    <p><strong>Creado:</strong> ${ticket.created_at || 'No especificado'}</p>
-  `;
-
-  // Manejo del archivo adjunto del ticket (si existe)
-  if (ticket.image) {
-    const fileExtension = ticket.image.split('.').pop().toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-      detailsHtml += `<img src="${ticket.image}" alt="Imagen del ticket" style="max-width: 100%; height: auto;">`;
-    } else if (fileExtension === 'pdf') {
-      detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar PDF</a></p>`;
-    } else if (fileExtension === 'xlsx') {
-      detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar Excel</a></p>`;
-    } else {
-      detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar archivo</a></p>`;
-    }
-  }
-
-  if (editMode) {
-    const hasAssignedUser = ticket.assigned_to !== null && ticket.assigned_to !== undefined;
-    const isAssignedToCurrentUser = ticket.assigned_to === currentUser.id;
-    const canAssign = currentUser.role === 'admin' || currentUser.role === 'supervisor';
-    const canEdit = currentUser.role === 'admin' || isAssignedToCurrentUser;
-    const canTransfer = currentUser.role === 'admin' || isAssignedToCurrentUser;
-
-    detailsHtml += `<h3>Editar Ticket</h3>`;
-
-    // Opción de autoasignarse (si no está asignado y el usuario no es supervisor)
-    if (!hasAssignedUser && currentUser.role !== 'supervisor') {
-      detailsHtml += `
-        <div class="form-group">
-          <label>Autoasignarme</label>
-          <button onclick="autoAssignTicket(${ticket.id}); closeModal();">Autoasignarme</button>
-        </div>
+      let detailsHtml = `
+        <p><strong>ID:</strong> ${ticket.id}</p>
+        <p><strong>Solicitante:</strong> ${ticket.requester}</p>
+        <p><strong>Fecha:</strong> ${ticket.date ? new Date(ticket.date).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }) : 'No especificada'}</p>
+        <p><strong>Lugar:</strong> ${ticket.location || 'No especificado'}</p>
+        <p><strong>Categoría:</strong> ${ticket.category || 'No especificada'}</p>
+        <p><strong>Solicitud:</strong> ${ticket.description || 'No especificada'}</p>
+        <p><strong>Prioridad:</strong> ${ticket.priority || 'No especificada'}</p>
+        <p><strong>Departamento:</strong> ${ticket.department || 'No especificado'}</p>
+        <p><strong>Estado:</strong> ${ticket.status || 'No especificado'}</p>
+        <p><strong>Asignado a:</strong> ${ticket.assigned_username || 'No asignado'}</p>
+        <p><strong>Creado:</strong> ${ticket.created_at || 'No especificado'}</p>
       `;
-    }
 
-    // Opción de asignar a otro usuario (solo para admins y supervisores)
-    if (canAssign) {
-      detailsHtml += `
-        <div class="form-group">
-          <label>Asignar a</label>
-          <select id="assign_${ticket.id}">
-            <option value="">Seleccionar usuario</option>
-            ${availableUsers.map(user => `
-              <option value="${user.id}" ${ticket.assigned_to === user.id ? 'selected' : ''}>
-                ${user.username} (${user.department})
-              </option>
-            `).join('')}
-          </select>
-          <button onclick="assignTicket(${ticket.id}); closeModal();">Asignar</button>
-        </div>
-      `;
-    }
-
-    // Opciones de edición (observaciones, archivo, estado) solo para admins y el usuario asignado
-    if (canEdit) {
-      detailsHtml += `
-        <div class="form-group">
-          <label>Observaciones</label>
-          <input type="text" id="obs_${ticket.id}" placeholder="Observaciones">
-        </div>
-        <div class="form-group">
-          <label>Adjuntar Archivo (Imagen/PDF/XLSX)</label>
-          <input type="file" id="file_${ticket.id}" accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-        </div>
-        <div class="form-group">
-          <label>Acción (Estado)</label>
-          <select id="status_${ticket.id}">
-            <option value="Pendiente" ${ticket.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-            <option value="En Proceso" ${ticket.status === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
-            <option value="Resuelto" ${ticket.status === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
-          </select>
-          <button onclick="updateStatus(${ticket.id}); closeModal();">Actualizar</button>
-        </div>
-      `;
-    }
-
-    // Opción de transferir departamento (solo para admins y el usuario asignado)
-    if (canTransfer) {
-      detailsHtml += `
-        <div class="form-group">
-          <label>Transferir a Departamento</label>
-          <select id="transferDepartment_${ticket.id}">
-            <option value="">Seleccionar departamento</option>
-            <option value="Sistemas" ${ticket.department === 'Sistemas' ? 'disabled' : ''}>Sistemas</option>
-            <option value="Mantenimiento" ${ticket.department === 'Mantenimiento' ? 'disabled' : ''}>Mantenimiento</option>
-          </select>
-          <button onclick="transferTicket(${ticket.id}); event.stopPropagation()">Transferir</button>
-        </div>
-      `;
-    }
-  }
-
-  try {
-    console.log('Solicitando historial para ticket ID:', ticket.id);
-    const response = await fetch(`/api/tickets/${ticket.id}/history?userId=${currentUser.id}`);
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
-    }
-    const history = await response.json();
-    console.log('Historial recibido:', history);
-
-    if (history.error) {
-      statusHistory.innerHTML = `<p>${history.error}</p>`;
-    } else if (history.length === 0) {
-      statusHistory.innerHTML = '<p>No hay historial de estados registrado.</p>';
-    } else {
-      let historyHtml = '<ul class="status-history">';
-      history.forEach(entry => {
-        let attachmentHtml = '';
-        if (entry.attachment) {
-          const fileExtension = entry.attachment.split('.').pop().toLowerCase();
-          if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
-            attachmentHtml = `<img src="${entry.attachment}" alt="Archivo adjunto" style="max-width: 100%; height: auto;">`;
-          } else if (fileExtension === 'pdf') {
-            attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar PDF</a></p>`;
-          } else if (fileExtension === 'xlsx') {
-            attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar Excel</a></p>`;
-          } else {
-            attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar archivo</a></p>`;
-          }
-        }
-        historyHtml += `
-          <li>
-            <p><strong>Estado:</strong> ${entry.status}</p>
-            <p><strong>Fecha:</strong> ${entry.changed_at}</p>
-            <p><strong>Usuario:</strong> ${entry.username || 'Desconocido'}</p>
-            <p><strong>Observaciones:</strong> ${entry.observations || 'Ninguna'}</p>
-            ${attachmentHtml}
-          </li>
-        `;
-      });
-      historyHtml += '</ul>';
-
-      if (ticket.status === 'Resuelto') {
-        const resolvedEntry = history.find(entry => entry.status === 'Resuelto');
-        if (resolvedEntry) {
-          const duration = calculateDuration(ticket.created_at, resolvedEntry.changed_at);
-          detailsHtml += `<p><strong>Duración Total:</strong> ${duration}</p>`;
+      // Manejo del archivo adjunto del ticket (si existe)
+      if (ticket.image) {
+        const fileExtension = ticket.image.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+          detailsHtml += `<img src="${ticket.image}" alt="Imagen del ticket" style="max-width: 100%; height: auto;">`;
+        } else if (fileExtension === 'pdf') {
+          detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar PDF</a></p>`;
+        } else if (fileExtension === 'xlsx') {
+          detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar Excel</a></p>`;
+        } else {
+          detailsHtml += `<p><strong>Archivo adjunto:</strong> <a href="${ticket.image}" target="_blank" download>Descargar archivo</a></p>`;
         }
       }
 
-      statusHistory.innerHTML = historyHtml;
-    }
-  } catch (err) {
-    console.error('Error al cargar historial:', err);
-    statusHistory.innerHTML = `<p>${err.message || 'Error al cargar historial'}</p>`;
-  }
+      if (editMode) {
+        const hasAssignedUser = ticket.assigned_to !== null && ticket.assigned_to !== undefined;
+        const isAssignedToCurrentUser = ticket.assigned_to === currentUser.id;
+        const canAssign = currentUser.role === 'admin' || currentUser.role === 'supervisor';
+        const canEdit = currentUser.role === 'admin' || isAssignedToCurrentUser;
+        const canTransfer = currentUser.role === 'admin' || isAssignedToCurrentUser;
 
-  details.innerHTML = detailsHtml;
-  modal.style.display = 'block';
-}
+        detailsHtml += `<h3>Editar Ticket</h3>`;
+
+        // Opción de autoasignarse (si no está asignado y el usuario no es supervisor)
+        if (!hasAssignedUser && currentUser.role !== 'supervisor') {
+          detailsHtml += `
+            <div class="form-group">
+              <label>Autoasignarme</label>
+              <button onclick="autoAssignTicket(${ticket.id}); closeModal();">Autoasignarme</button>
+            </div>
+          `;
+        }
+
+        // Opción de asignar a otro usuario (solo para admins y supervisores)
+        if (canAssign) {
+          detailsHtml += `
+            <div class="form-group">
+              <label>Asignar a</label>
+              <select id="assign_${ticket.id}">
+                <option value="">Seleccionar usuario</option>
+                ${availableUsers.map(user => `
+                  <option value="${user.id}" ${ticket.assigned_to === user.id ? 'selected' : ''}>
+                    ${user.username} (${user.department})
+                  </option>
+                `).join('')}
+              </select>
+              <button onclick="assignTicket(${ticket.id}); closeModal();">Asignar</button>
+            </div>
+          `;
+        }
+
+        // Opciones de edición (observaciones, archivo, estado) solo para admins y el usuario asignado
+        if (canEdit) {
+          detailsHtml += `
+            <div class="form-group">
+              <label>Observaciones</label>
+              <input type="text" id="obs_${ticket.id}" placeholder="Observaciones">
+            </div>
+            <div class="form-group">
+              <label>Adjuntar Archivo (Imagen/PDF/XLSX)</label>
+              <input type="file" id="file_${ticket.id}" accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+            </div>
+            <div class="form-group">
+              <label>Acción (Estado)</label>
+              <select id="status_${ticket.id}">
+                <option value="Pendiente" ${ticket.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                <option value="En Proceso" ${ticket.status === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
+                <option value="Resuelto" ${ticket.status === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
+              </select>
+              <button onclick="updateStatus(${ticket.id}); closeModal();">Actualizar</button>
+            </div>
+          `;
+        }
+
+        // Opción de transferir departamento (solo para admins y el usuario asignado)
+        if (canTransfer) {
+          detailsHtml += `
+            <div class="form-group">
+              <label>Transferir a Departamento</label>
+              <select id="transferDepartment_${ticket.id}">
+                <option value="">Seleccionar departamento</option>
+                <option value="Sistemas" ${ticket.department === 'Sistemas' ? 'disabled' : ''}>Sistemas</option>
+                <option value="Mantenimiento" ${ticket.department === 'Mantenimiento' ? 'disabled' : ''}>Mantenimiento</option>
+              </select>
+              <button onclick="transferTicket(${ticket.id}); event.stopPropagation()">Transferir</button>
+            </div>
+          `;
+        }
+      }
+
+      try {
+        console.log('Solicitando historial para ticket ID:', ticket.id);
+        const response = await fetch(`/api/tickets/${ticket.id}/history?userId=${currentUser.id}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+        }
+        const history = await response.json();
+        console.log('Historial recibido:', history);
+
+        if (history.error) {
+          statusHistory.innerHTML = `<p>${history.error}</p>`;
+        } else if (history.length === 0) {
+          statusHistory.innerHTML = '<p>No hay historial de estados registrado.</p>';
+        } else {
+          let historyHtml = '<ul class="status-history">';
+          history.forEach(entry => {
+            let attachmentHtml = '';
+            if (entry.attachment) {
+              const fileExtension = entry.attachment.split('.').pop().toLowerCase();
+              if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                attachmentHtml = `<img src="${entry.attachment}" alt="Archivo adjunto" style="max-width: 100%; height: auto;">`;
+              } else if (fileExtension === 'pdf') {
+                attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar PDF</a></p>`;
+              } else if (fileExtension === 'xlsx') {
+                attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar Excel</a></p>`;
+              } else {
+                attachmentHtml = `<p><strong>Archivo adjunto:</strong> <a href="${entry.attachment}" target="_blank" download>Descargar archivo</a></p>`;
+              }
+            }
+            historyHtml += `
+              <li>
+                <p><strong>Estado:</strong> ${entry.status}</p>
+                <p><strong>Fecha:</strong> ${entry.changed_at}</p>
+                <p><strong>Usuario:</strong> ${entry.username || 'Desconocido'}</p>
+                <p><strong>Observaciones:</strong> ${entry.observations || 'Ninguna'}</p>
+                ${attachmentHtml}
+              </li>
+            `;
+          });
+          historyHtml += '</ul>';
+
+          if (ticket.status === 'Resuelto') {
+            const resolvedEntry = history.find(entry => entry.status === 'Resuelto');
+            if (resolvedEntry) {
+              const duration = calculateDuration(ticket.created_at, resolvedEntry.changed_at);
+              detailsHtml += `<p><strong>Duración Total:</strong> ${duration}</p>`;
+            }
+          }
+
+          statusHistory.innerHTML = historyHtml;
+        }
+      } catch (err) {
+        console.error('Error al cargar historial:', err);
+        statusHistory.innerHTML = `<p>${err.message || 'Error al cargar historial'}</p>`;
+      }
+
+      details.innerHTML = detailsHtml;
+      modal.style.display = 'block';
+    }
 
     function closeModal() {
       document.getElementById('ticketModal').style.display = 'none';
