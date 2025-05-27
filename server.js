@@ -5,15 +5,19 @@ const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
-const fs = require('fs').promises; // Usamos promesas para operaciones de archivo
-const crypto = require('crypto');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Directorio de uploads
+// Create uploads directory if it doesn't exist
+// WARNING: Render uses an ephemeral filesystem; files in ./uploads will be lost on restart.
+// Consider using AWS S3 for persistent storage in production.
 const uploadDir = './uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
 
 // MySQL configuration for remote cPanel database
 const pool = mysql.createPool({
@@ -21,38 +25,28 @@ const pool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT, 10) || 3306,
+  port: process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 30000, // Aumentado para conexiones remotas
 });
 
 // Middleware
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || '*', // Permitir cualquier origen si FRONTEND_URL no está definido
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200,
+  origin: process.env.FRONTEND_URL,
+  optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/uploads', express.static(uploadDir));
+app.use('/uploads', express.static('uploads'));
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (err) {
-      cb(err);
-    }
-  },
+  destination: './uploads',
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
 });
 
 const fileFilter = (req, file, cb) => {
@@ -61,7 +55,7 @@ const fileFilter = (req, file, cb) => {
     'image/png',
     'image/gif',
     'application/pdf',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   ];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -70,24 +64,24 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({
+const upload = multer({ 
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
 // Nodemailer configuration
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT, 10) || 587,
-  secure: process.env.SMTP_PORT === '465', // true para puerto 465
+  secure: false,
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    pass: process.env.SMTP_PASS
   },
   tls: {
-    rejectUnauthorized: false, // Útil para pruebas, pero considera habilitar en producción
-  },
+    rejectUnauthorized: false
+  }
 });
 
 // Verify SMTP connection
@@ -133,8 +127,8 @@ async function initDb() {
         image VARCHAR(255),
         user_id INT,
         assigned_to INT,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-        FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (assigned_to) REFERENCES users(id)
       )
     `);
     console.log('Tabla tickets verificada/creada');
@@ -148,8 +142,8 @@ async function initDb() {
         observations TEXT,
         user_id INT,
         attachment VARCHAR(255),
-        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `);
     console.log('Tabla ticket_status_history verificada/creada');
@@ -191,17 +185,7 @@ async function sendWelcomeEmail(email, username, password) {
     from: process.env.SMTP_FROM,
     to: email,
     subject: 'Bienvenido al Sistema de Tickets',
-    html: `
-      <h2>Bienvenido al Sistema de Tickets</h2>
-      <p>Hola ${username},</p>
-      <p>Tus credenciales son:</p>
-      <ul>
-        <li><strong>Usuario:</strong> ${username}</li>
-        <li><strong>Contraseña:</strong> ${password}</li>
-      </ul>
-      <p>Por favor, cambia tu contraseña después de iniciar sesión.</p>
-      <p>Saludos,<br>El equipo de Soporte</p>
-    `,
+    text: `Hola ${username},\n\nBienvenido al Sistema de Tickets. Tus credenciales son:\nUsuario: ${username}\nContraseña: ${password}\n\nPor favor, cambia tu contraseña después de iniciar sesión.\n\nSaludos,\nEl equipo de Soporte`
   };
 
   try {
@@ -220,25 +204,27 @@ async function getDepartmentEmails(department) {
       'SELECT email FROM users WHERE department = ? AND email IS NOT NULL AND email != ""',
       [department]
     );
-    const emails = users
-      .map(user => user.email)
-      .filter(email => email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email));
-    if (emails.length > 0) {
-      console.log(`Correos encontrados para el departamento ${department}: ${emails.join(', ')}`);
-      return emails;
+    if (users.length > 0) {
+      const emails = users
+        .map(user => user.email)
+        .filter(email => email && email.includes('@'));
+      if (emails.length > 0) {
+        console.log(`Correos encontrados para el departamento ${department}: ${emails.join(', ')}`);
+        return emails;
+      }
     }
     console.warn(`No se encontraron correos válidos para el departamento ${department}. Usando fallback.`);
-    return [process.env.SMTP_FALLBACK].filter(email => email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email));
+    return [process.env.SMTP_FALLBACK];
   } catch (error) {
     console.error(`Error al obtener correos del departamento ${department}:`, error);
-    return [process.env.SMTP_FALLBACK].filter(email => email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email));
+    return [process.env.SMTP_FALLBACK];
   }
 }
 
 // Send ticket creation email
 async function sendTicketCreationEmail(ticketId, department, requester, description) {
   const departmentEmails = await getDepartmentEmails(department);
-  if (departmentEmails.length === 0 || !departmentEmails[0]) {
+  if (departmentEmails.length === 0 || !departmentEmails[0] || !departmentEmails[0].includes('@')) {
     console.error('No hay destinatarios válidos, no se enviará el correo:', departmentEmails);
     return;
   }
@@ -246,18 +232,7 @@ async function sendTicketCreationEmail(ticketId, department, requester, descript
     from: process.env.SMTP_FROM,
     to: departmentEmails.join(','),
     subject: `Nueva Solicitud de Ticket #${ticketId}`,
-    html: `
-      <h2>Nueva Solicitud de Ticket</h2>
-      <p>Hola equipo del departamento ${department},</p>
-      <p>Se ha creado una nueva solicitud de ticket con los siguientes detalles:</p>
-      <ul>
-        <li><strong>ID del Ticket:</strong> ${ticketId}</li>
-        <li><strong>Solicitante:</strong> ${requester}</li>
-        <li><strong>Descripción:</strong> ${description}</li>
-      </ul>
-      <p>Por favor, revisa y asigna el ticket lo antes posible.</p>
-      <p>Saludos,<br>El Sistema de Tickets</p>
-    `,
+    text: `Hola equipo del departamento ${department},\n\nSe ha creado una nueva solicitud de ticket con los siguientes detalles:\n\n- ID del Ticket: ${ticketId}\n- Solicitante: ${requester}\n- Descripción: ${description}\n\nPor favor, revisa y asigna el ticket lo antes posible.\n\nSaludos,\nEl Sistema de Tickets`
   };
 
   try {
@@ -270,25 +245,11 @@ async function sendTicketCreationEmail(ticketId, department, requester, descript
 
 // Send status update email
 async function sendStatusUpdateEmail(ticketId, requester, newStatus, observations, email) {
-  if (!email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-    console.error('Correo del destinatario inválido:', email);
-    return;
-  }
   const mailOptions = {
     from: process.env.SMTP_FROM,
     to: email,
     subject: `Actualización del Ticket #${ticketId}`,
-    html: `
-      <h2>Actualización del Ticket</h2>
-      <p>Hola ${requester},</p>
-      <p>El estado de tu ticket #${ticketId} ha sido actualizado:</p>
-      <ul>
-        <li><strong>Nuevo Estado:</strong> ${newStatus}</li>
-        <li><strong>Observaciones:</strong> ${observations || 'Sin observaciones'}</li>
-      </ul>
-      <p>Si necesitas más información, contacta al soporte.</p>
-      <p>Saludos,<br>El Sistema de Tickets</p>
-    `,
+    text: `Hola ${requester},\n\nEl estado de tu ticket #${ticketId} ha sido actualizado:\n\n- Nuevo Estado: ${newStatus}\n- Observaciones: ${observations || 'Sin observaciones'}\n\nSi necesitas más información, contacta al soporte.\n\nSaludos,\nEl Sistema de Tickets`
   };
 
   try {
@@ -298,66 +259,6 @@ async function sendStatusUpdateEmail(ticketId, requester, newStatus, observation
     console.error('Error al enviar correo al cliente:', error);
   }
 }
-
-// Send reset password email
-async function sendResetPasswordEmail(email, newPassword) {
-  const mailOptions = {
-    from: process.env.SMTP_FROM,
-    to: email,
-    subject: 'Restablecimiento de Contraseña - Sistema de Tickets',
-    html: `
-      <h2>Restablecimiento de Contraseña</h2>
-      <p>Hola,</p>
-      <p>Tu nueva contraseña es: <strong>${newPassword}</strong></p>
-      <p>Por favor, inicia sesión con esta contraseña y cámbiala lo antes posible.</p>
-      <p>Si no solicitaste este cambio, contacta al soporte.</p>
-      <p>Saludos,<br>Equipo de Soporte</p>
-    `,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('Correo de restablecimiento enviado a:', email);
-  } catch (error) {
-    console.error('Error al enviar correo de restablecimiento:', error);
-    throw error;
-  }
-}
-
-// Endpoint: Reset password
-app.post('/api/reset-password', async (req, res) => {
-  const { email } = req.body;
-  console.log('Solicitud de restablecimiento para email:', email);
-
-  if (!email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-    console.log('Correo inválido:', email);
-    return res.status(400).json({ error: 'Correo electrónico inválido' });
-  }
-
-  let connection;
-  try {
-    connection = await pool.getConnection();
-    const [users] = await connection.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (users.length === 0) {
-      console.log('Correo no registrado:', email);
-      return res.status(404).json({ error: 'Correo no registrado' });
-    }
-
-    const newPassword = crypto.randomBytes(8).toString('hex');
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await connection.query('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email]);
-    await sendResetPasswordEmail(email, newPassword);
-
-    console.log('Contraseña restablecida para:', email);
-    res.status(200).json({ message: 'Se ha enviado una nueva contraseña a tu correo electrónico' });
-  } catch (err) {
-    console.error('Error en /api/reset-password:', err);
-    res.status(500).json({ error: 'Error en el servidor' });
-  } finally {
-    if (connection) connection.release();
-  }
-});
 
 // Endpoint: Login
 app.post('/api/login', async (req, res) => {
@@ -393,7 +294,7 @@ app.post('/api/users', async (req, res) => {
       console.log('No autorizado para crear usuario, adminId:', adminId);
       return res.status(403).json({ error: 'No autorizado' });
     }
-    if (!email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+    if (!email || !email.includes('@')) {
       console.log('Correo inválido:', email);
       return res.status(400).json({ error: 'Correo electrónico inválido' });
     }
@@ -519,35 +420,27 @@ app.post('/api/tickets', upload.single('image'), async (req, res) => {
     return res.status(400).json({ error: 'Todos los campos obligatorios deben estar completos' });
   }
 
-  let connection;
   try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    const [result] = await connection.query(
+    const [result] = await pool.query(
       `INSERT INTO tickets (requester, date, location, category, description, priority, status, department, created_at, image, user_id, assigned_to)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)`,
       [requester, date, location, category, description, priority, 'Pendiente', department, image, userId, null]
     );
     const ticketId = result.insertId;
-    await connection.query(
+    await pool.query(
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [ticketId, 'Pendiente', 'Estado inicial', userId, null]
     );
-    await connection.commit();
     console.log('Ticket creado, ID:', ticketId);
 
     await sendTicketCreationEmail(ticketId, department, requester, description);
     res.json({ message: 'Ticket creado', ticketId });
   } catch (error) {
-    if (connection) await connection.rollback();
     console.error('Error en /api/tickets:', error);
     if (error.message.includes('Tipo de archivo no permitido')) {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: 'Error al crear ticket', details: error.message });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
@@ -605,7 +498,7 @@ app.get('/api/tickets', async (req, res) => {
     console.log('Parámetros:', params);
 
     const [tickets] = await pool.query(query, params);
-    console.log('Tickets devueltos:', tickets.length);
+    console.log('Tickets devueltos:', tickets.map(t => ({ id: t.id, user_id: t.user_id, requester: t.requester })));
     res.json(tickets);
   } catch (error) {
     console.error('Error en /api/tickets:', error);
@@ -618,13 +511,8 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
   const { id } = req.params;
   const { userId, assignedTo } = req.body;
   console.log('Asignando ticket ID:', id, 'a userId:', assignedTo);
-
-  let connection;
   try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    const [users] = await connection.query('SELECT department, role FROM users WHERE id = ?', [userId]);
+    const [users] = await pool.query('SELECT department, role FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
       console.log('Usuario no encontrado:', userId);
       return res.status(403).json({ error: 'Usuario no encontrado' });
@@ -632,9 +520,9 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
     const { department, role } = users[0];
     let tickets;
     if (role === 'admin') {
-      [tickets] = await connection.query('SELECT * FROM tickets WHERE id = ?', [id]);
+      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
     } else {
-      [tickets] = await connection.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
+      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
     }
     if (tickets.length === 0) {
       console.log('Ticket no encontrado o no autorizado, ID:', id);
@@ -646,12 +534,11 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
       return res.status(403).json({ error: 'No se puede asignar un ticket resuelto' });
     }
     if (parseInt(assignedTo) === parseInt(userId)) {
-      await connection.query('UPDATE tickets SET assigned_to = ? WHERE id = ?', [assignedTo, id]);
-      await connection.query(
+      await pool.query('UPDATE tickets SET assigned_to = ? WHERE id = ?', [assignedTo, id]);
+      await pool.query(
         'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
         [id, ticket.status, `Ticket autoasignado a usuario ID ${assignedTo}`, userId, null]
       );
-      await connection.commit();
       console.log('Ticket autoasignado, ID:', id);
       return res.json({ message: 'Ticket asignado' });
     }
@@ -663,20 +550,16 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
       console.log('No autorizado para reasignar, ticket ID:', id);
       return res.status(403).json({ error: 'Solo el usuario asignado o un admin puede reasignar este ticket' });
     }
-    await connection.query('UPDATE tickets SET assigned_to = ? WHERE id = ?', [assignedTo, id]);
-    await connection.query(
+    await pool.query('UPDATE tickets SET assigned_to = ? WHERE id = ?', [assignedTo, id]);
+    await pool.query(
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [id, ticket.status, `Ticket asignado a usuario ID ${assignedTo}`, userId, null]
     );
-    await connection.commit();
     console.log('Ticket asignado, ID:', id);
     res.json({ message: 'Ticket asignado' });
   } catch (error) {
-    if (connection) await connection.rollback();
     console.error('Error en /api/tickets/:id/assign:', error);
     res.status(500).json({ error: 'Error al asignar ticket' });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
@@ -686,12 +569,8 @@ app.put('/api/tickets/:id/transfer', async (req, res) => {
   const { userId, newDepartment, observations } = req.body;
   console.log('Transferiendo ticket ID:', id, 'a departamento:', newDepartment);
 
-  let connection;
   try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    const [users] = await connection.query('SELECT id, department, role FROM users WHERE id = ?', [userId]);
+    const [users] = await pool.query('SELECT id, department, role FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
       console.log('Usuario no encontrado:', userId);
       return res.status(403).json({ error: 'Usuario no encontrado' });
@@ -699,9 +578,9 @@ app.put('/api/tickets/:id/transfer', async (req, res) => {
     const { department, role } = users[0];
     let tickets;
     if (role === 'admin') {
-      [tickets] = await connection.query('SELECT * FROM tickets WHERE id = ?', [id]);
+      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
     } else {
-      [tickets] = await connection.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
+      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
     }
     if (tickets.length === 0) {
       console.log('Ticket no encontrado o no autorizado, ID:', id);
@@ -716,20 +595,16 @@ app.put('/api/tickets/:id/transfer', async (req, res) => {
       console.log('Departamento inválido o igual al actual, newDepartment:', newDepartment);
       return res.status(400).json({ error: 'Selecciona un departamento diferente al actual' });
     }
-    await connection.query('UPDATE tickets SET department = ?, assigned_to = NULL WHERE id = ?', [newDepartment, id]);
-    await connection.query(
+    await pool.query('UPDATE tickets SET department = ?, assigned_to = NULL WHERE id = ?', [newDepartment, id]);
+    await pool.query(
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [id, ticket.status, `Ticket transferido a ${newDepartment}. Observaciones: ${observations}`, userId, null]
     );
-    await connection.commit();
     console.log('Ticket transferido, ID:', id, 'a:', newDepartment);
     res.json({ message: 'Ticket transferido' });
   } catch (error) {
-    if (connection) await connection.rollback();
     console.error('Error en /api/tickets/:id/transfer:', error);
     res.status(500).json({ error: 'Error al transferir ticket' });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
@@ -747,12 +622,8 @@ app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
 
-  let connection;
   try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    const [users] = await connection.query('SELECT id, department, role FROM users WHERE id = ?', [userId]);
+    const [users] = await pool.query('SELECT id, department, role FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
       console.log('Usuario no encontrado:', userId);
       return res.status(403).json({ error: 'Usuario no encontrado' });
@@ -760,9 +631,9 @@ app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
     const { id: currentUserId, department, role } = users[0];
     let tickets;
     if (role === 'admin') {
-      [tickets] = await connection.query('SELECT * FROM tickets WHERE id = ?', [id]);
+      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
     } else {
-      [tickets] = await connection.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
+      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
     }
     if (tickets.length === 0) {
       console.log('Ticket no encontrado o no autorizado, ID:', id);
@@ -778,17 +649,16 @@ app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
       return res.status(403).json({ error: 'Solo el usuario asignado o un admin puede editar este ticket' });
     }
 
-    const [requesterInfo] = await connection.query('SELECT email FROM users WHERE id = ?', [ticket.user_id]);
-    const requesterEmail = requesterInfo.length > 0 && requesterInfo[0].email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(requesterInfo[0].email)
-      ? requesterInfo[0].email
+    const [requesterInfo] = await pool.query('SELECT email FROM users WHERE id = ?', [ticket.user_id]);
+    const requesterEmail = requesterInfo.length > 0 && requesterInfo[0].email && requesterInfo[0].email.includes('@') 
+      ? requesterInfo[0].email 
       : process.env.SMTP_FALLBACK;
 
-    await connection.query('UPDATE tickets SET status = ? WHERE id = ?', [status, id]);
-    await connection.query(
+    await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [status, id]);
+    await pool.query(
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [id, status, observations || '', userId, file]
     );
-    await connection.commit();
     console.log('Estado actualizado, ticket ID:', id, 'attachment:', file);
 
     if (ticket.status !== status) {
@@ -797,14 +667,11 @@ app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
 
     res.json({ message: 'Estado actualizado' });
   } catch (error) {
-    if (connection) await connection.rollback();
     console.error('Error en /api/tickets/:id:', error);
     if (error.message.includes('Tipo de archivo no permitido')) {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: 'Error al actualizar estado', details: error.message });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
@@ -813,13 +680,8 @@ app.put('/api/tickets/:id/reopen', async (req, res) => {
   const { id } = req.params;
   const { userId, observations } = req.body;
   console.log('Reabriendo ticket ID:', id);
-
-  let connection;
   try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    const [users] = await connection.query('SELECT role FROM users WHERE id = ?', [userId]);
+    const [users] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
       console.log('Usuario no encontrado:', userId);
       return res.status(403).json({ error: 'Usuario no encontrado' });
@@ -829,7 +691,7 @@ app.put('/api/tickets/:id/reopen', async (req, res) => {
       console.log('No autorizado para reabrir, userId:', userId);
       return res.status(403).json({ error: 'Solo un admin puede reabrir tickets' });
     }
-    const [tickets] = await connection.query('SELECT * FROM tickets WHERE id = ?', [id]);
+    const [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
     if (tickets.length === 0) {
       console.log('Ticket no encontrado, ID:', id);
       return res.status(404).json({ error: 'Ticket no encontrado' });
@@ -839,20 +701,16 @@ app.put('/api/tickets/:id/reopen', async (req, res) => {
       console.log('El ticket no está resuelto, ID:', id);
       return res.status(400).json({ error: 'El ticket no está en estado Resuelto' });
     }
-    await connection.query('UPDATE tickets SET status = ? WHERE id = ?', ['Pendiente', id]);
-    await connection.query(
+    await pool.query('UPDATE tickets SET status = ? WHERE id = ?', ['Pendiente', id]);
+    await pool.query(
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [id, 'Pendiente', observations || 'Ticket reabierto por admin', userId, null]
     );
-    await connection.commit();
     console.log('Ticket reabierto, ID:', id);
     res.json({ message: 'Ticket reabierto' });
   } catch (error) {
-    if (connection) await connection.rollback();
     console.error('Error en /api/tickets/:id/reopen:', error);
     res.status(500).json({ error: 'Error al reabrir ticket' });
-  } finally {
-    if (connection) connection.release();
   }
 });
 
@@ -876,27 +734,34 @@ app.get('/api/tickets/:id/history', async (req, res) => {
     }
     const ticket = tickets[0];
 
-    if (
-      role !== 'admin' &&
-      ticket.user_id !== parseInt(currentUserId) &&
-      ticket.assigned_to !== parseInt(currentUserId) &&
-      ticket.department !== department
-    ) {
-      console.log('No autorizado: userId:', userId, 'ticket department:', ticket.department, 'user department:', department);
+    // Permitir acceso si:
+    // 1. El usuario es admin
+    // 2. El usuario es el creador del ticket (user_id)
+    // 3. El usuario es el asignado (assigned_to)
+    // 4. El ticket pertenece al departamento del usuario
+    if (role !== 'admin' && 
+        ticket.user_id !== parseInt(currentUserId) && 
+        ticket.assigned_to !== parseInt(currentUserId) && 
+        ticket.department !== department) {
+      console.log('No autorizado: userId:', userId, 
+                  'ticket department:', ticket.department, 
+                  'user department:', department, 
+                  'ticket user_id:', ticket.user_id, 
+                  'ticket assigned_to:', ticket.assigned_to);
       return res.status(403).json({ error: 'No autorizado para ver el historial de otro departamento' });
     }
 
     const [history] = await pool.query(
-      `SELECT h.id, h.ticket_id, h.status,
-              DATE_FORMAT(h.changed_at, '%d/%m/%Y %H:%i:%s') AS changed_at,
+      `SELECT h.id, h.ticket_id, h.status, 
+              DATE_FORMAT(h.changed_at, '%d/%m/%Y %H:%i:%s') AS changed_at, 
               h.observations, h.user_id, h.attachment, u.username
-       FROM ticket_status_history h
-       LEFT JOIN users u ON h.user_id = u.id
-       WHERE h.ticket_id = ?
+       FROM ticket_status_history h 
+       LEFT JOIN users u ON h.user_id = u.id 
+       WHERE h.ticket_id = ? 
        ORDER BY h.changed_at DESC`,
       [id]
     );
-    console.log('Historial devuelto:', history.length);
+    console.log('Historial devuelto:', history.map(h => ({ status: h.status, changed_at: h.changed_at, attachment: h.attachment })));
     res.json(history);
   } catch (error) {
     console.error('Error en /api/tickets/:id/history:', error);
@@ -907,22 +772,17 @@ app.get('/api/tickets/:id/history', async (req, res) => {
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error.stack);
-  if (error.message.includes('Tipo de archivo no permitido')) {
-    return res.status(400).json({ error: error.message });
-  }
-  res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+  res.status(500).json({ error: 'Error interno del servidor' });
 });
 
 // Start server
-(async () => {
-  try {
-    await fs.mkdir(uploadDir, { recursive: true });
-    await initDb();
+initDb()
+  .then(() => {
     app.listen(port, '0.0.0.0', () => {
       console.log(`Servidor corriendo en puerto ${port}`);
     });
-  } catch (error) {
+  })
+  .catch(error => {
     console.error('No se pudo iniciar el servidor:', error);
     process.exit(1);
-  }
-})();
+  });
