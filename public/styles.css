@@ -4,7 +4,7 @@
   --parrafos: #00877A; /* Verde oscuro para párrafos y botones */
   --fondo-principal: #f3f4f6; /* Fondo general */
   --borde-suave: #e5e7eb; /* Borde y sombra suave */
-  --boton-hover: #006B5E; /* Tono más oscuro para hover de botones (basado en #00877A) */
+  --boton-hover: #006B5E; /* Tono más oscuro para hover de botones */
   --boton-reopen: #10b981; /* Verde para botón de reabrir */
   --boton-reopen-hover: #059669; /* Verde oscuro para hover */
   --boton-logout: #ef4444; /* Rojo para logout */
@@ -27,73 +27,74 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: var(--fondo-principal);
   margin: 0;
-  padding: 20px;
+  padding: 1rem;
   color: var(--parrafos);
   line-height: 1.6;
+  font-size: 16px; /* Base font size for rem units */
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0 0.5rem;
 }
 
 /* Encabezados */
 h1, h2, h3 {
   text-align: center;
   color: var(--encabezadospagina);
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.05rem;
 }
 
 h1 {
-  font-size: 2.5em;
+  font-size: clamp(1.8rem, 5vw, 2.2rem);
   font-weight: 700;
 }
 
 h2 {
-  font-size: 2em;
+  font-size: clamp(1.5rem, 4vw, 1.8rem);
   font-weight: 600;
 }
 
 h3 {
-  font-size: 1.5em;
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
   font-weight: 500;
 }
 
 /* Secciones */
 .section {
   background: white;
-  padding: 25px;
-  border-radius: 10px;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
   box-shadow: var(--sombra);
-  margin-bottom: 25px;
+  margin-bottom: 1.5rem;
   transition: transform 0.2s ease;
 }
 
 .section:hover {
-  transform: translateY(-5px);
+  transform: translateY(-0.3rem);
 }
 
 /* Formularios */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
 }
 
 label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
   font-weight: 600;
   color: var(--parrafos);
 }
 
 input, select, textarea, button {
   width: 100%;
-  padding: 10px;
+  padding: 0.6rem;
   border: 2px solid var(--borde-suave);
-  border-radius: 6px;
-  font-size: 1em;
+  border-radius: 8px;
+  font-size: 1rem;
   transition: border-color 0.3s ease;
 }
 
@@ -105,24 +106,26 @@ input:focus, select:focus, textarea:focus {
 
 input[type="checkbox"] {
   width: auto;
-  margin-right: 8px;
+  margin-right: 0.5rem;
 }
 
 textarea {
   resize: vertical;
-  min-height: 120px;
+  min-height: 6rem;
 }
 
 /* Botones */
 button {
-  background-color: var(--parrafos); /* Botones con el verde oscuro */
+  background-color: var(--parrafos);
   color: white;
   border: none;
   cursor: pointer;
-  padding: 10px 20px;
+  padding: 0.75rem 1.25rem;
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: 8px;
   transition: background-color 0.3s ease;
+  font-size: 1rem;
+  touch-action: manipulation; /* Improve touch responsiveness */
 }
 
 button:hover {
@@ -136,7 +139,7 @@ button:disabled {
 
 button.reopen {
   background-color: var(--boton-reopen);
-  margin-left: 10px;
+  margin-left: 0.5rem;
 }
 
 button.reopen:hover {
@@ -145,7 +148,7 @@ button.reopen:hover {
 
 button.logout {
   background-color: var(--boton-logout);
-  margin-top: 15px;
+  margin-top: 1rem;
 }
 
 button.logout:hover {
@@ -154,14 +157,10 @@ button.logout:hover {
 
 button.pdf-button {
   background-color: var(--boton-pdf);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  cursor: pointer;
-  margin-top: 15px;
+  padding: 0.75rem 1.25rem;
+  margin-top: 1rem;
   width: auto;
   display: inline-block;
-  transition: background-color 0.3s ease;
 }
 
 button.pdf-button:hover {
@@ -171,10 +170,10 @@ button.pdf-button:hover {
 /* Tickets */
 .ticket {
   border: 1px solid var(--borde-suave);
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 15px;
-  background-color: white; /* Fondo blanco */
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  background-color: white;
   transition: box-shadow 0.3s ease;
 }
 
@@ -183,64 +182,63 @@ button.pdf-button:hover {
 }
 
 .ticket p {
-  margin: 8px 0;
-  color: var(--parrafos);
+  margin: 0.5rem 0;
 }
 
 .ticket img {
-  max-width: 250px;
-  margin-top: 15px;
-  border-radius: 6px;
+  max-width: 100%;
+  margin-top: 1rem;
+  border-radius: 0.25rem;
   border: 2px solid var(--borde-suave);
 }
 
 /* Errores */
 .error {
   color: #ef4444;
-  font-size: 1em;
+  font-size: 0.9rem;
   text-align: center;
-  margin-top: 10px;
-  padding: 10px;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
   background-color: rgba(239, 68, 68, 0.1);
-  border-radius: 4px;
+  border-radius: 0.25rem;
 }
 
 /* Navegación de tickets */
 .ticket-nav {
   display: flex;
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  margin-bottom: 1.5rem;
 }
 
 .ticket-nav button {
   flex: 1;
-  min-width: 150px;
+  min-width: 6rem;
+  padding: 0.75rem;
+  font-size: 0.875rem;
 }
 
 /* Tablas */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 15px;
+  margin-top: 1rem;
   background-color: white;
 }
 
 th, td {
   border: 1px solid var(--borde-suave);
-  padding: 12px;
-  text-align: left;
-  font-size: 1em;
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.875rem;
 }
 
-/* Centrado de botones de estado dentro de las celdas de la tabla */
 td .status-pending,
 td .status-in-progress,
 td .status-resolved {
-  display: block;
-  margin: 0 auto; /* Centrado horizontal */
+  margin: 0 auto;
   text-align: center;
-  width: fit-content; /* Ajusta el ancho al contenido */
+  width: fit-content;
 }
 
 th {
@@ -255,12 +253,13 @@ tr:hover {
 }
 
 td input, td select {
-  width: 150px;
+  width: 100%;
+  max-width: 9rem;
 }
 
 td button {
-  padding: 8px 15px;
-  font-size: 1em;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
 }
 
 /* Modal */
@@ -272,51 +271,43 @@ td button {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
   z-index: 1000;
+  overflow-y: auto;
 }
 
 .modal-content {
-  background: white; /* Fondo blanco */
-  padding: 25px;
-  border-radius: 10px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
   width: 90%;
-  max-width: 600px;
-  max-height: 85vh;
+  max-width: 36rem;
+  max-height: 90vh;
   overflow-y: auto;
+  margin: 0 auto;
   position: relative;
-  margin: auto;
-  top: 50%;
-  transform: translateY(-50%);
   text-align: center;
   box-shadow: var(--sombra);
 }
 
 .modal-content p {
-  margin: 12px 0;
-  display: inline-block;
+  margin: 0.75rem 0;
   text-align: left;
-  color: var(--parrafos);
 }
 
 .modal-content img {
   max-width: 100%;
-  border-radius: 6px;
-  margin: 15px auto;
+  border-radius: 0.25rem;
+  margin: 0.5rem auto;
   display: block;
-  border: 2px solid var(--borde-suave);
 }
 
 .close {
   position: absolute;
-  top: 15px;
-  right: 20px;
-  font-size: 24px;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-size: 1.5rem;
   cursor: pointer;
   color: var(--encabezadospagina);
-  transition: color 0.3s ease;
 }
 
 .close:hover {
@@ -328,17 +319,15 @@ td button {
   list-style: none;
   padding: 0;
   margin: 0 auto;
-  max-width: 95%;
+  max-width: 100%;
 }
 
 .status-history li {
   border: 1px solid var(--borde-suave);
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 6px;
-  text-align: left;
-  background-color: white; /* Fondo blanco */
-  transition: box-shadow 0.3s ease;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  background-color: white;
 }
 
 .status-history li:hover {
@@ -346,13 +335,11 @@ td button {
 }
 
 .status-history p {
-  margin: 8px 0;
-  color: var(--parrafos);
+  margin: 0.5rem 0;
 }
 
 .status-history a {
   color: var(--parrafos);
-  text-decoration: none;
 }
 
 .status-history a:hover {
@@ -362,68 +349,251 @@ td button {
 /* Filtros */
 .filter-section {
   display: flex;
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: 0.75rem;
   flex-wrap: wrap;
+  margin-bottom: 1rem;
 }
 
 .filter-section .form-group {
   flex: 1;
-  min-width: 180px;
+  min-width: 8rem;
 }
 
 .filter-section button {
   align-self: flex-end;
-  padding: 10px 20px;
+  padding: 0.75rem 1.25rem;
 }
 
 /* Estados */
 .status-pending {
   background-color: var(--boton-reopen);
   color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
 }
 
 .status-in-progress {
   background-color: #f59e0b;
   color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
 }
 
 .status-resolved {
   background-color: var(--boton-logout);
   color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
 }
 
 /* Ajustes específicos del modal */
 .modal-content .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
 }
 
 .modal-content button {
   width: auto;
-  margin-top: 10px;
-  padding: 10px 20px;
+  margin-top: 0.5rem;
 }
 
 .modal-content select, .modal-content input[type="text"] {
-  margin-bottom: 8px;
-  width: 85%;
-  margin-left: auto;
-  margin-right: auto;
-  display: block;
+  margin-bottom: 0.5rem;
+  width: 100%;
 }
 
 /* Imágenes */
 img {
   max-width: 100%;
   height: auto;
-  margin-top: 15px;
+  margin-top: 0.5rem;
+}
+
+/* Media Queries */
+
+/* Mobile (≤600px) */
+@media (max-width: 600px) {
+  body {
+    padding: 0.5rem;
+    font-size: 14px;
+  }
+
+  .container {
+    padding: 0;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+  }
+
+  .section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Formularios */
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+
+  input, select, textarea, button {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  button {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .ticket-nav {
+    flex-direction: column;
+  }
+
+  .ticket-nav button {
+    width: 100%;
+    min-width: 100%;
+    padding: 0.75rem;
+  }
+
+  /* Tablas */
+  table {
+    display: none; /* Ocultar tabla en móviles */
+  }
+
+  #ticketList, #myTicketList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  #ticketList tr, #myTicketList tr {
+    display: block;
+    border: 1px solid var(--borde-suave);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: white;
+    box-shadow: var(--sombra);
+  }
+
+  #ticketList td, #myTicketList td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border: none;
+    font-size: 0.875rem;
+  }
+
+  #ticketList td:before, #myTicketList td:before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: var(--parrafos);
+    width: 40%;
+  }
+
+  #ticketList td button, #myTicketList td button {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Filtros */
+  .filter-section {
+    flex-direction: column;
+  }
+
+  .filter-section .form-group {
+    min-width: 100%;
+  }
+
+  /* Modal */
+  .modal-content {
+    width: 95%;
+    padding: 1rem;
+    max-height: 85vh;
+  }
+
+  .modal-content button {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .modal-content select, .modal-content input[type="text"] {
+    width: 100%;
+  }
+
+  .close {
+    font-size: 1.25rem;
+  }
+}
+
+/* Tablet (601px–1024px) */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .container {
+    max-width: 90%;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  .section {
+    padding: 1.25rem;
+  }
+
+  .ticket-nav {
+    flex-wrap: wrap;
+  }
+
+  .ticket-nav button {
+    flex: 1 1 45%;
+    min-width: 8rem;
+  }
+
+  /* Tablas */
+  th, td {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  td input, td select {
+    max-width: 7rem;
+  }
+
+  /* Filtros */
+  .filter-section .form-group {
+    min-width: 10rem;
+  }
+
+  /* Modal */
+  .modal-content {
+    width: 80%;
+    max-width: 30rem;
+  }
+}
+
+/* Desktop (>1024px) */
+@media (min-width: 1025px) {
+  .container {
+    max-width: 1200px;
+  }
+
+  .ticket-nav button {
+    flex: 1;
+    min-width: 10rem;
+  }
+
+  .modal-content {
+    max-width: 36rem;
+  }
 }
