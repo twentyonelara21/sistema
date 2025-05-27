@@ -597,7 +597,6 @@
         return;
       }
 
-      console.log('Usuario actual:', currentUser);
       const params = new URLSearchParams();
       params.append('userId', currentUser.id);
       params.append('createdByUser', 'true');
@@ -614,16 +613,12 @@
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const tickets = await response.json();
-        console.log('Respuesta del servidor:', tickets);
-
-        const filteredTickets = tickets.filter(ticket => ticket.requester === currentUser.username && ticket.user_id === currentUser.id);
-
         ticketList.innerHTML = '';
-        if (filteredTickets.length === 0) {
+        if (tickets.length === 0) {
           ticketList.innerHTML = '<tr><td colspan="8">No has creado tickets que coincidan con este criterio.</td></tr>';
           return;
         }
-        filteredTickets.forEach(ticket => {
+        tickets.forEach(ticket => {
           const row = document.createElement('tr');
           row.style.cursor = 'pointer';
           row.onclick = () => showTicketDetails(ticket, false);

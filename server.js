@@ -21,19 +21,14 @@ if (!fs.existsSync(uploadDir)) {
 
 // MySQL configuration for remote cPanel database
 const pool = mysql.createPool({
-  host: process.env.DB_HOST, // Will be set to '192.232.251.94' in Render
-  user: process.env.DB_USER, // Will be set to 'healthy_tickets' in Render
-  password: process.env.DB_PASSWORD, // Will be set to 'T3cn0l0g14s20' in Render
-  database: process.env.DB_NAME, // Will be set to 'healthy_ticket_system' in Render
-  port: process.env.DB_PORT || 3306, // Default MySQL port; update if different
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  // Enable SSL for secure connection (uncomment if your cPanel MySQL supports SSL)
-  // ssl: {
-  //   rejectUnauthorized: true // Set to false if self-signed certificates are used
-  //   // ca: fs.readFileSync('/path/to/ca-cert.pem') // Provide CA certificate if required
-  // }
 });
 
 // Middleware
@@ -739,16 +734,21 @@ app.get('/api/tickets/:id/history', async (req, res) => {
     }
     const ticket = tickets[0];
 
-    if (role === 'admin') {
-      console.log('Acceso permitido como admin para ticket ID:', id);
-    } else {
-      if (ticket.department !== department) {
-        console.log('No autorizado: Departamento diferente, userId:', userId, 'ticket department:', ticket.department);
-        return res.status(403).json({ error: 'No autorizado para ver el historial de otro departamento' });
-      }
-      if (ticket.user_id !== parseInt(currentUserId) && ticket.assigned_to !== parseInt(currentUserId)) {
-        console.log('Acceso permitido por pertenencia al departamento:', department);
-      }
+    // Permitir acceso si:
+    // 1. El usuario es admin
+    // 2. El usuario es el creador del ticket (user_id)
+    // 3. El usuario es el asignado (assigned_to)
+    // 4. El ticket pertenece al departamento del usuario
+    if (role !== 'admin' && 
+        ticket.user_id !== parseInt(currentUserId) && 
+        ticket.assigned_to !== parseInt(currentUserId) && 
+        ticket.department !== department) {
+      console.log('No autorizado: userId:', userId, 
+                  'ticket department:', ticket.department, 
+                  'user department:', department, 
+                  'ticket user_id:', ticket.user_id, 
+                  'ticket assigned_to:', ticket.assigned_to);
+      return res.status(403).json({ error: 'No autorizado para ver el historial de otro departamento' });
     }
 
     const [history] = await pool.query(
