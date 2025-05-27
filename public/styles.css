@@ -12,7 +12,7 @@
   --boton-pdf: #8b5cf6; /* Morado para botón PDF */
   --boton-pdf-hover: #7c3aed; /* Morado oscuro para hover */
   --fondo-tabla: #f9fafb; /* Fondo de tabla */
-  --hover-tabla: #f1f5f9; /* Hover de tabla */
+  --hover-tablerow: #f1f5f9; /* Hover de filas */
   --sombra: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra general */
 }
 
@@ -248,7 +248,7 @@ th {
 }
 
 tr:hover {
-  background-color: var(--hover-tabla);
+  background-color: var(--hover-tablerow);
   cursor: pointer;
 }
 
@@ -410,7 +410,7 @@ img {
 
 /* Media Queries */
 
-/* Mobile (≤600px) */
+/* Móvil (≤600px) */
 @media (max-width: 600px) {
   body {
     padding: 0.5rem;
@@ -464,17 +464,21 @@ img {
   }
 
   /* Tablas */
-  table {
-    display: none; /* Ocultar tabla en móviles */
+  #ticketTable, #myTicketTable {
+    display: block;
   }
 
-  #ticketList, #myTicketList {
+  #ticketTable thead, #myTicketTable thead {
+    display: none; /* Ocultar encabezados en móviles */
+  }
+
+  #ticketTable tbody, #myTicketTable tbody {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
   }
 
-  #ticketList tr, #myTicketList tr {
+  #ticketTable tr, #myTicketTable tr {
     display: block;
     border: 1px solid var(--borde-suave);
     padding: 0.75rem;
@@ -483,24 +487,34 @@ img {
     box-shadow: var(--sombra);
   }
 
-  #ticketList td, #myTicketList td {
+  #ticketTable td, #myTicketTable td {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 0.25rem 0;
     border: none;
     font-size: 0.875rem;
   }
 
-  #ticketList td:before, #myTicketList td:before {
+  #ticketTable td:before, #myTicketTable td:before {
     content: attr(data-label);
     font-weight: bold;
     color: var(--parrafos);
     width: 40%;
+    text-align: left;
   }
 
-  #ticketList td button, #myTicketList td button {
+  #ticketTable td button, #myTicketTable td button {
     width: 100%;
     text-align: center;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* Ajustar estados para que no se desborden */
+  .status-pending, .status-in-progress, .status-resolved {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
   }
 
   /* Filtros */
@@ -533,7 +547,7 @@ img {
   }
 }
 
-/* Tablet (601px–1024px) */
+/* Tableta (601px–1024px) */
 @media (min-width: 601px) and (max-width: 1024px) {
   .container {
     max-width: 90%;
@@ -563,11 +577,16 @@ img {
   /* Tablas */
   th, td {
     padding: 0.5rem;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
   }
 
   td input, td select {
     max-width: 7rem;
+  }
+
+  td button {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
   }
 
   /* Filtros */
@@ -582,7 +601,7 @@ img {
   }
 }
 
-/* Desktop (>1024px) */
+/* Escritorio (>1024px) */
 @media (min-width: 1025px) {
   .container {
     max-width: 1200px;
