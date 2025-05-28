@@ -21,7 +21,23 @@
         <input type="password" id="loginPassword" placeholder="Contraseña" required>
       </div>
       <button onclick="login()">Iniciar Sesión</button>
+      <p class="link" onclick="showForgotPassword()">Olvidaste tu contraseña?</p>
       <p class="error" id="loginError"></p>
+    </div>
+
+    <!-- Modal para Olvidaste tu Contraseña -->
+    <div id="forgotPasswordModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeForgotPasswordModal()">×</span>
+        <h2>Restablecer Contraseña</h2>
+        <div class="form-group">
+          <label for="forgotEmail">Correo Electrónico *</label>
+          <input type="email" id="forgotEmail" placeholder="correo@ejemplo.com" required>
+        </div>
+        <button onclick="resetPassword()">Enviar Nueva Contraseña</button>
+        <p class="error" id="forgotPasswordError"></p>
+        <p class="success" id="forgotPasswordSuccess"></p>
+      </div>
     </div>
 
     <!-- Pantalla de Gestión de Usuarios (Admin) -->
@@ -292,13 +308,17 @@
       document.getElementById('loginSection').style.display = 'block';
       document.getElementById('adminSection').style.display = 'none';
       document.getElementById('ticketSystem').style.display = 'none';
+      document.getElementById('forgotPasswordModal').style.display = 'none';
       document.getElementById('loginError').textContent = '';
+      document.getElementById('forgotPasswordError').textContent = '';
+      document.getElementById('forgotPasswordSuccess').textContent = '';
     }
 
     function showAdminSection() {
       document.getElementById('loginSection').style.display = 'none';
       document.getElementById('adminSection').style.display = 'block';
       document.getElementById('ticketSystem').style.display = 'none';
+      document.getElementById('forgotPasswordModal').style.display = 'none';
       listUsers();
     }
 
@@ -306,6 +326,7 @@
       document.getElementById('loginSection').style.display = 'none';
       document.getElementById('adminSection').style.display = 'none';
       document.getElementById('ticketSystem').style.display = 'block';
+      document.getElementById('forgotPasswordModal').style.display = 'none';
       document.getElementById('ticketDepartment').textContent = currentUser.role === 'admin' ? 'Todos' : currentUser.department;
       loadAvailableUsers();
       showCreateTicket();
@@ -316,6 +337,7 @@
       document.getElementById('viewTicketsSection').style.display = 'none';
       document.getElementById('myTicketsSection').style.display = 'none';
       document.getElementById('changePasswordSection').style.display = 'none';
+      document.getElementById('forgotPasswordModal').style.display = 'none';
       document.getElementById('requester').value = currentUser.username;
       document.getElementById('date').value = new Date().toISOString().split('T')[0];
       updateCategories();
@@ -326,6 +348,7 @@
       document.getElementById('viewTicketsSection').style.display = 'block';
       document.getElementById('myTicketsSection').style.display = 'none';
       document.getElementById('changePasswordSection').style.display = 'none';
+      document.getElementById('forgotPasswordModal').style.display = 'none';
       listTickets();
     }
 
@@ -334,6 +357,7 @@
       document.getElementById('viewTicketsSection').style.display = 'none';
       document.getElementById('myTicketsSection').style.display = 'block';
       document.getElementById('changePasswordSection').style.display = 'none';
+      document.getElementById('forgotPasswordModal').style.display = 'none';
       listMyTickets();
     }
 
@@ -342,7 +366,53 @@
       document.getElementById('viewTicketsSection').style.display = 'none';
       document.getElementById('myTicketsSection').style.display = 'none';
       document.getElementById('changePasswordSection').style.display = 'block';
+      document.getElementById('forgotPasswordModal').style.display = 'none';
       document.getElementById('changePasswordError').textContent = '';
+    }
+
+    function showForgotPassword() {
+      document.getElementById('forgotPasswordModal').style.display = 'block';
+      document.getElementById('forgotEmail').value = '';
+      document.getElementById('forgotPasswordError').textContent = '';
+      document.getElementById('forgotPasswordSuccess').textContent = '';
+    }
+
+    function closeForgotPasswordModal() {
+      document.getElementById('forgotPasswordModal').style.display = 'none';
+      document.getElementById('forgotEmail').value = '';
+      document.getElementById('forgotPasswordError').textContent = '';
+      document.getElementById('forgotPasswordSuccess').textContent = '';
+    }
+
+    async function resetPassword() {
+      const email = document.getElementById('forgotEmail').value;
+      const error = document.getElementById('forgotPasswordError');
+      const success = document.getElementById('forgotPasswordSuccess');
+
+      if (!email || !email.includes('@')) {
+        error.textContent = 'Por favor, ingresa un correo electrónico válido';
+        success.textContent = '';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (data.error) {
+          error.textContent = data.error;
+          success.textContent = '';
+          return;
+        }
+        success.textContent = 'Se ha enviado una nueva contraseña a tu correo electrónico';
+        error.textContent = '';
+      } catch (err) {
+        error.textContent = 'Error en el servidor';
+        success.textContent = '';
+      }
     }
 
     async function login() {
@@ -932,9 +1002,13 @@
     }
 
     window.onclick = function(event) {
-      const modal = document.getElementById('ticketModal');
-      if (event.target === modal) {
-        modal.style.display = 'none';
+      const ticketModal = document.getElementById('ticketModal');
+      const forgotPasswordModal = document.getElementById('forgotPasswordModal');
+      if (event.target === ticketModal) {
+        ticketModal.style.display = 'none';
+      }
+      if (event.target === forgotPasswordModal) {
+        forgotPasswordModal.style.display = 'none';
       }
     }
 

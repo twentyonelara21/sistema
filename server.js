@@ -93,6 +93,17 @@ transporter.verify((error, success) => {
   }
 });
 
+// Function to generate a random password
+function generateRandomPassword(length = 10) {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    password += charset[randomIndex];
+  }
+  return password;
+}
+
 // Initialize database
 async function initDb() {
   let connection;
@@ -118,7 +129,7 @@ async function initDb() {
         requester VARCHAR(50) NOT NULL,
         date DATE NOT NULL,
         location ENUM('Cedis Celaya', 'Cedis Centro', 'Cedis México', 'Cedis León', 'Cedis Tijuana', 'Corporativo', 'Departamentos', 'Labs', 'Estadio') NOT NULL,
-        category ENUM('Baños', 'Pintura', 'Electricidad', 'Carpintería', 'Computadora', 'Internet', 'Software', 'Hardware') NOT NULL,
+        category ENUM('Baños', 'Pintura', 'Electricidad', 'Carpintería', 'Computador', 'Internet', 'Software', 'Hardware') NOT NULL,
         description TEXT NOT NULL,
         priority ENUM('Baja', 'Media', 'Alta') NOT NULL,
         status ENUM('Pendiente', 'En Proceso', 'Resuelto') NOT NULL,
@@ -193,6 +204,24 @@ async function sendWelcomeEmail(email, username, password) {
     console.log('Correo de bienvenida enviado a:', email);
   } catch (error) {
     console.error('Error al enviar correo de bienvenida:', error);
+    throw error;
+  }
+}
+
+// Send reset password email
+async function sendResetPasswordEmail(email, username, newPassword) {
+  const mailOptions = {
+    from: process.env.SMTP_FROM,
+    to: email,
+    subject: 'Restablecimiento de Contraseña',
+    text: `Hola ${username},\n\nHemos restablecido tu contraseña. Tus nuevas credenciales son:\nUsuario: ${username}\nNueva Contraseña: ${newPassword}\n\nPor favor, inicia sesión y cambia tu contraseña lo antes posible.\n\nSaludos,\nEl equipo de Soporte`
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Correo de restablecimiento de contraseña enviado a:', email);
+  } catch (error) {
+    console.error('Error al enviar correo de restablecimiento:', error);
     throw error;
   }
 }
@@ -281,6 +310,36 @@ app.post('/api/login', async (req, res) => {
   } catch (error) {
     console.error('Error en /api/login:', error);
     res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
+// Endpoint: Reset password
+app.post('/api/reset-password', async (req, res) => {
+  const { email } = req.body;
+  console.log('Solicitud de restablecimiento de contraseña para:', email);
+
+  try {
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      console.log('Correo no encontrado:', email);
+      return res.status(404).json({ error: 'Correo no registrado' });
+    }
+    const user = users[0];
+    const newPassword = generateRandomPassword();
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email]);
+    console.log('Contraseña restablecida para:', email);
+
+    try {
+      await sendResetPasswordEmail(email, user.username, newPassword);
+      res.json({ message: 'Contraseña restablecida. Revisa tu correo electrónico.' });
+    } catch (emailError) {
+      console.error('No se pudo enviar el correo, pero la contraseña fue restablecida:', emailError);
+      res.status(201).json({ message: 'Contraseña restablecida, pero no se pudo enviar el correo.' });
+    }
+  } catch (error) {
+    console.error('Error en /api/reset-password:', error);
+    res.status(500).json({ error: 'Error al restablecer la contraseña' });
   }
 });
 
@@ -494,117 +553,14 @@ app.get('/api/tickets', async (req, res) => {
       params.push(filterCategory);
     }
 
-    console.log('Query ejecutada:', query);
-    console.log('Parámetros:', params);
+    console.log('Ejecutando consulta:', query, params);
 
     const [tickets] = await pool.query(query, params);
-    console.log('Tickets devueltos:', tickets.map(t => ({ id: t.id, user_id: t.user_id, requester: t.requester })));
+    console.log('Tickets encontrados:', tickets.length);
     res.json(tickets);
   } catch (error) {
     console.error('Error en /api/tickets:', error);
-    res.status(500).json({ error: 'Error al listar tickets', details: error.message });
-  }
-});
-
-// Endpoint: Assign ticket
-app.put('/api/tickets/:id/assign', async (req, res) => {
-  const { id } = req.params;
-  const { userId, assignedTo } = req.body;
-  console.log('Asignando ticket ID:', id, 'a userId:', assignedTo);
-  try {
-    const [users] = await pool.query('SELECT department, role FROM users WHERE id = ?', [userId]);
-    if (users.length === 0) {
-      console.log('Usuario no encontrado:', userId);
-      return res.status(403).json({ error: 'Usuario no encontrado' });
-    }
-    const { department, role } = users[0];
-    let tickets;
-    if (role === 'admin') {
-      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
-    } else {
-      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
-    }
-    if (tickets.length === 0) {
-      console.log('Ticket no encontrado o no autorizado, ID:', id);
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    const ticket = tickets[0];
-    if (ticket.status === 'Resuelto' && role !== 'admin') {
-      console.log('No se puede asignar un ticket resuelto, ID:', id);
-      return res.status(403).json({ error: 'No se puede asignar un ticket resuelto' });
-    }
-    if (parseInt(assignedTo) === parseInt(userId)) {
-      await pool.query('UPDATE tickets SET assigned_to = ? WHERE id = ?', [assignedTo, id]);
-      await pool.query(
-        'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
-        [id, ticket.status, `Ticket autoasignado a usuario ID ${assignedTo}`, userId, null]
-      );
-      console.log('Ticket autoasignado, ID:', id);
-      return res.json({ message: 'Ticket asignado' });
-    }
-    if (role !== 'admin' && role !== 'supervisor') {
-      console.log('No autorizado para asignar a otros, userId:', userId);
-      return res.status(403).json({ error: 'Solo admins o supervisores pueden asignar tickets a otros usuarios' });
-    }
-    if (ticket.assigned_to && ticket.assigned_to !== userId && role !== 'admin') {
-      console.log('No autorizado para reasignar, ticket ID:', id);
-      return res.status(403).json({ error: 'Solo el usuario asignado o un admin puede reasignar este ticket' });
-    }
-    await pool.query('UPDATE tickets SET assigned_to = ? WHERE id = ?', [assignedTo, id]);
-    await pool.query(
-      'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
-      [id, ticket.status, `Ticket asignado a usuario ID ${assignedTo}`, userId, null]
-    );
-    console.log('Ticket asignado, ID:', id);
-    res.json({ message: 'Ticket asignado' });
-  } catch (error) {
-    console.error('Error en /api/tickets/:id/assign:', error);
-    res.status(500).json({ error: 'Error al asignar ticket' });
-  }
-});
-
-// Endpoint: Transfer ticket
-app.put('/api/tickets/:id/transfer', async (req, res) => {
-  const { id } = req.params;
-  const { userId, newDepartment, observations } = req.body;
-  console.log('Transferiendo ticket ID:', id, 'a departamento:', newDepartment);
-
-  try {
-    const [users] = await pool.query('SELECT id, department, role FROM users WHERE id = ?', [userId]);
-    if (users.length === 0) {
-      console.log('Usuario no encontrado:', userId);
-      return res.status(403).json({ error: 'Usuario no encontrado' });
-    }
-    const { department, role } = users[0];
-    let tickets;
-    if (role === 'admin') {
-      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
-    } else {
-      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
-    }
-    if (tickets.length === 0) {
-      console.log('Ticket no encontrado o no autorizado, ID:', id);
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    const ticket = tickets[0];
-    if (ticket.status === 'Resuelto' && role !== 'admin') {
-      console.log('No se puede transferir un ticket resuelto, ID:', id);
-      return res.status(403).json({ error: 'No se puede transferir un ticket resuelto' });
-    }
-    if (!['Sistemas', 'Mantenimiento'].includes(newDepartment) || newDepartment === ticket.department) {
-      console.log('Departamento inválido o igual al actual, newDepartment:', newDepartment);
-      return res.status(400).json({ error: 'Selecciona un departamento diferente al actual' });
-    }
-    await pool.query('UPDATE tickets SET department = ?, assigned_to = NULL WHERE id = ?', [newDepartment, id]);
-    await pool.query(
-      'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
-      [id, ticket.status, `Ticket transferido a ${newDepartment}. Observaciones: ${observations}`, userId, null]
-    );
-    console.log('Ticket transferido, ID:', id, 'a:', newDepartment);
-    res.json({ message: 'Ticket transferido' });
-  } catch (error) {
-    console.error('Error en /api/tickets/:id/transfer:', error);
-    res.status(500).json({ error: 'Error al transferir ticket' });
+    res.status(500).json({ error: 'Error al listar tickets' });
   }
 });
 
@@ -614,175 +570,241 @@ app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
   const { status, userId, observations } = req.body;
   const file = req.file ? `/uploads/${req.file.filename}` : null;
 
-  console.log('Actualizando estado ticket ID:', id);
-  console.log('Datos recibidos:', { status, userId, observations });
-  console.log('Archivo recibido:', req.file);
-
-  if (!status || !userId) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios' });
-  }
+  console.log('Actualizando estado del ticket ID:', id, { status, userId, observations, file: file ? req.file : null });
 
   try {
-    const [users] = await pool.query('SELECT id, department, role FROM users WHERE id = ?', [userId]);
+    const [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
+    if (tickets.length === 0) {
+      console.log('No se encontró el ticket:', id);
+      return res.status(404).json({ error: 'Ticket no encontrado' });
+    }
+    const ticket = tickets[0];
+
+    const [users] = await pool.query('SELECT id, role, email, username FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
       console.log('Usuario no encontrado:', userId);
       return res.status(403).json({ error: 'Usuario no encontrado' });
     }
-    const { id: currentUserId, department, role } = users[0];
-    let tickets;
-    if (role === 'admin') {
-      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
-    } else {
-      [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ? AND department = ?', [id, department]);
-    }
-    if (tickets.length === 0) {
-      console.log('Ticket no encontrado o no autorizado, ID:', id);
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    const ticket = tickets[0];
-    if (ticket.status === 'Resuelto' && role !== 'admin') {
-      console.log('No se puede editar un ticket resuelto, ID:', id);
-      return res.status(403).json({ error: 'No se puede editar un ticket resuelto' });
-    }
-    if (ticket.assigned_to !== parseInt(currentUserId) && role !== 'admin') {
-      console.log('No autorizado para editar, ticket ID:', id, 'usuario:', currentUserId);
-      return res.status(403).json({ error: 'Solo el usuario asignado o un admin puede editar este ticket' });
+    const user = users[0];
+
+    if (user.role !== 'admin' && ticket.assigned_to !== parseInt(userId)) {
+      console.log('No autorizado para actualizar el ticket:', userId);
+      return res.status(403).json({ error: 'No autorizado para actualizar el ticket' });
     }
 
-    const [requesterInfo] = await pool.query('SELECT email FROM users WHERE id = ?', [ticket.user_id]);
-    const requesterEmail = requesterInfo.length > 0 && requesterInfo[0].email && requesterInfo[0].email.includes('@') 
-      ? requesterInfo[0].email 
-      : process.env.SMTP_FALLBACK;
+    await pool.query(
+      'UPDATE tickets SET status = ? WHERE id = ?',
+      [status, id, id]
+    );
 
-    await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [status, id]);
     await pool.query(
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
-      [id, status, observations || '', userId, file]
+      [id, status, observations, userId, file]
     );
-    console.log('Estado actualizado, ticket ID:', id, 'attachment:', file);
 
-    if (ticket.status !== status) {
-      await sendStatusUpdateEmail(ticket.id, ticket.requester, status, observations, requesterEmail);
+    if (ticket.user_id) {
+      const [ticketUser] = await pool.query('SELECT email, username FROM users WHERE id = ?', [ticket.user_id]);
+      if (ticketUser.length > 0 && ticketUser[0].email && ticketUser[0].email.includes('0')) {
+        await sendStatusUpdateEmail(id, ticketUser[0].username, status, observations, ticketUser[0].email);
+      }
     }
 
-    res.json({ message: 'Estado actualizado' });
+    console.log('Ticket actualizado:', id);
+    res.json({ message: 'Estado del ticket actualizado' });
   } catch (error) {
     console.error('Error en /api/tickets/:id:', error);
-    if (error.message.includes('Tipo de archivo no permitido')) {
-      return res.status(400).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Error al actualizar estado', details: error.message });
+    res.status(500).json({ error: 'Error al actualizar el estado del ticket' });
   }
 });
 
-// Endpoint: Reopen ticket (admin only)
+// Endpoint: Assign ticket
+app.put('/api/tickets/:id/assign', async (req, res) => {
+  const { id } = req.params;
+  const { userId, assignedTo } = req.body;
+
+  console.log('Asignando ticket ID:', id, 'a usuario:', assignedTo);
+
+  try {
+    const [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
+    if (tickets.length === 0) {
+      console.log('No se encontró el ticket:', id);
+      return res.status(404).json({ error: 'Ticket no encontrado' });
+    }
+
+    const [users] = await pool.query('SELECT role, department FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      console.log('Usuario no encontrado:', userId);
+      return res.status(403).json({ error: 'Usuario no encontrado' });
+    }
+    const user = users[0].user;
+
+    const [assignee] = await pool.query('SELECT department FROM users WHERE id = ?', [assignedTo]);
+    if (assignee.length === 0) {
+      console.log('Usuario asignado no encontrado:', assignedTo);
+      return res.status(404).json({ error: 'Usuario asignado no encontrado' });
+    }
+
+    if (user.role !== 'admin' && user.role !== 'supervisor' && parseInt(userId) !== parseInt(assignedTo)) {
+      console.log('No autorizado para asignar ticket:', userId);
+      return res.status(403).json({ error: 'No autorizado para asignar el ticket' });
+    }
+
+    await pool.query(
+      'UPDATE tickets SET assigned_to = ? WHERE id = ?',
+      [assignedTo, id]
+    );
+
+    console.log('Ticket ${id} asignado a:', assignedTo);
+    res.json({ message: 'Ticket asignado con éxito' });
+  } catch (error) {
+    console.error('Error en /api/tickets/:id/assign:', error);
+    res.status(500).json({ error: 'Error al asignar ticket' });
+  }
+});
+
+// Endpoint: Reopen ticket
 app.put('/api/tickets/:id/reopen', async (req, res) => {
   const { id } = req.params;
   const { userId, observations } = req.body;
+
   console.log('Reabriendo ticket ID:', id);
+
   try {
+    const [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
+    if (tickets.length === 0) {
+      console.log('No se encontró el ticket:', id);
+      return res.status(404).json({ error: 'Ticket no encontrado' });
+    }
+    const ticket = tickets[0];
+
     const [users] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
       console.log('Usuario no encontrado:', userId);
       return res.status(403).json({ error: 'Usuario no encontrado' });
     }
-    const { role } = users[0];
-    if (role !== 'admin') {
-      console.log('No autorizado para reabrir, userId:', userId);
-      return res.status(403).json({ error: 'Solo un admin puede reabrir tickets' });
+    const user = users[0];
+
+    if (user.role !== 'admin' && ticket.user_id !== parseInt(userId)) {
+      console.log('No autorizado para reabrir el ticket:', userId);
+      return res.status(403).json({ error: 'No autorizado para reabrir el ticket' });
     }
-    const [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
-    if (tickets.length === 0) {
-      console.log('Ticket no encontrado, ID:', id);
-      return res.status(404).json({ error: 'Ticket no encontrado' });
-    }
-    const ticket = tickets[0];
-    if (ticket.status !== 'Resuelto') {
-      console.log('El ticket no está resuelto, ID:', id);
-      return res.status(400).json({ error: 'El ticket no está en estado Resuelto' });
-    }
-    await pool.query('UPDATE tickets SET status = ? WHERE id = ?', ['Pendiente', id]);
+
     await pool.query(
-      'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
-      [id, 'Pendiente', observations || 'Ticket reabierto por admin', userId, null]
+      'UPDATE tickets SET status = ? WHERE id = ?',
+      ['Pendiente', id]
     );
-    console.log('Ticket reabierto, ID:', id);
-    res.json({ message: 'Ticket reabierto' });
+
+    await pool.query(
+      'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id) VALUES (?, ?, NOW(), ?, ?)',
+      [id, 'Pendiente', observations, userId]
+    );
+
+    if (ticket.user_id) {
+      const [ticketUser] = await pool.query('SELECT email, username FROM users WHERE id = ?', [ticket.user_id]);
+      if (ticketUser.length > 0 && ticketUser[0].email && ticketUser[0].email.includes('0')) {
+        await sendStatusUpdateEmail(id, ticketUser[0].username, 'Pendiente', observations, ticketUser[0].email);
+      }
+    }
+
+    console.log('Ticket reabierto:', id);
+    res.json({ message: 'Ticket reabierto con éxito' });
   } catch (error) {
     console.error('Error en /api/tickets/:id/reopen:', error);
-    res.status(500).json({ error: 'Error al reabrir ticket' });
+    res.status(500).json({ error: 'Error al reabrir el ticket' });
   }
 });
 
-// Endpoint: Get ticket status history
-app.get('/api/tickets/:id/history', async (req, res) => {
+// Endpoint: Transfer ticket
+app.put('/api/tickets/:id/transfer', async (req, res) => {
   const { id } = req.params;
-  const { userId } = req.query;
-  console.log('Obteniendo historial para ticket ID:', id, 'userId:', userId);
+  const { userId, newDepartment, observations } = req.body;
+
+  console.log('Transfiriendo ticket ID:', id, 'al a departamento:', newDepartment);
 
   try {
-    const [users] = await pool.query('SELECT id, department, role FROM users WHERE id = ?', [userId]);
+    const [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
+    if (tickets.length === 0) {
+      console.log('No se encontró el ticket:', id);
+      return res.status(404).json({ error: 'Ticket no encontrado' });
+    }
+    const ticket = tickets[0];
+
+    const [users] = await pool.query('SELECT role, id FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
       console.log('Usuario no encontrado:', userId);
       return res.status(403).json({ error: 'Usuario no encontrado' });
     }
-    const { id: currentUserId, department, role } = users[0];
-    const [tickets] = await pool.query('SELECT user_id, assigned_to, department, status FROM tickets WHERE id = ?', [id]);
-    if (tickets.length === 0) {
-      console.log('Ticket no encontrado, ID:', id);
-      return res.status(404).json({ error: 'Ticket no encontrado' });
-    }
-    const ticket = tickets[0];
+    const user = users[0];
 
-    // Permitir acceso si:
-    // 1. El usuario es admin
-    // 2. El usuario es el creador del ticket (user_id)
-    // 3. El usuario es el asignado (assigned_to)
-    // 4. El ticket pertenece al departamento del usuario
-    if (role !== 'admin' && 
-        ticket.user_id !== parseInt(currentUserId) && 
-        ticket.assigned_to !== parseInt(currentUserId) && 
-        ticket.department !== department) {
-      console.log('No autorizado: userId:', userId, 
-                  'ticket department:', ticket.department, 
-                  'user department:', department, 
-                  'ticket user_id:', ticket.user_id, 
-                  'ticket assigned_to:', ticket.assigned_to);
-      return res.status(403).json({ error: 'No autorizado para ver el historial de otro departamento' });
+    if (user.role !== 'admin' && ticket.assigned_to !== parseInt(userId)) {
+      console.log('No autorizado para transferir el ticket:', userId);
+      return res.status(403).json({ error: 'No autorizado para transferir el ticket' });
     }
 
-    const [history] = await pool.query(
-      `SELECT h.id, h.ticket_id, h.status, 
-              DATE_FORMAT(h.changed_at, '%d/%m/%Y %H:%i:%s') AS changed_at, 
-              h.observations, h.user_id, h.attachment, u.username
-       FROM ticket_status_history h 
-       LEFT JOIN users u ON h.user_id = u.id 
-       WHERE h.ticket_id = ? 
-       ORDER BY h.changed_at DESC`,
-      [id]
+    await pool.query(
+      'UPDATE tickets SET department = ?, assigned_to = null WHERE id = ?',
+      [newDepartment, id]
     );
-    console.log('Historial devuelto:', history.map(h => ({ status: h.status, changed_at: h.changed_at, attachment: h.attachment })));
-    res.json(history);
+
+    await pool.query(
+      'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id) VALUES (?, ?, NOW(), ?, ?)',
+      [id, ticket.status, observations, userId]
+    );
+
+    await sendTicketCreationEmail(id, newDepartment, ticket.requester, ticket.description);
+
+    console.log('Ticket transferido a:', id, newDepartment);
+    res.json({ message: 'Ticket transferido con éxito' });
   } catch (error) {
-    console.error('Error en /api/tickets/:id/history:', error);
-    res.status(500).json({ error: 'Error al obtener historial' });
+    console.error('Error en /api/tickets/:id/transfer:', error);
+    res.status(500).json({ error: 'Error al transferir el ticket' });
   }
 });
 
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Error:', error.stack);
-  res.status(500).json({ error: 'Error interno del servidor' });
+// Endpoint: Get ticket history
+app.get('/api/tickets/:id/history', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.query;
+
+  console.log('Solicitando historial para ticket ID:', id, 'userId:', userId);
+
+  try {
+    const [tickets] = await pool.query('SELECT * FROM tickets WHERE id = ?', [id]);
+    if (tickets.length === 0) {
+      console.log('No se encontró el ticket:', id);
+      return res.status(404).json({ error: 'Ticket no encontrado' });
+    }
+
+    const [users] = await pool.query('SELECT id, role FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      console.log('Usuario no encontrado:', userId);
+      return res.status(403).json({ error: 'Usuario no encontrado' });
+    }
+
+    const [history] = await pool.query(
+      `SELECT tsh.status, DATE_FORMAT(tsh.changed_at, '%d/%m/%Y %H:%i:%s') AS changed_at, tsh.observations, tsh.attachment, u.username
+ FROM ticket_status_history tsh
+ LEFT JOIN users u ON tsh.user_id = u.id
+ WHERE tsh.ticket_id = ?
+ ORDER BY tsh.id`,
+      [id]
+    );
+
+    console.log('Historial encontrado:', history.length, 'entradas');
+    res.json(history);
+  } catch (error) {
+    console.error('Error en /api/tickets/:id/history:', error);
+    res.status(500).json({ error: 'Error al cargar el historial del ticket' });
+  }
 });
 
 // Start server
-initDb()
-  .then(() => {
-    app.listen(port, '0.0.0.0', () => {
-      console.log(`Servidor corriendo en puerto ${port}`);
-    });
-  })
-  .catch(error => {
-    console.error('No se pudo iniciar el servidor:', error);
+app.listen(port, async () => {
+  try {
+    await initDb();
+    console.log(`Server running on port ${port}`);
+  } catch (err) {
+    console.error('Failed to start server:', error);
     process.exit(1);
-  });
+  }
+});
