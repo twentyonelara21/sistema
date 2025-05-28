@@ -769,6 +769,39 @@ app.get('/api/tickets/:id/history', async (req, res) => {
   }
 });
 
+// Endpoint: Forgot password
+app.post('/api/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Correo electrónico inválido' });
+  }
+  try {
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'No existe un usuario con ese correo' });
+    }
+    const user = users[0];
+    // Generar nueva contraseña aleatoria
+    const newPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+
+    // Enviar correo con la nueva contraseña
+    const mailOptions = {
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: 'Restablecimiento de contraseña - Sistema de Tickets',
+      text: `Hola ${user.username},\n\nTu nueva contraseña temporal es: ${newPassword}\n\nPor favor, inicia sesión y cámbiala lo antes posible.\n\nSaludos,\nEl equipo de Soporte`
+    };
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: 'Correo enviado' });
+  } catch (error) {
+    console.error('Error en /api/forgot-password:', error);
+    res.status(500).json({ error: 'Error al restablecer la contraseña' });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error.stack);
