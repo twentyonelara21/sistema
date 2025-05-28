@@ -1,6 +1,6 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
@@ -92,16 +92,6 @@ transporter.verify((error, success) => {
     console.log('Conexión SMTP verificada exitosamente');
   }
 });
-
-// Function to generate a random password
-function generateRandomPassword(length = 12) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
-  let password = '';
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
 
 // Initialize database
 async function initDb() {
@@ -207,24 +197,6 @@ async function sendWelcomeEmail(email, username, password) {
   }
 }
 
-// Send password reset email
-async function sendPasswordResetEmail(email, username, newPassword) {
-  const mailOptions = {
-    from: process.env.SMTP_FROM,
-    to: email,
-    subject: 'Restablecimiento de Contraseña',
-    text: `Hola ${username},\n\nHemos recibido una solicitud para restablecer tu contraseña en el Sistema de Tickets. Tu nueva contraseña es:\n\nContraseña: ${newPassword}\n\nPor favor, inicia sesión con esta contraseña y cámbiala lo antes posible desde la opción "Cambiar Contraseña" en el sistema.\n\nSi no solicitaste este cambio, contacta al soporte inmediatamente.\n\nSaludos,\nEl equipo de Soporte`
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('Correo de restablecimiento de contraseña enviado a:', email);
-  } catch (error) {
-    console.error('Error al enviar correo de restablecimiento:', error);
-    throw error;
-  }
-}
-
 // Get department emails
 async function getDepartmentEmails(department) {
   try {
@@ -287,44 +259,6 @@ async function sendStatusUpdateEmail(ticketId, requester, newStatus, observation
     console.error('Error al enviar correo al cliente:', error);
   }
 }
-
-// Endpoint: Forgot Password
-app.post('/api/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  console.log('Solicitud de restablecimiento de contraseña para:', email);
-
-  try {
-    // Validate email
-    if (!email || !email.includes('@')) {
-      console.log('Correo inválido:', email);
-      return res.status(400).json({ error: 'Por favor, ingresa un correo electrónico válido' });
-    }
-
-    // Check if user exists
-    const [users] = await pool.query('SELECT id, username FROM users WHERE email = ?', [email]);
-    if (users.length === 0) {
-      console.log('Correo no registrado:', email);
-      return res.status(404).json({ error: 'El correo no está registrado' });
-    }
-    const user = users[0];
-
-    // Generate new password
-    const newPassword = generateRandomPassword();
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update password in database
-    await pool.query('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email]);
-    console.log('Contraseña actualizada para usuario:', user.username);
-
-    // Send email with new password
-    await sendPasswordResetEmail(email, user.username, newPassword);
-
-    res.json({ message: 'Correo de restablecimiento enviado' });
-  } catch (error) {
-    console.error('Error en /api/forgot-password:', error);
-    res.status(500).json({ error: 'Error al procesar la solicitud de restablecimiento' });
-  }
-});
 
 // Endpoint: Login
 app.post('/api/login', async (req, res) => {
