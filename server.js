@@ -102,7 +102,7 @@ async function initDb() {
         requester VARCHAR(50) NOT NULL,
         date DATE NOT NULL,
         location ENUM('Cedis Celaya', 'Cedis Centro', 'Cedis México', 'Cedis León', 'Cedis Tijuana', 'Corporativo', 'Departamentos', 'Labs', 'Estadio') NOT NULL,
-        category ENUM('Baños', 'Pintura', 'Electricidad', 'Carpintería', 'Computadora', 'Internet', 'Software', 'Hardware') NOT NULL,
+        category ENUM('Plomería', 'Eléctrico', 'Luces', 'Aires acondicionados', 'Jardinería', 'Traslados', 'Pintura', 'Albañilería', 'Mudanzas', 'Computadora', 'Internet', 'Software', 'Hardware') NOT NULL,
         description TEXT NOT NULL,
         priority ENUM('Baja', 'Media', 'Alta') NOT NULL,
         status ENUM('Pendiente', 'En Proceso', 'Resuelto') NOT NULL,

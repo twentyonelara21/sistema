@@ -197,10 +197,15 @@
             <label for="filterCategory">Categoría</label>
             <select id="filterCategory">
               <option value="">Todas</option>
-              <option value="Baños">Baños</option>
+              <option value="Plomería">Plomería</option>
+              <option value="Eléctrico">Eléctrico</option>
+              <option value="Luces">Luces</option>
+              <option value="Aires acondicionados">Aires acondicionados</option>
+              <option value="Jardinería">Jardinería</option>
+              <option value="Traslados">Traslados</option>
               <option value="Pintura">Pintura</option>
-              <option value="Electricidad">Electricidad</option>
-              <option value="Carpintería">Carpintería</option>
+              <option value="Albañilería">Albañilería</option>
+              <option value="Mudanzas">Mudanzas</option>
               <option value="Computadora">Computadora</option>
               <option value="Internet">Internet</option>
               <option value="Software">Software</option>
@@ -247,10 +252,15 @@
             <label for="myFilterCategory">Categoría</label>
             <select id="myFilterCategory">
               <option value="">Todas</option>
-              <option value="Baños">Baños</option>
+              <option value="Plomería">Plomería</option>
+              <option value="Eléctrico">Eléctrico</option>
+              <option value="Luces">Luces</option>
+              <option value="Aires acondicionados">Aires acondicionados</option>
+              <option value="Jardinería">Jardinería</option>
+              <option value="Traslados">Traslados</option>
               <option value="Pintura">Pintura</option>
-              <option value="Electricidad">Electricidad</option>
-              <option value="Carpintería">Carpintería</option>
+              <option value="Albañilería">Albañilería</option>
+              <option value="Mudanzas">Mudanzas</option>
               <option value="Computadora">Computadora</option>
               <option value="Internet">Internet</option>
               <option value="Software">Software</option>
@@ -967,7 +977,7 @@ async function showTicketDetails(ticket, editMode = false) {
       if (department === 'Sistemas') {
         categories = ['Computadora', 'Internet', 'Software', 'Hardware'];
       } else if (department === 'Mantenimiento') {
-        categories = ['Baños', 'Pintura', 'Electricidad', 'Carpintería'];
+        categories = ['Plomería', 'Eléctrico', 'Luces', 'Aires acondicionados', 'Jardinería', 'Traslados', 'Pintura', 'Albañilería', 'Mudanzas'];
       }
 
       categories.forEach(category => {
