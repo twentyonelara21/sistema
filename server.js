@@ -737,6 +737,95 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
+app.get('/api/dashboard/tiempo-promedio', async (req, res) => {
+  try {
+    const [result] = await pool.query(`
+      SELECT 
+        u.username AS asignado,
+        ROUND(AVG(TIMESTAMPDIFF(MINUTE, t.created_at, 
+          (SELECT h.changed_at FROM ticket_status_history h WHERE h.ticket_id = t.id AND h.status = 'Resuelto' ORDER BY h.changed_at DESC LIMIT 1)
+        )), 2) AS tiempo_promedio_minutos
+      FROM tickets t
+      JOIN users u ON t.assigned_to = u.id
+      WHERE t.status = 'Resuelto'
+      GROUP BY u.username
+      ORDER BY tiempo_promedio_minutos ASC
+    `);
+    res.json(result);
+  } catch (error) {
+    console.error('Error en /api/dashboard/tiempo-promedio:', error);
+    res.status(500).json({ error: 'Error al obtener el tiempo promedio' });
+  }
+});
+
+app.get('/api/dashboard/solicitante-mas-activo', async (req, res) => {
+  try {
+    const [result] = await pool.query(`
+      SELECT requester, COUNT(*) AS total
+      FROM tickets
+      GROUP BY requester
+      ORDER BY total DESC
+      LIMIT 1
+    `);
+    res.json(result[0] || {});
+  } catch (error) {
+    console.error('Error en /api/dashboard/solicitante-mas-activo:', error);
+    res.status(500).json({ error: 'Error al obtener el solicitante más activo' });
+  }
+});
+
+app.get('/api/dashboard/categorias-por-departamento', async (req, res) => {
+  try {
+    const [result] = await pool.query(`
+      SELECT department, category, COUNT(*) AS total
+      FROM tickets
+      GROUP BY department, category
+      ORDER BY department, total DESC
+    `);
+    // Agrupa por departamento para facilitar el frontend
+    const agrupado = {};
+    result.forEach(row => {
+      if (!agrupado[row.department]) agrupado[row.department] = [];
+      agrupado[row.department].push({ categoria: row.category, total: row.total });
+    });
+    res.json(agrupado);
+  } catch (error) {
+    console.error('Error en /api/dashboard/categorias-por-departamento:', error);
+    res.status(500).json({ error: 'Error al obtener categorías por departamento' });
+  }
+});
+
+app.get('/api/dashboard/asignado-mas-activo', async (req, res) => {
+  try {
+    const [result] = await pool.query(`
+      SELECT u.username AS asignado, COUNT(*) AS total
+      FROM tickets t
+      JOIN users u ON t.assigned_to = u.id
+      GROUP BY u.username
+      ORDER BY total DESC
+      LIMIT 1
+    `);
+    res.json(result[0] || {});
+  } catch (error) {
+    console.error('Error en /api/dashboard/asignado-mas-activo:', error);
+    res.status(500).json({ error: 'Error al obtener el asignado más activo' });
+  }
+});
+
+async function cargarDashboard() {
+  // Tiempo promedio
+  const tiempo = await fetch('/api/dashboard/tiempo-promedio').then(r => r.json());
+  // Solicitante más activo
+  const solicitante = await fetch('/api/dashboard/solicitante-mas-activo').then(r => r.json());
+  // Categorías por departamento
+  const categorias = await fetch('/api/dashboard/categorias-por-departamento').then(r => r.json());
+  // Asignado más activo
+  const asignado = await fetch('/api/dashboard/asignado-mas-activo').then(r => r.json());
+
+  // Aquí puedes renderizar los datos en tu HTML
+  console.log({ tiempo, solicitante, categorias, asignado });
+}
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error.stack);
