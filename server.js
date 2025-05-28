@@ -826,6 +826,11 @@ async function cargarDashboard() {
   console.log({ tiempo, solicitante, categorias, asignado });
 }
 
+const path = require('path');
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error.stack);
