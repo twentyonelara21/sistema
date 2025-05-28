@@ -96,7 +96,6 @@
         <button onclick="showCreateTicket()">Crear Solicitud</button>
         <button onclick="showViewTickets()">Ver Tickets</button>
         <button onclick="showMyTickets()">Mis Tickets</button>
-        <button onclick="showDashboard()">Dashboard</button>
       </div>
 
       <!-- Cambiar Contraseña -->
@@ -113,36 +112,6 @@
         <button onclick="changePassword()">Cambiar Contraseña</button>
         <p class="error" id="changePasswordError"></p>
       </div>
-
-      <!-- Dashboard de Métricas -->
-<div id="dashboardSection" class="section" style="display: none;">
-  <h1>Dashboard de Métricas</h1>
-  <button onclick="showTicketSystem()">Volver al sistema</button>
-  <div class="dashboard-metric">
-    <h2>Tiempo promedio de atención por usuario asignado</h2>
-    <table id="tablaTiempoPromedio">
-      <thead>
-        <tr>
-          <th>Usuario Asignado</th>
-          <th>Tiempo Promedio (minutos)</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div class="dashboard-metric">
-    <h2>Solicitante más activo</h2>
-    <p id="solicitanteMasActivo"></p>
-  </div>
-  <div class="dashboard-metric">
-    <h2>Categorías más usadas por departamento</h2>
-    <div id="categoriasPorDepartamento"></div>
-  </div>
-  <div class="dashboard-metric">
-    <h2>Usuario asignado más activo</h2>
-    <p id="asignadoMasActivo"></p>
-  </div>
-</div>
 
       <!-- Crear Solicitud -->
       <div id="createTicketSection" class="form-section" style="display: none;">
@@ -1090,55 +1059,7 @@ async function showTicketDetails(ticket, editMode = false) {
         error.textContent = 'Error en el servidor';
       }
     }
-
-    function showDashboard() {
-  document.getElementById('loginSection').style.display = 'none';
-  document.getElementById('adminSection').style.display = 'none';
-  document.getElementById('ticketSystem').style.display = 'none';
-  document.getElementById('dashboardSection').style.display = 'block';
-  cargarDashboard();
-}
-
-async function cargarDashboard() {
-  // Tiempo promedio
-  const tiempo = await fetch('/api/dashboard/tiempo-promedio').then(r => r.json());
-  // Solicitante más activo
-  const solicitante = await fetch('/api/dashboard/solicitante-mas-activo').then(r => r.json());
-  // Categorías por departamento
-  const categorias = await fetch('/api/dashboard/categorias-por-departamento').then(r => r.json());
-  // Asignado más activo
-  const asignado = await fetch('/api/dashboard/asignado-mas-activo').then(r => r.json());
-
-  // Renderizar tiempo promedio
-  const tbody = document.querySelector('#tablaTiempoPromedio tbody');
-  tbody.innerHTML = '';
-  tiempo.forEach(row => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${row.asignado}</td><td>${row.tiempo_promedio_minutos}</td>`;
-    tbody.appendChild(tr);
-  });
-
-  // Renderizar solicitante más activo
-  document.getElementById('solicitanteMasActivo').textContent = solicitante.requester
-    ? `${solicitante.requester} (${solicitante.total} tickets)`
-    : 'No hay datos';
-
-  // Renderizar categorías por departamento
-  const catDiv = document.getElementById('categoriasPorDepartamento');
-  catDiv.innerHTML = '';
-  Object.keys(categorias).forEach(dep => {
-    const depDiv = document.createElement('div');
-    depDiv.innerHTML = `<strong>${dep}</strong><ul>${
-      categorias[dep].map(c => `<li>${c.categoria}: ${c.total}</li>`).join('')
-    }</ul>`;
-    catDiv.appendChild(depDiv);
-  });
-
-  // Renderizar asignado más activo
-  document.getElementById('asignadoMasActivo').textContent = asignado.asignado
-    ? `${asignado.asignado} (${asignado.total} tickets asignados)`
-    : 'No hay datos';
-}
+    
   </script>
 </body>
 </html>

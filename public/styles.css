@@ -633,18 +633,3 @@ img {
     max-width: 36rem;
   }
 }
-
-.dashboard-metric {
-  margin-bottom: 2rem;
-}
-#dashboardSection table {
-  width: 100%;
-  margin-bottom: 1rem;
-}
-#dashboardSection th, #dashboardSection td {
-  padding: 0.5rem;
-  border: 1px solid #e5e7eb;
-}
-#dashboardSection ul {
-  margin: 0.5rem 0 1rem 1.5rem;
-}
