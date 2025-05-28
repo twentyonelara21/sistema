@@ -826,7 +826,6 @@ async function cargarDashboard() {
   console.log({ tiempo, solicitante, categorias, asignado });
 }
 
-const path = require('path');
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
