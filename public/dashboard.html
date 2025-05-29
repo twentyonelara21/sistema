@@ -67,6 +67,12 @@
   <script>
     // Variables globales para los charts (para poder destruirlos y recrearlos)
     let solicitantesChart, departamentoChart, tiempoAsignadoChart, estadoChart, asignadoChart;
+    let datosTiempoMedio = [];
+    let datosSolicitantes = [];
+    let datosPorDepartamento = [];
+    let datosTiempoAsignado = [];
+    let datosPorEstado = [];
+    let datosPorAsignado = [];
 
   function getFiltros() {
     const desde = document.getElementById('filtroDesde').value;
@@ -95,6 +101,7 @@
       fetch('/api/dashboard/tiempo-medio' + query)
         .then(res => res.json())
         .then(data => {
+          datosTiempoMedio = data; // Guardar para Excel
           const tbody = document.querySelector('#tiempoMedio tbody');
           tbody.innerHTML = '';
           data.forEach(row => {
@@ -108,6 +115,7 @@
       fetch('/api/dashboard/solicitantes-top' + query)
         .then(res => res.json())
         .then(data => {
+          datosSolicitantes = data; // Guardar para Excel
           const labels = data.map(row => row.requester);
           const values = data.map(row => row.total);
           if (solicitantesChart) solicitantesChart.destroy();
@@ -140,6 +148,7 @@
       fetch('/api/dashboard/tickets-por-departamento' + query)
         .then(res => res.json())
         .then(data => {
+          datosPorDepartamento = data; // Guardar para Excel
           const labels = data.map(row => row.department);
           const values = data.map(row => row.total);
           if (departamentoChart) departamentoChart.destroy();
@@ -160,6 +169,7 @@
       fetch('/api/dashboard/tiempo-asignado' + query)
         .then(res => res.json())
         .then(data => {
+          datosTiempoAsignado = data; // Guardar para Excel
           const labels = data.map(row => row.asignado_a);
           const medios = data.map(row => row.tiempo_medio_minutos);
           const totales = data.map(row => row.tiempo_total_minutos);
@@ -192,6 +202,7 @@
       fetch('/api/dashboard/tickets-por-estado' + query)
         .then(res => res.json())
         .then(data => {
+          datosPorEstado = data; // Guardar para Excel
           const labels = data.map(row => row.status);
           const values = data.map(row => row.total);
           if (estadoChart) estadoChart.destroy();
@@ -212,6 +223,7 @@
       fetch('/api/dashboard/tickets-por-asignado' + query)
         .then(res => res.json())
         .then(data => {
+          datosPorAsignado = data; // Guardar para Excel
           const labels = data.map(row => row.asignado_a);
           const values = data.map(row => row.total);
           if (asignadoChart) asignadoChart.destroy();
@@ -233,10 +245,23 @@
         });
     }
 
-    // Exportar la tabla de tiempo medio a Excel
+    // Exportar todos los datos a Excel
     function descargarExcel() {
-      const tabla = document.getElementById('tiempoMedio');
-      const wb = XLSX.utils.table_to_book(tabla, {sheet:"Tiempo Medio"});
+      const wb = XLSX.utils.book_new();
+
+      if (datosTiempoMedio.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosTiempoMedio), "Tiempo Medio");
+      if (datosSolicitantes.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosSolicitantes), "Solicitantes Top");
+      if (datosPorDepartamento.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorDepartamento), "Por Departamento");
+      if (datosTiempoAsignado.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosTiempoAsignado), "Tiempo Asignado");
+      if (datosPorEstado.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorEstado), "Por Estado");
+      if (datosPorAsignado.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorAsignado), "Por Asignado");
+
       XLSX.writeFile(wb, "dashboard_tickets.xlsx");
     }
 
