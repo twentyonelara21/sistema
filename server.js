@@ -771,6 +771,71 @@ app.get('/api/dashboard/solicitantes-top', async (req, res) => {
   }
 });
 
+app.get('/api/dashboard/tickets-por-departamento', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT department, COUNT(*) AS total
+      FROM tickets
+      GROUP BY department
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener tickets por departamento' });
+  }
+});
+
+app.get('/api/dashboard/tiempo-asignado', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        u.username AS asignado_a,
+        COUNT(t.id) AS total_tickets,
+        ROUND(AVG(TIMESTAMPDIFF(MINUTE, t.created_at, 
+          (SELECT h.changed_at FROM ticket_status_history h WHERE h.ticket_id = t.id AND h.status = 'Resuelto' ORDER BY h.changed_at DESC LIMIT 1)
+        )), 2) AS tiempo_medio_minutos,
+        SUM(TIMESTAMPDIFF(MINUTE, t.created_at, 
+          (SELECT h.changed_at FROM ticket_status_history h WHERE h.ticket_id = t.id AND h.status = 'Resuelto' ORDER BY h.changed_at DESC LIMIT 1)
+        )) AS tiempo_total_minutos
+      FROM tickets t
+      JOIN users u ON t.assigned_to = u.id
+      WHERE t.status = 'Resuelto' AND t.assigned_to IS NOT NULL
+      GROUP BY u.username
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener tiempos' });
+  }
+});
+
+app.get('/api/dashboard/tickets-por-estado', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT status, COUNT(*) AS total
+      FROM tickets
+      GROUP BY status
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener tickets por estado' });
+  }
+});
+
+app.get('/api/dashboard/tickets-por-asignado', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT u.username AS asignado_a, COUNT(t.id) AS total
+      FROM tickets t
+      JOIN users u ON t.assigned_to = u.id
+      GROUP BY u.username
+      ORDER BY total DESC
+      LIMIT 10
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener tickets por asignado' });
+  }
+});
+
 
 // Error handling middleware
 app.use((error, req, res, next) => {

@@ -4,6 +4,16 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta charset="UTF-8">
   <title>Dashboard de Tickets</title>
+  <style>
+  body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 2rem; }
+  h1 { text-align: center; color: #2c3e50; }
+  h2 { color: #34495e; margin-top: 2rem; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; background: #fff; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+  th { background: #36A2EB; color: #fff; }
+  canvas { display: block; margin: 0 auto 2rem auto; background: #fff; border-radius: 8px; }
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
   <h1>Dashboard de Tickets</h1>
@@ -22,6 +32,14 @@
     </thead>
     <tbody></tbody>
   </table>
+  <h2>Tickets por Departamento</h2>
+  <canvas id="departamentoChart" width="400" height="200"></canvas>
+  <h2>Tiempo medio y total por usuario asignado</h2>
+  <canvas id="tiempoAsignadoChart" width="400" height="200"></canvas>
+  <h2>Tickets por Estado</h2>
+  <canvas id="estadoChart" width="400" height="200"></canvas>
+  <h2>Tickets hechos por usuario asignado</h2>
+  <canvas id="asignadoChart" width="400" height="200"></canvas>
   <script>
   fetch('/api/dashboard/solicitantes-top')
     .then(res => res.json())
@@ -53,6 +71,105 @@
         }
       });
     });
+    fetch('/api/dashboard/tickets-por-departamento')
+    .then(res => res.json())
+    .then(data => {
+      const labels = data.map(row => row.department);
+      const values = data.map(row => row.total);
+
+      new Chart(document.getElementById('departamentoChart').getContext('2d'), {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Tickets por departamento',
+            data: values,
+            backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0'],
+          }]
+        }
+      });
+    });
+    fetch('/api/dashboard/tiempo-asignado')
+    .then(res => res.json())
+    .then(data => {
+      const labels = data.map(row => row.asignado_a);
+      const medios = data.map(row => row.tiempo_medio_minutos);
+      const totales = data.map(row => row.tiempo_total_minutos);
+
+      new Chart(document.getElementById('tiempoAsignadoChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Tiempo medio (min)',
+              data: medios,
+              backgroundColor: 'rgba(54, 162, 235, 0.5)'
+            },
+            {
+              label: 'Tiempo total (min)',
+              data: totales,
+              backgroundColor: 'rgba(255, 99, 132, 0.5)'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    });
+    fetch('/api/dashboard/tickets-por-estado')
+  .then(res => res.json())
+  .then(data => {
+    const labels = data.map(row => row.status);
+    const values = data.map(row => row.total);
+
+    new Chart(document.getElementById('estadoChart').getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Tickets por estado',
+          data: values,
+          backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384'],
+        }]
+      }
+    });
+  });
+  fetch('/api/dashboard/tickets-por-asignado')
+  .then(res => res.json())
+  .then(data => {
+    const labels = data.map(row => row.asignado_a);
+    const values = data.map(row => row.total);
+
+    new Chart(document.getElementById('asignadoChart').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Tickets resueltos',
+          data: values,
+          backgroundColor: 'rgba(75, 192, 192, 0.5)'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true, stepSize: 1 } }
+      }
+    });
+  });
+  fetch('/api/dashboard/tiempo-medio')
+  .then(res => res.json())
+  .then(data => {
+    const tbody = document.querySelector('#tiempoMedio tbody');
+    tbody.innerHTML = '';
+    data.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${row.usuario}</td><td>${row.tiempo_medio_minutos ?? '-'}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
   </script>
 </body>
 </html>
