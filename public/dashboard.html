@@ -1,22 +1,51 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta charset="UTF-8">
   <title>Dashboard de Tickets</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
-  body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 2rem; }
-  h1 { text-align: center; color: #2c3e50; }
-  h2 { color: #34495e; margin-top: 2rem; }
-  table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; background: #fff; }
-  th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-  th { background: #36A2EB; color: #fff; }
-  canvas { display: block; margin: 0 auto 2rem auto; background: #fff; border-radius: 8px; }
-</style>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 2rem; }
+    h1 { text-align: center; color: #2c3e50; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #36A2EB; color: #fff; }
+    canvas { display: block; margin: 0 auto 2rem auto; background: #fff; border-radius: 8px; }
+    .filtros { margin-bottom: 2rem; background: #fff; padding: 1rem; border-radius: 8px; }
+    .filtros label { margin-right: 1rem; }
+    .filtros button { margin-left: 1rem; }
+  </style>
 </head>
 <body>
   <h1>Dashboard de Tickets</h1>
+  <div class="filtros">
+    <label>Desde: <input type="date" id="filtroDesde"></label>
+    <label>Hasta: <input type="date" id="filtroHasta"></label>
+    <label>Departamento:
+      <select id="filtroDepartamento">
+        <option value="">Todos</option>
+        <option value="Mantenimiento">Mantenimiento</option>
+        <option value="Sistemas">Sistemas</option>
+      </select>
+    </label>
+    <label>Estado:
+      <select id="filtroEstado">
+        <option value="">Todos</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="En Proceso">En Proceso</option>
+        <option value="Resuelto">Resuelto</option>
+      </select>
+    </label>
+    <label>Asignado a:
+      <input type="text" id="filtroAsignado" placeholder="Usuario asignado">
+    </label>
+    <button onclick="actualizarDashboard()">Filtrar</button>
+    <button onclick="descargarExcel()">Descargar Excel</button>
+  </div>
+
   <h2>Tiempo medio de atención por usuario</h2>
   <table id="tiempoMedio">
     <thead>
@@ -26,12 +55,6 @@
   </table>
   <h2>Solicitantes que más tickets crean</h2>
   <canvas id="solicitantesChart" width="400" height="200"></canvas>
-  <table id="solicitantesTop">
-    <thead>
-      <tr><th>Solicitante</th><th>Total Tickets</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
   <h2>Tickets por Departamento</h2>
   <canvas id="departamentoChart" width="400" height="200"></canvas>
   <h2>Tiempo medio y total por usuario asignado</h2>
@@ -40,136 +63,185 @@
   <canvas id="estadoChart" width="400" height="200"></canvas>
   <h2>Tickets hechos por usuario asignado</h2>
   <canvas id="asignadoChart" width="400" height="200"></canvas>
+
   <script>
-  fetch('/api/dashboard/solicitantes-top')
-    .then(res => res.json())
-    .then(data => {
-      const labels = data.map(row => row.requester);
-      const values = data.map(row => row.total);
+    // Variables globales para los charts (para poder destruirlos y recrearlos)
+    let solicitantesChart, departamentoChart, tiempoAsignadoChart, estadoChart, asignadoChart;
 
-      const ctx = document.getElementById('solicitantesChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Tickets por solicitante',
-            data: values,
-            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { stepSize: 1 }
-            }
-          }
-        }
-      });
-    });
-    fetch('/api/dashboard/tickets-por-departamento')
-    .then(res => res.json())
-    .then(data => {
-      const labels = data.map(row => row.department);
-      const values = data.map(row => row.total);
+  function getFiltros() {
+    const desde = document.getElementById('filtroDesde').value;
+    const hasta = document.getElementById('filtroHasta').value;
+    const departamento = document.getElementById('filtroDepartamento').value;
+    const estado = document.getElementById('filtroEstado').value;
+    const asignado = document.getElementById('filtroAsignado').value;
+    return { desde, hasta, departamento, estado, asignado };
+  }
 
-      new Chart(document.getElementById('departamentoChart').getContext('2d'), {
-        type: 'pie',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Tickets por departamento',
-            data: values,
-            backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0'],
-          }]
-        }
-      });
-    });
-    fetch('/api/dashboard/tiempo-asignado')
-    .then(res => res.json())
-    .then(data => {
-      const labels = data.map(row => row.asignado_a);
-      const medios = data.map(row => row.tiempo_medio_minutos);
-      const totales = data.map(row => row.tiempo_total_minutos);
+  function armarQueryString(filtros) {
+    const params = [];
+    if (filtros.desde) params.push(`desde=${filtros.desde}`);
+    if (filtros.hasta) params.push(`hasta=${filtros.hasta}`);
+    if (filtros.departamento) params.push(`departamento=${encodeURIComponent(filtros.departamento)}`);
+    if (filtros.estado) params.push(`estado=${encodeURIComponent(filtros.estado)}`);
+    if (filtros.asignado) params.push(`asignado=${encodeURIComponent(filtros.asignado)}`);
+    return params.length ? '?' + params.join('&') : '';
+  }
 
-      new Chart(document.getElementById('tiempoAsignadoChart').getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: 'Tiempo medio (min)',
-              data: medios,
-              backgroundColor: 'rgba(54, 162, 235, 0.5)'
+    function actualizarDashboard() {
+      const filtros = getFiltros();
+      const query = armarQueryString(filtros);
+
+      // Tiempo medio de atención por usuario (tabla)
+      fetch('/api/dashboard/tiempo-medio' + query)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector('#tiempoMedio tbody');
+          tbody.innerHTML = '';
+          data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.usuario}</td><td>${row.tiempo_medio_minutos ?? '-'}</td>`;
+            tbody.appendChild(tr);
+          });
+        });
+
+      // Solicitantes que más tickets crean (gráfica)
+      fetch('/api/dashboard/solicitantes-top' + query)
+        .then(res => res.json())
+        .then(data => {
+          const labels = data.map(row => row.requester);
+          const values = data.map(row => row.total);
+          if (solicitantesChart) solicitantesChart.destroy();
+          const ctx = document.getElementById('solicitantesChart').getContext('2d');
+          solicitantesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Tickets por solicitante',
+                data: values,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+              }]
             },
-            {
-              label: 'Tiempo total (min)',
-              data: totales,
-              backgroundColor: 'rgba(255, 99, 132, 0.5)'
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { stepSize: 1 }
+                }
+              }
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    });
-    fetch('/api/dashboard/tickets-por-estado')
-  .then(res => res.json())
-  .then(data => {
-    const labels = data.map(row => row.status);
-    const values = data.map(row => row.total);
+          });
+        });
 
-    new Chart(document.getElementById('estadoChart').getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Tickets por estado',
-          data: values,
-          backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384'],
-        }]
-      }
-    });
-  });
-  fetch('/api/dashboard/tickets-por-asignado')
-  .then(res => res.json())
-  .then(data => {
-    const labels = data.map(row => row.asignado_a);
-    const values = data.map(row => row.total);
+      // Tickets por departamento (gráfica)
+      fetch('/api/dashboard/tickets-por-departamento' + query)
+        .then(res => res.json())
+        .then(data => {
+          const labels = data.map(row => row.department);
+          const values = data.map(row => row.total);
+          if (departamentoChart) departamentoChart.destroy();
+          departamentoChart = new Chart(document.getElementById('departamentoChart').getContext('2d'), {
+            type: 'pie',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Tickets por departamento',
+                data: values,
+                backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0'],
+              }]
+            }
+          });
+        });
 
-    new Chart(document.getElementById('asignadoChart').getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Tickets resueltos',
-          data: values,
-          backgroundColor: 'rgba(75, 192, 192, 0.5)'
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: { y: { beginAtZero: true, stepSize: 1 } }
-      }
-    });
-  });
-  fetch('/api/dashboard/tiempo-medio')
-  .then(res => res.json())
-  .then(data => {
-    const tbody = document.querySelector('#tiempoMedio tbody');
-    tbody.innerHTML = '';
-    data.forEach(row => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${row.usuario}</td><td>${row.tiempo_medio_minutos ?? '-'}</td>`;
-      tbody.appendChild(tr);
-    });
-  });
+      // Tiempo medio y total por usuario asignado (gráfica)
+      fetch('/api/dashboard/tiempo-asignado' + query)
+        .then(res => res.json())
+        .then(data => {
+          const labels = data.map(row => row.asignado_a);
+          const medios = data.map(row => row.tiempo_medio_minutos);
+          const totales = data.map(row => row.tiempo_total_minutos);
+          if (tiempoAsignadoChart) tiempoAsignadoChart.destroy();
+          tiempoAsignadoChart = new Chart(document.getElementById('tiempoAsignadoChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: 'Tiempo medio (min)',
+                  data: medios,
+                  backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                },
+                {
+                  label: 'Tiempo total (min)',
+                  data: totales,
+                  backgroundColor: 'rgba(255, 99, 132, 0.5)'
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+        });
+
+      // Tickets por estado (gráfica)
+      fetch('/api/dashboard/tickets-por-estado' + query)
+        .then(res => res.json())
+        .then(data => {
+          const labels = data.map(row => row.status);
+          const values = data.map(row => row.total);
+          if (estadoChart) estadoChart.destroy();
+          estadoChart = new Chart(document.getElementById('estadoChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Tickets por estado',
+                data: values,
+                backgroundColor: ['#FFCE56', '#36A2EB', '#FF6384'],
+              }]
+            }
+          });
+        });
+
+      // Tickets hechos por usuario asignado (gráfica)
+      fetch('/api/dashboard/tickets-por-asignado' + query)
+        .then(res => res.json())
+        .then(data => {
+          const labels = data.map(row => row.asignado_a);
+          const values = data.map(row => row.total);
+          if (asignadoChart) asignadoChart.destroy();
+          asignadoChart = new Chart(document.getElementById('asignadoChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Tickets resueltos',
+                data: values,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)'
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: { y: { beginAtZero: true, stepSize: 1 } }
+            }
+          });
+        });
+    }
+
+    // Exportar la tabla de tiempo medio a Excel
+    function descargarExcel() {
+      const tabla = document.getElementById('tiempoMedio');
+      const wb = XLSX.utils.table_to_book(tabla, {sheet:"Tiempo Medio"});
+      XLSX.writeFile(wb, "dashboard_tickets.xlsx");
+    }
+
+    // Cargar dashboard al inicio
+    window.onload = actualizarDashboard;
   </script>
 </body>
 </html>

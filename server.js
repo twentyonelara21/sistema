@@ -737,7 +737,17 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
+// TIEMPO MEDIO DE ATENCIÓN POR USUARIO
 app.get('/api/dashboard/tiempo-medio', async (req, res) => {
+  const { desde, hasta, departamento, estado, asignado } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('t.created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('t.department = ?'); params.push(departamento); }
+  if (estado) { where.push('t.status = ?'); params.push(estado); }
+  if (asignado) { where.push('u.username LIKE ?'); params.push('%' + asignado + '%'); }
+  const whereStr = where.length ? ' AND ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT 
@@ -747,44 +757,77 @@ app.get('/api/dashboard/tiempo-medio', async (req, res) => {
         )), 2) AS tiempo_medio_minutos
       FROM tickets t
       JOIN users u ON t.assigned_to = u.id
-      WHERE t.status = 'Resuelto' AND t.assigned_to IS NOT NULL
+      WHERE t.assigned_to IS NOT NULL
+      ${whereStr}
       GROUP BY u.username
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener tiempo medio' });
   }
 });
 
+// SOLICITANTES QUE MÁS TICKETS CREAN
 app.get('/api/dashboard/solicitantes-top', async (req, res) => {
+  const { desde, hasta, departamento, estado, asignado } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('department = ?'); params.push(departamento); }
+  if (estado) { where.push('status = ?'); params.push(estado); }
+  if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
+  const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT requester, COUNT(*) AS total
       FROM tickets
+      ${whereStr}
       GROUP BY requester
       ORDER BY total DESC
       LIMIT 10
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener solicitantes' });
   }
 });
 
+// TICKETS POR DEPARTAMENTO
 app.get('/api/dashboard/tickets-por-departamento', async (req, res) => {
+  const { desde, hasta, departamento, estado, asignado } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('department = ?'); params.push(departamento); }
+  if (estado) { where.push('status = ?'); params.push(estado); }
+  if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
+  const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT department, COUNT(*) AS total
       FROM tickets
+      ${whereStr}
       GROUP BY department
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener tickets por departamento' });
   }
 });
 
+// TIEMPO MEDIO Y TOTAL POR USUARIO ASIGNADO
 app.get('/api/dashboard/tiempo-asignado', async (req, res) => {
+  const { desde, hasta, departamento, estado, asignado } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('t.created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('t.department = ?'); params.push(departamento); }
+  if (estado) { where.push('t.status = ?'); params.push(estado); }
+  if (asignado) { where.push('u.username LIKE ?'); params.push('%' + asignado + '%'); }
+  const whereStr = where.length ? ' AND ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT 
@@ -798,38 +841,62 @@ app.get('/api/dashboard/tiempo-asignado', async (req, res) => {
         )) AS tiempo_total_minutos
       FROM tickets t
       JOIN users u ON t.assigned_to = u.id
-      WHERE t.status = 'Resuelto' AND t.assigned_to IS NOT NULL
+      WHERE t.assigned_to IS NOT NULL
+      ${whereStr}
       GROUP BY u.username
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener tiempos' });
   }
 });
 
+// TICKETS POR ESTADO
 app.get('/api/dashboard/tickets-por-estado', async (req, res) => {
+  const { desde, hasta, departamento, estado, asignado } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('department = ?'); params.push(departamento); }
+  if (estado) { where.push('status = ?'); params.push(estado); }
+  if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
+  const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT status, COUNT(*) AS total
       FROM tickets
+      ${whereStr}
       GROUP BY status
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener tickets por estado' });
   }
 });
 
+// TICKETS HECHOS POR USUARIO ASIGNADO
 app.get('/api/dashboard/tickets-por-asignado', async (req, res) => {
+  const { desde, hasta, departamento, estado, asignado } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('t.created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('t.department = ?'); params.push(departamento); }
+  if (estado) { where.push('t.status = ?'); params.push(estado); }
+  if (asignado) { where.push('u.username LIKE ?'); params.push('%' + asignado + '%'); }
+  const whereStr = where.length ? ' AND ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT u.username AS asignado_a, COUNT(t.id) AS total
       FROM tickets t
       JOIN users u ON t.assigned_to = u.id
+      WHERE t.assigned_to IS NOT NULL
+      ${whereStr}
       GROUP BY u.username
       ORDER BY total DESC
       LIMIT 10
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener tickets por asignado' });
