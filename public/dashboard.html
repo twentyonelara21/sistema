@@ -8,40 +8,43 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
     :root {
-      --azul-primario: #1a237e;
-      --azul-secundario: #3949ab;
-      --gris-fondo: #f5f6fa;
-      --gris-card: #fff;
-      --gris-borde: #e0e0e0;
-      --gris-titulo: #222f3e;
-      --gris-texto: #576574;
-      --azul-boton: #1976d2;
-      --azul-boton-hover: #1565c0;
-      --verde: #43a047;
-      --rojo: #e53935;
-      --amarillo: #fbc02d;
+      --encabezadospagina: #FF0000;
+      --parrafos: #00877A;
+      --fondo: #f7f9fa;
+      --card: #fff;
+      --borde: #e0e0e0;
+      --gris: #444;
+      --gris-claro: #f1f1f1;
+      --sombra: 0 2px 12px rgba(0,0,0,0.07);
+      --boton-principal: #FF0000;
+      --boton-principal-hover: #d10000;
+      --boton-secundario: #00877A;
+      --boton-secundario-hover: #00695c;
     }
     body {
       font-family: 'Segoe UI', 'Arial', sans-serif;
-      background: var(--gris-fondo);
+      background: var(--fondo);
       margin: 0;
       padding: 0;
+      color: var(--parrafos);
     }
     h1 {
       text-align: center;
-      color: var(--azul-primario);
+      color: var(--encabezadospagina);
       margin-top: 2rem;
       margin-bottom: 1.5rem;
-      font-size: 2.2rem;
+      font-size: 2.3rem;
       letter-spacing: 1px;
+      font-weight: 800;
     }
     h2 {
-      color: var(--gris-titulo);
-      margin-top: 2rem;
+      color: var(--parrafos);
+      margin-top: 1.5rem;
       margin-bottom: 1rem;
-      font-size: 1.3rem;
-      font-weight: 600;
+      font-size: 1.2rem;
+      font-weight: 700;
       letter-spacing: 0.5px;
+      text-align: left;
     }
     .container {
       max-width: 1200px;
@@ -53,49 +56,62 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 1rem;
-      background: var(--gris-card);
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(26,35,126,0.06);
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: var(--sombra);
       padding: 1.2rem 1.5rem;
       margin-bottom: 2rem;
-      border: 1px solid var(--gris-borde);
+      border: 1px solid var(--borde);
     }
     .filtros label {
-      font-weight: 500;
-      color: var(--gris-titulo);
+      font-weight: 600;
+      color: var(--parrafos);
       margin-right: 0.5rem;
     }
     .filtros input, .filtros select {
       padding: 0.4rem 0.7rem;
       border-radius: 6px;
-      border: 1px solid var(--gris-borde);
+      border: 1px solid var(--borde);
       font-size: 1rem;
       background: #f8fafc;
-      color: var(--gris-texto);
+      color: var(--gris);
       margin-right: 1rem;
+      min-width: 120px;
     }
     .filtros button {
-      background: var(--azul-boton);
+      background: var(--boton-principal);
       color: #fff;
       border: none;
       border-radius: 6px;
       padding: 0.5rem 1.2rem;
       font-size: 1rem;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.2s, box-shadow 0.2s;
       margin-left: 0.5rem;
+      box-shadow: 0 2px 6px rgba(255,0,0,0.08);
     }
     .filtros button:hover {
-      background: var(--azul-boton-hover);
+      background: var(--boton-principal-hover);
+    }
+    .filtros button:last-child {
+      background: var(--boton-secundario);
+      margin-left: 0.5rem;
+    }
+    .filtros button:last-child:hover {
+      background: var(--boton-secundario-hover);
     }
     .card {
-      background: var(--gris-card);
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(26,35,126,0.08);
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: var(--sombra);
       padding: 1.5rem 1.2rem 2rem 1.2rem;
       margin-bottom: 2rem;
-      border: 1px solid var(--gris-borde);
+      border: 1px solid var(--borde);
+      transition: box-shadow 0.2s;
+    }
+    .card:hover {
+      box-shadow: 0 4px 24px rgba(255,0,0,0.10);
     }
     table {
       border-collapse: collapse;
@@ -103,30 +119,30 @@
       background: #fff;
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 1px 4px rgba(26,35,126,0.04);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
       margin-bottom: 1.5rem;
     }
     th, td {
-      border: 1px solid var(--gris-borde);
+      border: 1px solid var(--borde);
       padding: 10px 8px;
       text-align: center;
       font-size: 1rem;
     }
     th {
-      background: var(--azul-secundario);
+      background: var(--encabezadospagina);
       color: #fff;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: 0.5px;
     }
     tr:nth-child(even) td {
-      background: #f7f9fc;
+      background: var(--gris-claro);
     }
     canvas {
       display: block;
       margin: 0 auto 1.5rem auto;
       background: #fff;
       border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(26,35,126,0.04);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
       max-width: 100%;
       height: 320px !important;
     }
@@ -134,6 +150,13 @@
       .container { padding: 1rem 0.2rem; }
       .card { padding: 1rem 0.5rem 1.5rem 0.5rem; }
       .filtros { flex-direction: column; align-items: flex-start; gap: 0.7rem; }
+      h1 { font-size: 1.5rem; }
+      h2 { font-size: 1rem; }
+    }
+    @media (max-width: 600px) {
+      .filtros input, .filtros select { min-width: 90px; font-size: 0.95rem; }
+      th, td { font-size: 0.95rem; }
+      .card { padding: 0.7rem 0.2rem 1rem 0.2rem; }
     }
   </style>
 </head>
