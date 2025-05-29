@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard de Tickets</title>
+</head>
+<body>
+  <h1>Dashboard de Tickets</h1>
+  <h2>Tiempo medio de atención por usuario</h2>
+  <table id="tiempoMedio">
+    <thead>
+      <tr><th>Usuario</th><th>Tiempo Medio (minutos)</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <h2>Solicitantes que más tickets crean</h2>
+  <table id="solicitantesTop">
+    <thead>
+      <tr><th>Solicitante</th><th>Total Tickets</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script>
+    fetch('/api/dashboard/tiempo-medio')
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.querySelector('#tiempoMedio tbody');
+        data.forEach(row => {
+          tbody.innerHTML += `<tr><td>${row.usuario}</td><td>${Math.round(row.tiempo_medio_minutos)}</td></tr>`;
+        });
+      });
+
+    fetch('/api/dashboard/solicitantes-top')
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.querySelector('#solicitantesTop tbody');
+        data.forEach(row => {
+          tbody.innerHTML += `<tr><td>${row.requester}</td><td>${row.total}</td></tr>`;
+        });
+      });
+  </script>
+</body>
+</html>
