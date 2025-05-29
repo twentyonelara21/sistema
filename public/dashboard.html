@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta charset="UTF-8">
   <title>Dashboard de Tickets</title>
 </head>
@@ -14,6 +15,7 @@
     <tbody></tbody>
   </table>
   <h2>Solicitantes que más tickets crean</h2>
+  <canvas id="solicitantesChart" width="400" height="200"></canvas>
   <table id="solicitantesTop">
     <thead>
       <tr><th>Solicitante</th><th>Total Tickets</th></tr>
@@ -21,23 +23,36 @@
     <tbody></tbody>
   </table>
   <script>
-    fetch('/api/dashboard/tiempo-medio')
-      .then(res => res.json())
-      .then(data => {
-        const tbody = document.querySelector('#tiempoMedio tbody');
-        data.forEach(row => {
-          tbody.innerHTML += `<tr><td>${row.usuario}</td><td>${Math.round(row.tiempo_medio_minutos)}</td></tr>`;
-        });
-      });
+  fetch('/api/dashboard/solicitantes-top')
+    .then(res => res.json())
+    .then(data => {
+      const labels = data.map(row => row.requester);
+      const values = data.map(row => row.total);
 
-    fetch('/api/dashboard/solicitantes-top')
-      .then(res => res.json())
-      .then(data => {
-        const tbody = document.querySelector('#solicitantesTop tbody');
-        data.forEach(row => {
-          tbody.innerHTML += `<tr><td>${row.requester}</td><td>${row.total}</td></tr>`;
-        });
+      const ctx = document.getElementById('solicitantesChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Tickets por solicitante',
+            data: values,
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 }
+            }
+          }
+        }
       });
+    });
   </script>
 </body>
 </html>
