@@ -737,6 +737,40 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
+app.get('/api/dashboard/tiempo-medio', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        u.username AS usuario,
+        ROUND(AVG(TIMESTAMPDIFF(MINUTE, t.created_at, 
+          (SELECT h.changed_at FROM ticket_status_history h WHERE h.ticket_id = t.id AND h.status = 'Resuelto' ORDER BY h.changed_at DESC LIMIT 1)
+        )), 2) AS tiempo_medio_minutos
+      FROM tickets t
+      JOIN users u ON t.assigned_to = u.id
+      WHERE t.status = 'Resuelto' AND t.assigned_to IS NOT NULL
+      GROUP BY u.username
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener tiempo medio' });
+  }
+});
+
+app.get('/api/dashboard/solicitantes-top', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT requester, COUNT(*) AS total
+      FROM tickets
+      GROUP BY requester
+      ORDER BY total DESC
+      LIMIT 10
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener solicitantes' });
+  }
+});
+
 
 // Error handling middleware
 app.use((error, req, res, next) => {
