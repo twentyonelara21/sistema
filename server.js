@@ -764,10 +764,7 @@ app.get('/api/dashboard/tickets-listado', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener listado de tickets' });
   }
-})
-  .catch(err => {
-    console.error('Error en /api/dashboard/tickets-listado:', err);
-  });
+});
 
 
 // SOLICITANTES QUE MÁS TICKETS CREAN
@@ -920,7 +917,7 @@ app.get('/api/dashboard/tickets-por-prioridad', async (req, res) => {
   if (departamento) { where.push('t.department = ?'); params.push(departamento); }
   if (estado) { where.push('t.status = ?'); params.push(estado); }
   if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
-  if (ticketId) { where.push('t.id = ?'); params.push(ticketId); }
+  
   const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
