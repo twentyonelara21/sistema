@@ -740,44 +740,17 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
-app.get('/api/dashboard/tickets-listado', async (req, res) => {
-  const { desde, hasta, departamento, estado, asignado, ticketId } = req.query;
-  let where = [];
-  let params = [];
-  if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
-  if (hasta) { where.push('t.created_at <= ?'); params.push(hasta + ' 23:59:59'); }
-  if (departamento) { where.push('t.department = ?'); params.push(departamento); }
-  if (estado) { where.push('t.status = ?'); params.push(estado); }
-  if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
-  if (ticketId) { where.push('t.id = ?'); params.push(ticketId); }
-  const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
-  try {
-    const [rows] = await pool.query(`
-      SELECT t.id, t.requester, t.department, t.priority, t.status, t.date, t.description, u.username AS asignado_a
-      FROM tickets t
-      LEFT JOIN users u ON t.assigned_to = u.id
-      ${whereStr}
-      ORDER BY t.id DESC
-      LIMIT 500
-    `, params);
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener listado de tickets' });
-  }
-});
-
 
 // SOLICITANTES QUE MÁS TICKETS CREAN
 app.get('/api/dashboard/solicitantes-top', async (req, res) => {
-  const { desde, hasta, departamento, estado, asignado, ticketId } = req.query;
+  const { desde, hasta, departamento, estado, asignado } = req.query;
   let where = [];
   let params = [];
-  if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
-  if (hasta) { where.push('t.created_at <= ?'); params.push(hasta + ' 23:59:59'); }
-  if (departamento) { where.push('t.department = ?'); params.push(departamento); }
-  if (estado) { where.push('t.status = ?'); params.push(estado); }
+  if (desde) { where.push('created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('department = ?'); params.push(departamento); }
+  if (estado) { where.push('status = ?'); params.push(estado); }
   if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
-  if (ticketId) { where.push('t.id = ?'); params.push(ticketId); }
   const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
@@ -796,15 +769,14 @@ app.get('/api/dashboard/solicitantes-top', async (req, res) => {
 
 // TICKETS POR DEPARTAMENTO
 app.get('/api/dashboard/tickets-por-departamento', async (req, res) => {
-  const { desde, hasta, departamento, estado, asignado, ticketId } = req.query;
+  const { desde, hasta, departamento, estado, asignado } = req.query;
   let where = [];
   let params = [];
-  if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
-  if (hasta) { where.push('t.created_at <= ?'); params.push(hasta + ' 23:59:59'); }
-  if (departamento) { where.push('t.department = ?'); params.push(departamento); }
-  if (estado) { where.push('t.status = ?'); params.push(estado); }
+  if (desde) { where.push('created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('department = ?'); params.push(departamento); }
+  if (estado) { where.push('status = ?'); params.push(estado); }
   if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
-  if (ticketId) { where.push('t.id = ?'); params.push(ticketId); }
   const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
@@ -821,7 +793,7 @@ app.get('/api/dashboard/tickets-por-departamento', async (req, res) => {
 
 // TIEMPO MEDIO Y TOTAL POR USUARIO ASIGNADO
 app.get('/api/dashboard/tiempo-asignado', async (req, res) => {
-  const { desde, hasta, departamento, estado, asignado, ticketId } = req.query;
+  const { desde, hasta, departamento, estado, asignado } = req.query;
   let where = [];
   let params = [];
   if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
@@ -829,7 +801,6 @@ app.get('/api/dashboard/tiempo-asignado', async (req, res) => {
   if (departamento) { where.push('t.department = ?'); params.push(departamento); }
   if (estado) { where.push('t.status = ?'); params.push(estado); }
   if (asignado) { where.push('u.username LIKE ?'); params.push('%' + asignado + '%'); }
-  if (ticketId) { where.push('t.id = ?'); params.push(ticketId); }
   const whereStr = where.length ? ' AND ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
@@ -856,15 +827,14 @@ app.get('/api/dashboard/tiempo-asignado', async (req, res) => {
 
 // TICKETS POR ESTADO
 app.get('/api/dashboard/tickets-por-estado', async (req, res) => {
-  const { desde, hasta, departamento, estado, asignado, ticketId } = req.query;
+  const { desde, hasta, departamento, estado, asignado } = req.query;
   let where = [];
   let params = [];
-  if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
-  if (hasta) { where.push('t.created_at <= ?'); params.push(hasta + ' 23:59:59'); }
-  if (departamento) { where.push('t.department = ?'); params.push(departamento); }
-  if (estado) { where.push('t.status = ?'); params.push(estado); }
+  if (desde) { where.push('created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('department = ?'); params.push(departamento); }
+  if (estado) { where.push('status = ?'); params.push(estado); }
   if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
-  if (ticketId) { where.push('t.id = ?'); params.push(ticketId); }
   const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
@@ -881,7 +851,7 @@ app.get('/api/dashboard/tickets-por-estado', async (req, res) => {
 
 // TICKETS HECHOS POR USUARIO ASIGNADO
 app.get('/api/dashboard/tickets-por-asignado', async (req, res) => {
-  const { desde, hasta, departamento, estado, asignado, ticketId } = req.query;
+  const { desde, hasta, departamento, estado, asignado } = req.query;
   let where = [];
   let params = [];
   if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
@@ -889,7 +859,6 @@ app.get('/api/dashboard/tickets-por-asignado', async (req, res) => {
   if (departamento) { where.push('t.department = ?'); params.push(departamento); }
   if (estado) { where.push('t.status = ?'); params.push(estado); }
   if (asignado) { where.push('u.username LIKE ?'); params.push('%' + asignado + '%'); }
-  if (ticketId) { where.push('t.id = ?'); params.push(ticketId); }
   const whereStr = where.length ? ' AND ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
@@ -905,30 +874,6 @@ app.get('/api/dashboard/tickets-por-asignado', async (req, res) => {
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener tickets por asignado' });
-  }
-});
-
-app.get('/api/dashboard/tickets-por-prioridad', async (req, res) => {
-  const { desde, hasta, departamento, estado, asignado, ticketId } = req.query;
-  let where = [];
-  let params = [];
-  if (desde) { where.push('t.created_at >= ?'); params.push(desde + ' 00:00:00'); }
-  if (hasta) { where.push('t.created_at <= ?'); params.push(hasta + ' 23:59:59'); }
-  if (departamento) { where.push('t.department = ?'); params.push(departamento); }
-  if (estado) { where.push('t.status = ?'); params.push(estado); }
-  if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
-  
-  const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
-  try {
-    const [rows] = await pool.query(`
-      SELECT priority, COUNT(*) AS total
-      FROM tickets
-      ${whereStr}
-      GROUP BY priority
-    `, params);
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener tickets por prioridad' });
   }
 });
 

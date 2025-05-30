@@ -140,9 +140,6 @@
     tr:nth-child(even) td {
       background: var(--gris-claro);
     }
-    tr.selected {
-      background: #ffe0e0 !important;
-    }
     canvas {
       display: block;
       margin: 0 auto 1.5rem auto;
@@ -195,25 +192,6 @@
     </div>
 
     <div class="card">
-      <h2>Listado de Tickets (Tabla Dinámica)</h2>
-      <table id="tablaDinamica" class="display" style="width:100%">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Solicitante</th>
-            <th>Departamento</th>
-            <th>Prioridad</th>
-            <th>Estado</th>
-            <th>Asignado a</th>
-            <th>Fecha</th>
-            <th>Descripción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div class="card">
       <h2>Solicitantes que más tickets crean</h2>
       <canvas id="solicitantesChart" width="400" height="200"></canvas>
     </div>
@@ -250,6 +228,7 @@
   </div>
 
   <script>
+    // Variables globales para los charts (para poder destruirlos y recrearlos)
     let solicitantesChart, departamentoChart, tiempoAsignadoChart, estadoChart, asignadoChart;
     let datosTiempoMedio = [];
     let datosSolicitantes = [];
@@ -258,87 +237,25 @@
     let datosPorEstado = [];
     let datosPorAsignado = [];
     let datosPorPrioridad = [];
-    let tablaDinamica;
-    let datosTablaDinamica = [];
-    let ticketSeleccionado = null;
 
-    function cargarTablaDinamica(query) {
-      fetch('/api/dashboard/tickets-listado' + query)
-        .then(res => res.json())
-        .then(data => {
-          datosTablaDinamica = data;
-          const tbody = document.querySelector('#tablaDinamica tbody');
-          tbody.innerHTML = '';
-          data.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${row.id}</td>
-              <td>${row.requester}</td>
-              <td>${row.department}</td>
-              <td>${row.priority}</td>
-              <td>${row.status}</td>
-              <td>${row.asignado_a || ''}</td>
-              <td>${formatearFecha(row.date)}</td>
-              <td>${row.description}</td>
-            `;
-            tbody.appendChild(tr);
-          });
-          if (tablaDinamica) {
-            tablaDinamica.destroy();
-          }
-          tablaDinamica = $('#tablaDinamica').DataTable({
-            language: {
-              url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
-            }
-          });
+  function getFiltros() {
+    const desde = document.getElementById('filtroDesde').value;
+    const hasta = document.getElementById('filtroHasta').value;
+    const departamento = document.getElementById('filtroDepartamento').value;
+    const estado = document.getElementById('filtroEstado').value;
+    const asignado = document.getElementById('filtroAsignado').value;
+    return { desde, hasta, departamento, estado, asignado };
+  }
 
-          // Selección de fila para filtrar por ticket
-          $('#tablaDinamica tbody').off('click').on('click', 'tr', function () {
-            if ($(this).hasClass('selected')) {
-              $(this).removeClass('selected');
-              ticketSeleccionado = null;
-              actualizarDashboard();
-            } else {
-              tablaDinamica.$('tr.selected').removeClass('selected');
-              $(this).addClass('selected');
-              ticketSeleccionado = $(this).find('td:first').text();
-              actualizarDashboard();
-            }
-          });
-        });
-    }
-
-    function getFiltros() {
-      const desde = document.getElementById('filtroDesde').value;
-      const hasta = document.getElementById('filtroHasta').value;
-      const departamento = document.getElementById('filtroDepartamento').value;
-      const estado = document.getElementById('filtroEstado').value;
-      const asignado = document.getElementById('filtroAsignado').value;
-      return { desde, hasta, departamento, estado, asignado };
-    }
-
-    function armarQueryString(filtros) {
-      const params = [];
-      if (filtros.desde) params.push(`desde=${filtros.desde}`);
-      if (filtros.hasta) params.push(`hasta=${filtros.hasta}`);
-      if (filtros.departamento) params.push(`departamento=${encodeURIComponent(filtros.departamento)}`);
-      if (filtros.estado) params.push(`estado=${encodeURIComponent(filtros.estado)}`);
-      if (filtros.asignado) params.push(`asignado=${encodeURIComponent(filtros.asignado)}`);
-      if (ticketSeleccionado) params.push(`ticketId=${ticketSeleccionado}`);
-      return params.length ? '?' + params.join('&') : '';
-    }
-
-    function formatearFecha(fecha) {
-      if (!fecha) return '';
-      const d = new Date(fecha);
-      if (isNaN(d)) return fecha;
-      const dia = String(d.getDate()).padStart(2, '0');
-      const mes = String(d.getMonth() + 1).padStart(2, '0');
-      const anio = d.getFullYear();
-      const hora = String(d.getHours()).padStart(2, '0');
-      const min = String(d.getMinutes()).padStart(2, '0');
-      return `${dia}/${mes}/${anio} ${hora}:${min}`;
-    }
+  function armarQueryString(filtros) {
+    const params = [];
+    if (filtros.desde) params.push(`desde=${filtros.desde}`);
+    if (filtros.hasta) params.push(`hasta=${filtros.hasta}`);
+    if (filtros.departamento) params.push(`departamento=${encodeURIComponent(filtros.departamento)}`);
+    if (filtros.estado) params.push(`estado=${encodeURIComponent(filtros.estado)}`);
+    if (filtros.asignado) params.push(`asignado=${encodeURIComponent(filtros.asignado)}`);
+    return params.length ? '?' + params.join('&') : '';
+  }
 
     function actualizarDashboard() {
       const filtros = getFiltros();
@@ -348,7 +265,7 @@
       fetch('/api/dashboard/tiempo-medio' + query)
         .then(res => res.json())
         .then(data => {
-          datosTiempoMedio = data;
+          datosTiempoMedio = data; // Guardar para Excel
           const tbody = document.querySelector('#tiempoMedio tbody');
           tbody.innerHTML = '';
           data.forEach(row => {
@@ -362,7 +279,7 @@
       fetch('/api/dashboard/solicitantes-top' + query)
         .then(res => res.json())
         .then(data => {
-          datosSolicitantes = data;
+          datosSolicitantes = data; // Guardar para Excel
           const labels = data.map(row => row.requester);
           const values = data.map(row => row.total);
           if (solicitantesChart) solicitantesChart.destroy();
@@ -395,7 +312,7 @@
       fetch('/api/dashboard/tickets-por-departamento' + query)
         .then(res => res.json())
         .then(data => {
-          datosPorDepartamento = data;
+          datosPorDepartamento = data; // Guardar para Excel
           const labels = data.map(row => row.department);
           const values = data.map(row => row.total);
           if (departamentoChart) departamentoChart.destroy();
@@ -416,7 +333,7 @@
       fetch('/api/dashboard/tiempo-asignado' + query)
         .then(res => res.json())
         .then(data => {
-          datosTiempoAsignado = data;
+          datosTiempoAsignado = data; // Guardar para Excel
           const labels = data.map(row => row.asignado_a);
           const medios = data.map(row => row.tiempo_medio_minutos);
           const totales = data.map(row => row.tiempo_total_minutos);
@@ -449,7 +366,7 @@
       fetch('/api/dashboard/tickets-por-estado' + query)
         .then(res => res.json())
         .then(data => {
-          datosPorEstado = data;
+          datosPorEstado = data; // Guardar para Excel
           const labels = data.map(row => row.status);
           const values = data.map(row => row.total);
           if (estadoChart) estadoChart.destroy();
@@ -470,7 +387,7 @@
       fetch('/api/dashboard/tickets-por-asignado' + query)
         .then(res => res.json())
         .then(data => {
-          datosPorAsignado = data;
+          datosPorAsignado = data; // Guardar para Excel
           const labels = data.map(row => row.asignado_a);
           const values = data.map(row => row.total);
           if (asignadoChart) asignadoChart.destroy();
@@ -492,25 +409,25 @@
         });
 
       fetch('/api/dashboard/tickets-por-prioridad' + query)
-        .then(res => res.json())
-        .then(data => {
-          datosPorPrioridad = data.map(row => ({
-            "Prioridad": row.priority,
-            "Total de Tickets": row.total
-          }));
-          const tbody = document.querySelector('#tablaPrioridad tbody');
-          tbody.innerHTML = '';
-          data.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${row.priority}</td><td>${row.total}</td>`;
-            tbody.appendChild(tr);
-          });
+      .then(res => res.json())
+      .then(data => {
+        datosPorPrioridad = data.map(row => ({
+          "Prioridad": row.priority,
+          "Total de Tickets": row.total
+        }));
+        const tbody = document.querySelector('#tablaPrioridad tbody');
+        tbody.innerHTML = '';
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${row.priority}</td><td>${row.total}</td>`;
+          tbody.appendChild(tr);
         });
-
-      // Tabla dinámica
-      cargarTablaDinamica(query);
+      });
     }
 
+
+
+    // Exportar todos los datos a Excel
     function descargarExcel() {
       const wb = XLSX.utils.book_new();
 
@@ -534,6 +451,7 @@
       XLSX.writeFile(wb, "dashboard_tickets.xlsx");
     }
 
+    // Cargar dashboard al inicio
     window.onload = actualizarDashboard;
   </script>
 </body>
