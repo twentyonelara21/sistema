@@ -140,6 +140,9 @@
     tr:nth-child(even) td {
       background: var(--gris-claro);
     }
+    tr.selected {
+      background: #ffe0e0 !important;
+    }
     canvas {
       display: block;
       margin: 0 auto 1.5rem auto;
@@ -160,28 +163,6 @@
       .filtros input, .filtros select { min-width: 90px; font-size: 0.95rem; }
       th, td { font-size: 0.95rem; }
       .card { padding: 0.7rem 0.2rem 1rem 0.2rem; }
-    }
-
-    .dataTables_wrapper .dataTables_filter input,
-    .dataTables_wrapper .dataTables_length select {
-      border-radius: 6px;
-      border: 1px solid var(--borde);
-      padding: 0.3rem 0.7rem;
-      font-size: 1rem;
-      margin-left: 0.5em;
-      background: #f8fafc;
-      color: var(--gris);
-    }
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-      background: var(--boton-secundario);
-      color: #fff !important;
-      border-radius: 4px;
-      margin: 0 2px;
-      border: none;
-    }
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-      background: var(--boton-principal) !important;
-      color: #fff !important;
     }
   </style>
 </head>
@@ -214,8 +195,8 @@
     </div>
 
     <div class="card">
-    <h2>Listado de Tickets (Tabla Dinámica)</h2>
-    <table id="tablaDinamica" class="display" style="width:100%">
+      <h2>Listado de Tickets (Tabla Dinámica)</h2>
+      <table id="tablaDinamica" class="display" style="width:100%">
         <thead>
           <tr>
             <th>ID</th>
@@ -269,7 +250,6 @@
   </div>
 
   <script>
-    // Variables globales para los charts (para poder destruirlos y recrearlos)
     let solicitantesChart, departamentoChart, tiempoAsignadoChart, estadoChart, asignadoChart;
     let datosTiempoMedio = [];
     let datosSolicitantes = [];
@@ -279,58 +259,86 @@
     let datosPorAsignado = [];
     let datosPorPrioridad = [];
     let tablaDinamica;
-  let datosTablaDinamica = [];
+    let datosTablaDinamica = [];
+    let ticketSeleccionado = null;
 
-  function cargarTablaDinamica(query) {
-    fetch('/api/dashboard/tickets-listado' + query)
-      .then(res => res.json())
-      .then(data => {
-        datosTablaDinamica = data;
-        const tbody = document.querySelector('#tablaDinamica tbody');
-        tbody.innerHTML = '';
-        data.forEach(row => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${row.id}</td>
-            <td>${row.requester}</td>
-            <td>${row.department}</td>
-            <td>${row.priority}</td>
-            <td>${row.status}</td>
-            <td>${row.asignado_a || ''}</td>
-            <td>${row.date}</td>
-            <td>${row.description}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-        if (tablaDinamica) {
-          tablaDinamica.destroy();
-        }
-        tablaDinamica = $('#tablaDinamica').DataTable({
-          language: {
-            url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+    function cargarTablaDinamica(query) {
+      fetch('/api/dashboard/tickets-listado' + query)
+        .then(res => res.json())
+        .then(data => {
+          datosTablaDinamica = data;
+          const tbody = document.querySelector('#tablaDinamica tbody');
+          tbody.innerHTML = '';
+          data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${row.id}</td>
+              <td>${row.requester}</td>
+              <td>${row.department}</td>
+              <td>${row.priority}</td>
+              <td>${row.status}</td>
+              <td>${row.asignado_a || ''}</td>
+              <td>${formatearFecha(row.date)}</td>
+              <td>${row.description}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          if (tablaDinamica) {
+            tablaDinamica.destroy();
           }
+          tablaDinamica = $('#tablaDinamica').DataTable({
+            language: {
+              url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+            }
+          });
+
+          // Selección de fila para filtrar por ticket
+          $('#tablaDinamica tbody').off('click').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+              $(this).removeClass('selected');
+              ticketSeleccionado = null;
+              actualizarDashboard();
+            } else {
+              tablaDinamica.$('tr.selected').removeClass('selected');
+              $(this).addClass('selected');
+              ticketSeleccionado = $(this).find('td:first').text();
+              actualizarDashboard();
+            }
+          });
         });
-      });
-  }
+    }
 
-  function getFiltros() {
-    const desde = document.getElementById('filtroDesde').value;
-    const hasta = document.getElementById('filtroHasta').value;
-    const departamento = document.getElementById('filtroDepartamento').value;
-    const estado = document.getElementById('filtroEstado').value;
-    const asignado = document.getElementById('filtroAsignado').value;
-    return { desde, hasta, departamento, estado, asignado };
-  }
+    function getFiltros() {
+      const desde = document.getElementById('filtroDesde').value;
+      const hasta = document.getElementById('filtroHasta').value;
+      const departamento = document.getElementById('filtroDepartamento').value;
+      const estado = document.getElementById('filtroEstado').value;
+      const asignado = document.getElementById('filtroAsignado').value;
+      return { desde, hasta, departamento, estado, asignado };
+    }
 
-  function armarQueryString(filtros) {
-    const params = [];
-    if (filtros.desde) params.push(`desde=${filtros.desde}`);
-    if (filtros.hasta) params.push(`hasta=${filtros.hasta}`);
-    if (filtros.departamento) params.push(`departamento=${encodeURIComponent(filtros.departamento)}`);
-    if (filtros.estado) params.push(`estado=${encodeURIComponent(filtros.estado)}`);
-    if (filtros.asignado) params.push(`asignado=${encodeURIComponent(filtros.asignado)}`);
-    return params.length ? '?' + params.join('&') : '';
-  }
+    function armarQueryString(filtros) {
+      const params = [];
+      if (filtros.desde) params.push(`desde=${filtros.desde}`);
+      if (filtros.hasta) params.push(`hasta=${filtros.hasta}`);
+      if (filtros.departamento) params.push(`departamento=${encodeURIComponent(filtros.departamento)}`);
+      if (filtros.estado) params.push(`estado=${encodeURIComponent(filtros.estado)}`);
+      if (filtros.asignado) params.push(`asignado=${encodeURIComponent(filtros.asignado)}`);
+      if (ticketSeleccionado) params.push(`ticketId=${ticketSeleccionado}`);
+      return params.length ? '?' + params.join('&') : '';
+    }
+
+    function formatearFecha(fecha) {
+      if (!fecha) return '';
+      const d = new Date(fecha);
+      if (isNaN(d)) return fecha;
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const anio = d.getFullYear();
+      const hora = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${dia}/${mes}/${anio} ${hora}:${min}`;
+    }
 
     function actualizarDashboard() {
       const filtros = getFiltros();
@@ -340,7 +348,7 @@
       fetch('/api/dashboard/tiempo-medio' + query)
         .then(res => res.json())
         .then(data => {
-          datosTiempoMedio = data; // Guardar para Excel
+          datosTiempoMedio = data;
           const tbody = document.querySelector('#tiempoMedio tbody');
           tbody.innerHTML = '';
           data.forEach(row => {
@@ -354,7 +362,7 @@
       fetch('/api/dashboard/solicitantes-top' + query)
         .then(res => res.json())
         .then(data => {
-          datosSolicitantes = data; // Guardar para Excel
+          datosSolicitantes = data;
           const labels = data.map(row => row.requester);
           const values = data.map(row => row.total);
           if (solicitantesChart) solicitantesChart.destroy();
@@ -387,7 +395,7 @@
       fetch('/api/dashboard/tickets-por-departamento' + query)
         .then(res => res.json())
         .then(data => {
-          datosPorDepartamento = data; // Guardar para Excel
+          datosPorDepartamento = data;
           const labels = data.map(row => row.department);
           const values = data.map(row => row.total);
           if (departamentoChart) departamentoChart.destroy();
@@ -408,7 +416,7 @@
       fetch('/api/dashboard/tiempo-asignado' + query)
         .then(res => res.json())
         .then(data => {
-          datosTiempoAsignado = data; // Guardar para Excel
+          datosTiempoAsignado = data;
           const labels = data.map(row => row.asignado_a);
           const medios = data.map(row => row.tiempo_medio_minutos);
           const totales = data.map(row => row.tiempo_total_minutos);
@@ -441,7 +449,7 @@
       fetch('/api/dashboard/tickets-por-estado' + query)
         .then(res => res.json())
         .then(data => {
-          datosPorEstado = data; // Guardar para Excel
+          datosPorEstado = data;
           const labels = data.map(row => row.status);
           const values = data.map(row => row.total);
           if (estadoChart) estadoChart.destroy();
@@ -462,7 +470,7 @@
       fetch('/api/dashboard/tickets-por-asignado' + query)
         .then(res => res.json())
         .then(data => {
-          datosPorAsignado = data; // Guardar para Excel
+          datosPorAsignado = data;
           const labels = data.map(row => row.asignado_a);
           const values = data.map(row => row.total);
           if (asignadoChart) asignadoChart.destroy();
@@ -503,9 +511,6 @@
       cargarTablaDinamica(query);
     }
 
-
-
-    // Exportar todos los datos a Excel
     function descargarExcel() {
       const wb = XLSX.utils.book_new();
 
@@ -529,7 +534,6 @@
       XLSX.writeFile(wb, "dashboard_tickets.xlsx");
     }
 
-    // Cargar dashboard al inicio
     window.onload = actualizarDashboard;
   </script>
 </body>
