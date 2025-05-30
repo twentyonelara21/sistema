@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <style>
     :root {
       --encabezadospagina: #FF0000;
@@ -158,6 +161,28 @@
       th, td { font-size: 0.95rem; }
       .card { padding: 0.7rem 0.2rem 1rem 0.2rem; }
     }
+
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select {
+      border-radius: 6px;
+      border: 1px solid var(--borde);
+      padding: 0.3rem 0.7rem;
+      font-size: 1rem;
+      margin-left: 0.5em;
+      background: #f8fafc;
+      color: var(--gris);
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+      background: var(--boton-secundario);
+      color: #fff !important;
+      border-radius: 4px;
+      margin: 0 2px;
+      border: none;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+      background: var(--boton-principal) !important;
+      color: #fff !important;
+    }
   </style>
 </head>
 <body>
@@ -189,10 +214,19 @@
     </div>
 
     <div class="card">
-      <h2>Tiempo medio de atención por usuario</h2>
-      <table id="tiempoMedio">
+    <h2>Listado de Tickets (Tabla Dinámica)</h2>
+    <table id="tablaDinamica" class="display" style="width:100%">
         <thead>
-          <tr><th>Usuario</th><th>Tiempo Medio (minutos)</th></tr>
+          <tr>
+            <th>ID</th>
+            <th>Solicitante</th>
+            <th>Departamento</th>
+            <th>Prioridad</th>
+            <th>Estado</th>
+            <th>Asignado a</th>
+            <th>Fecha</th>
+            <th>Descripción</th>
+          </tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -222,6 +256,16 @@
       <h2>Tickets hechos por usuario asignado</h2>
       <canvas id="asignadoChart" width="400" height="200"></canvas>
     </div>
+
+    <div class="card">
+      <h2>Tickets por Urgencia (Prioridad)</h2>
+      <table id="tablaPrioridad">
+        <thead>
+          <tr><th>Prioridad</th><th>Total de Tickets</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -233,6 +277,41 @@
     let datosTiempoAsignado = [];
     let datosPorEstado = [];
     let datosPorAsignado = [];
+    let datosPorPrioridad = [];
+    let tablaDinamica;
+  let datosTablaDinamica = [];
+
+  function cargarTablaDinamica(query) {
+    fetch('/api/dashboard/tickets-listado' + query)
+      .then(res => res.json())
+      .then(data => {
+        datosTablaDinamica = data;
+        const tbody = document.querySelector('#tablaDinamica tbody');
+        tbody.innerHTML = '';
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.id}</td>
+            <td>${row.requester}</td>
+            <td>${row.department}</td>
+            <td>${row.priority}</td>
+            <td>${row.status}</td>
+            <td>${row.asignado_a || ''}</td>
+            <td>${row.date}</td>
+            <td>${row.description}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        if (tablaDinamica) {
+          tablaDinamica.destroy();
+        }
+        tablaDinamica = $('#tablaDinamica').DataTable({
+          language: {
+            url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+          }
+        });
+      });
+  }
 
   function getFiltros() {
     const desde = document.getElementById('filtroDesde').value;
@@ -403,12 +482,35 @@
             }
           });
         });
+
+      fetch('/api/dashboard/tickets-por-prioridad' + query)
+        .then(res => res.json())
+        .then(data => {
+          datosPorPrioridad = data.map(row => ({
+            "Prioridad": row.priority,
+            "Total de Tickets": row.total
+          }));
+          const tbody = document.querySelector('#tablaPrioridad tbody');
+          tbody.innerHTML = '';
+          data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.priority}</td><td>${row.total}</td>`;
+            tbody.appendChild(tr);
+          });
+        });
+
+      // Tabla dinámica
+      cargarTablaDinamica(query);
     }
+
+
 
     // Exportar todos los datos a Excel
     function descargarExcel() {
       const wb = XLSX.utils.book_new();
 
+      if (datosTablaDinamica.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosTablaDinamica), "Listado Tickets");
       if (datosTiempoMedio.length)
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosTiempoMedio), "Tiempo Medio");
       if (datosSolicitantes.length)
@@ -421,6 +523,8 @@
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorEstado), "Por Estado");
       if (datosPorAsignado.length)
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorAsignado), "Por Asignado");
+      if (datosPorPrioridad.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorPrioridad), "Por Prioridad");
 
       XLSX.writeFile(wb, "dashboard_tickets.xlsx");
     }
