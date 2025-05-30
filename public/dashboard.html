@@ -409,20 +409,20 @@
         });
 
       fetch('/api/dashboard/tickets-por-prioridad' + query)
-      .then(res => res.json())
-      .then(data => {
-        datosPorPrioridad = data.map(row => ({
-          "Prioridad": row.priority,
-          "Total de Tickets": row.total
-        }));
-        const tbody = document.querySelector('#tablaPrioridad tbody');
-        tbody.innerHTML = '';
-        data.forEach(row => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${row.priority}</td><td>${row.total}</td>`;
-          tbody.appendChild(tr);
+        .then(res => res.json())
+        .then(data => {
+          datosPorPrioridad = data.map(row => ({
+            "Prioridad": row.priority,
+            "Total de Tickets": row.total
+          }));
+          const tbody = document.querySelector('#tablaPrioridad tbody');
+          tbody.innerHTML = '';
+          data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.priority}</td><td>${row.total}</td>`;
+            tbody.appendChild(tr);
+          });
         });
-      });
     }
 
 
