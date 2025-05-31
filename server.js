@@ -439,7 +439,7 @@ app.get('/api/tickets', async (req, res) => {
     const { id: currentUserId, department, role, username } = users[0];
     let query = `
       SELECT t.id, t.requester, t.date, t.location, t.category, t.subcategory, t.description, t.priority, t.status, t.department,
-            DATE_FORMAT(t.created_at, '%d/%m/%Y %H:%i:%s') AS created_at, t.image, t.user_id, t.assigned_to,
+            DATE_FORMAT(DATE_SUB(t.created_at, INTERVAL 1 HOUR), '%d/%m/%Y %H:%i:%s') AS created_at, t.image, t.user_id, t.assigned_to,
             u.username AS assigned_username
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
@@ -691,7 +691,7 @@ app.get('/api/tickets/:id/history', async (req, res) => {
 
     const [history] = await pool.query(
       `SELECT h.id, h.ticket_id, h.status, 
-              DATE_FORMAT(h.changed_at, '%d/%m/%Y %H:%i:%s') AS changed_at, 
+              DATE_FORMAT(DATE_SUB(h.changed_at, INTERVAL 1 HOUR), '%d/%m/%Y %H:%i:%s') AS changed_at, 
               h.observations, h.user_id, h.attachment, u.username
        FROM ticket_status_history h 
        LEFT JOIN users u ON h.user_id = u.id 
