@@ -227,6 +227,21 @@
     </div>
   </div>
 
+  <div class="card">
+    <h2>Tickets por Categoría y Subcategoría</h2>
+    <canvas id="catSubcatChart" width="400" height="200"></canvas>
+    <table id="tablaCatSubcat">
+      <thead>
+        <tr>
+          <th>Categoría</th>
+          <th>Subcategoría</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
   <script>
     // Variables globales para los charts (para poder destruirlos y recrearlos)
     let solicitantesChart, departamentoChart, tiempoAsignadoChart, estadoChart, asignadoChart;
@@ -237,6 +252,8 @@
     let datosPorEstado = [];
     let datosPorAsignado = [];
     let datosPorPrioridad = [];
+    let catSubcatChart;
+  let datosCatSubcat = [];
 
   function getFiltros() {
     const desde = document.getElementById('filtroDesde').value;
@@ -423,6 +440,40 @@
             tbody.appendChild(tr);
           });
         });
+
+        // Tickets por categoría y subcategoría
+        fetch('/api/dashboard/tickets-por-categoria-subcategoria' + query)
+          .then(res => res.json())
+          .then(data => {
+            datosCatSubcat = data; // Para Excel
+            // Tabla
+            const tbody = document.querySelector('#tablaCatSubcat tbody');
+            tbody.innerHTML = '';
+            data.forEach(row => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `<td>${row.category}</td><td>${row.subcategory}</td><td>${row.total}</td>`;
+              tbody.appendChild(tr);
+            });
+            // Gráfica
+            if (catSubcatChart) catSubcatChart.destroy();
+            const labels = data.map(row => `${row.category} - ${row.subcategory}`);
+            const values = data.map(row => row.total);
+            catSubcatChart = new Chart(document.getElementById('catSubcatChart').getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: 'Tickets',
+                  data: values,
+                  backgroundColor: 'rgba(0, 135, 122, 0.5)'
+                }]
+              },
+              options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true, stepSize: 1 } }
+              }
+            });
+          });
     }
 
 
@@ -447,6 +498,8 @@
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorAsignado), "Por Asignado");
       if (datosPorPrioridad.length)
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorPrioridad), "Por Prioridad");
+      if (datosCatSubcat.length)
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosCatSubcat), "Por Categoria-Subcategoria");
 
       XLSX.writeFile(wb, "dashboard_tickets.xlsx");
     }

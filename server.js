@@ -900,6 +900,30 @@ app.get('/api/dashboard/tickets-por-prioridad', async (req, res) => {
   }
 });
 
+app.get('/api/dashboard/tickets-por-categoria-subcategoria', async (req, res) => {
+  const { desde, hasta, departamento, estado, asignado } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('created_at >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('created_at <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('department = ?'); params.push(departamento); }
+  if (estado) { where.push('status = ?'); params.push(estado); }
+  if (asignado) { where.push('assigned_to IN (SELECT id FROM users WHERE username LIKE ?)'); params.push('%' + asignado + '%'); }
+  const whereStr = where.length ? ' WHERE ' + where.join(' AND ') : '';
+  try {
+    const [rows] = await pool.query(`
+      SELECT category, subcategory, COUNT(*) AS total
+      FROM tickets
+      ${whereStr}
+      GROUP BY category, subcategory
+      ORDER BY category, subcategory
+    `, params);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener tickets por categoría y subcategoría' });
+  }
+});
+
 
 // Error handling middleware
 app.use((error, req, res, next) => {
