@@ -399,30 +399,30 @@ app.put('/api/users/:id/password', async (req, res) => {
 
 // Endpoint: Create ticket
 app.post('/api/tickets', upload.single('image'), async (req, res) => {
-  const { requester, date, location, category, description, priority, userId, department } = req.body;
-  const image = req.file ? req.file.path : null; // URL pública de Cloudinary
+const { requester, date, location, category, subcategory, description, priority, userId, department } = req.body;
+const image = req.file ? req.file.path : null;
 
-  if (!requester || !date || !location || !category || !description || !priority || !department) {
-    return res.status(400).json({ error: 'Todos los campos obligatorios deben estar completos' });
-  }
+if (!requester || !date || !location || !category || !subcategory || !description || !priority || !department) {
+  return res.status(400).json({ error: 'Todos los campos obligatorios deben estar completos' });
+}
 
-  try {
-    const [result] = await pool.query(
-      `INSERT INTO tickets (requester, date, location, category, description, priority, status, department, created_at, image, user_id, assigned_to)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)`,
-      [requester, date, location, category, description, priority, 'Pendiente', department, image, userId, null]
-    );
-    const ticketId = result.insertId;
-    await pool.query(
-      'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
-      [ticketId, 'Pendiente', 'Estado inicial', userId, null]
-    );
-    await sendTicketCreationEmail(ticketId, department, requester, description);
-    res.json({ message: 'Ticket creado', ticketId });
-  } catch (error) {
-    console.error('Error en /api/tickets:', error);
-    res.status(500).json({ error: 'Error al crear ticket', details: error.message });
-  }
+try {
+  const [result] = await pool.query(
+    `INSERT INTO tickets (requester, date, location, category, subcategory, description, priority, status, department, created_at, image, user_id, assigned_to)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)`,
+    [requester, date, location, category, subcategory, description, priority, 'Pendiente', department, image, userId, null]
+  );
+  const ticketId = result.insertId;
+  await pool.query(
+    'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
+    [ticketId, 'Pendiente', 'Estado inicial', userId, null]
+  );
+  await sendTicketCreationEmail(ticketId, department, requester, description);
+  res.json({ message: 'Ticket creado', ticketId });
+} catch (error) {
+  console.error('Error en /api/tickets:', error);
+  res.status(500).json({ error: 'Error al crear ticket', details: error.message });
+}
 });
 
 // Endpoint: List tickets (with filters)
@@ -438,9 +438,9 @@ app.get('/api/tickets', async (req, res) => {
     }
     const { id: currentUserId, department, role, username } = users[0];
     let query = `
-      SELECT t.id, t.requester, t.date, t.location, t.category, t.description, t.priority, t.status, t.department,
-             DATE_FORMAT(t.created_at, '%d/%m/%Y %H:%i:%s') AS created_at, t.image, t.user_id, t.assigned_to,
-             u.username AS assigned_username
+      SELECT t.id, t.requester, t.date, t.location, t.category, t.subcategory, t.description, t.priority, t.status, t.department,
+            DATE_FORMAT(t.created_at, '%d/%m/%Y %H:%i:%s') AS created_at, t.image, t.user_id, t.assigned_to,
+            u.username AS assigned_username
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE 1=1

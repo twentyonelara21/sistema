@@ -154,6 +154,12 @@
           </select>
         </div>
         <div class="form-group">
+          <label for="subcategory">Subcategoría *</label>
+          <select id="subcategory" required>
+            <option value="" disabled selected>Selecciona una subcategoría</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label for="description">Solicitud *</label>
           <textarea id="description" placeholder="Describe el problema" required></textarea>
         </div>
@@ -222,6 +228,7 @@
               <th>Fecha</th>
               <th>Prioridad</th>
               <th>Categoría</th>
+              <th>Subcategoría</th>
               <th>Estado</th>
               <th>Asignado a</th>
               <th>Editar</th>
@@ -277,6 +284,7 @@
               <th>Fecha</th>
               <th>Prioridad</th>
               <th>Categoría</th>
+              <th>Subcategoría</th>
               <th>Estado</th>
               <th>Asignado a</th>
               <th>Ver</th>
@@ -499,11 +507,12 @@
       const department = document.getElementById('department').value;
       const categorySelect = document.getElementById('category');
       const category = categorySelect.value || (department === 'Sistemas' ? 'Sistemas' : '');
+      const subcategory = document.getElementById('subcategory').value;
       const description = document.getElementById('description').value;
       const priority = document.getElementById('priority').value;
       const image = document.getElementById('image').files[0];
 
-      if (!requester || !date || !location || !category || !description || !priority || !department) {
+      if (!requester || !date || !location || !category || !subcategory || !description || !priority || !department) {
         alert('Por favor, completa todos los campos obligatorios.');
         return;
       }
@@ -513,6 +522,7 @@
       formData.append('date', date);
       formData.append('location', location);
       formData.append('category', category);
+      formData.append('subcategory', subcategory);
       formData.append('description', description);
       formData.append('priority', priority);
       formData.append('userId', currentUser.id);
@@ -596,6 +606,7 @@
             <td>${ticket.created_at}</td>
             <td>${ticket.priority}</td>
             <td>${ticket.category || 'No especificada'}</td>
+            <td>${ticket.subcategory || 'No especificada'}</td>
             <td class="${statusClass}">${ticket.status}</td>
             <td>${ticket.assigned_username || 'No asignado'}</td>
             <td><button ${editDisabled} onclick="editTicket(${ticket.id}); event.stopPropagation()">Editar</button></td>
@@ -655,6 +666,7 @@
             <td>${ticket.created_at}</td>
             <td>${ticket.priority}</td>
             <td>${ticket.category || 'No especificada'}</td>
+            <td>${ticket.subcategory || 'No especificada'}</td>
             <td class="${statusClass}">${ticket.status}</td>
             <td>${ticket.assigned_username || 'No asignado'}</td>
             <td><button onclick="showTicketDetails(JSON.parse(JSON.stringify(${JSON.stringify(ticket)})), false); event.stopPropagation()">Ver</button></td>
@@ -792,6 +804,7 @@ async function showTicketDetails(ticket, editMode = false) {
     <p><strong>Fecha:</strong> ${ticket.date ? new Date(ticket.date).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }) : 'No especificada'}</p>
     <p><strong>Lugar:</strong> ${ticket.location || 'No especificado'}</p>
     <p><strong>Categoría:</strong> ${ticket.category || 'No especificada'}</p>
+    <p><strong>SubCategoria:</strong> ${ticket.subcategory || 'No especificada'}</p>
     <p><strong>Solicitud:</strong> ${ticket.description || 'No especificada'}</p>
     <p><strong>Prioridad:</strong> ${ticket.priority || 'No especificada'}</p>
     <p><strong>Departamento:</strong> ${ticket.department || 'No especificado'}</p>
@@ -968,25 +981,61 @@ async function showTicketDetails(ticket, editMode = false) {
       showLogin();
     }
 
-    function updateCategories() {
-      const department = document.getElementById('department').value;
-      const categorySelect = document.getElementById('category');
-      categorySelect.innerHTML = '<option value="" disabled selected>Selecciona una categoría</option>';
+    const subcategorias = {
+  "Mantenimiento": {
+    "Plomería": ["Tuberías", "Llaves", "Tarjas", "WC", "Regaderas", "Otros"],
+    "Eléctrico": ["Apagadores", "Contactos", "Cables", "Lámparas", "Otros"],
+    "Luces": ["Interiores", "Exteriores", "Emergencia", "Otros"],
+    "Aires acondicionados": ["Split", "Ventana", "Mini Split", "Otros"],
+    "Jardinería": ["Césped", "Árboles", "Plantas", "Riego", "Otros"],
+    "Traslados": ["Mobiliario", "Equipo", "Material", "Otros"],
+    "Pintura": ["Muros", "Puertas", "Estructuras", "Otros"],
+    "Albañilería": ["Muros", "Pisos", "Techos", "Otros"],
+    "Mudanzas": ["Interna", "Externa", "Otros"]
+  },
+  "Sistemas": {
+    "Computadora": ["Hardware", "Software", "Accesorios", "Otros"],
+    "Internet": ["Conectividad", "WiFi", "Cableado", "Otros"],
+    "Software": ["Instalación", "Actualización", "Licencias", "Otros"],
+    "Hardware": ["Impresoras", "Monitores", "Teclados", "Otros"]
+  }
+};
 
-      let categories = [];
-      if (department === 'Sistemas') {
-        categories = ['Computadora', 'Internet', 'Software', 'Hardware'];
-      } else if (department === 'Mantenimiento') {
-        categories = ['Plomería', 'Eléctrico', 'Luces', 'Aires acondicionados', 'Jardinería', 'Traslados', 'Pintura', 'Albañilería', 'Mudanzas'];
-      }
+  function updateCategories() {
+    const department = document.getElementById('department').value;
+    const categorySelect = document.getElementById('category');
+    const subcategorySelect = document.getElementById('subcategory');
+    categorySelect.innerHTML = '<option value="" disabled selected>Selecciona una categoría</option>';
+    subcategorySelect.innerHTML = '<option value="" disabled selected>Selecciona una subcategoría</option>';
 
-      categories.forEach(category => {
+    let categories = [];
+    if (department && subcategorias[department]) {
+      categories = Object.keys(subcategorias[department]);
+    }
+    categories.forEach(category => {
+      const option = document.createElement('option');
+      option.value = category;
+      option.textContent = category;
+      categorySelect.appendChild(option);
+    });
+  }
+
+  document.getElementById('category').addEventListener('change', function() {
+    const department = document.getElementById('department').value;
+    const category = this.value;
+    const subcategorySelect = document.getElementById('subcategory');
+    subcategorySelect.innerHTML = '<option value="" disabled selected>Selecciona una subcategoría</option>';
+    if (department && category && subcategorias[department] && subcategorias[department][category]) {
+      subcategorias[department][category].forEach(subcat => {
         const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        categorySelect.appendChild(option);
+        option.value = subcat;
+        option.textContent = subcat;
+        subcategorySelect.appendChild(option);
       });
     }
+  });
+
+    
 
     function editTicket(id) {
       const button = event.target;
