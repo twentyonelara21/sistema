@@ -6,6 +6,7 @@ const path = require('path');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
+const moment = require('moment'); // Instala moment si no lo tienes
 require('dotenv').config();
 
 // Cloudinary
@@ -555,7 +556,7 @@ const { PassThrough } = require('stream');
 
 async function generarPDFTicket(ticket, history) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 40 });
     const buffers = [];
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => {
@@ -563,31 +564,44 @@ async function generarPDFTicket(ticket, history) {
       resolve(pdfData);
     });
 
-    // Encabezado
-    doc.fontSize(20).fillColor('#FF0000').text('Ticket Resuelto', { align: 'center' });
-    doc.moveDown();
+        // Encabezado
+    doc.fontSize(22).fillColor('#FF0000').text('Ticket Resuelto', { align: 'center' });
+    doc.moveDown(1);
 
     // Datos principales
-    doc.fontSize(12).fillColor('#000').text(`ID: ${ticket.id}`);
+    const fechaFormateada = moment(ticket.date).format('DD/MM/YYYY HH:mm');
+    doc.fontSize(12).fillColor('#000').text(`ID: ${ticket.id}`, { continued: true }).text(`   Estado: ${ticket.status}`);
     doc.text(`Solicitante: ${ticket.requester}`);
-    doc.text(`Fecha: ${ticket.date}`);
+    doc.text(`Fecha: ${fechaFormateada}`);
     doc.text(`Lugar: ${ticket.location}`);
     doc.text(`Departamento: ${ticket.department}`);
     doc.text(`Categoría: ${ticket.category}`);
     doc.text(`Subcategoría: ${ticket.subcategory}`);
     doc.text(`Prioridad: ${ticket.priority}`);
-    doc.text(`Descripción: ${ticket.description}`);
-    doc.text(`Estado: ${ticket.status}`);
     doc.text(`Asignado a: ${ticket.assigned_username || 'No asignado'}`);
-    doc.moveDown();
+    doc.moveDown(0.5);
+
+    doc.font('Helvetica-Bold').text('Descripción:', { underline: true });
+    doc.font('Helvetica').text(ticket.description);
+    doc.moveDown(1);
 
     // Historial de estados
-    doc.fontSize(14).fillColor('#FF0000').text('Historial de Estados', { underline: true });
+    doc.font('Helvetica-Bold').fontSize(14).fillColor('#FF0000').text('Historial de Estados', { underline: true });
     doc.moveDown(0.5);
+
     history.forEach(h => {
-      doc.fontSize(11).fillColor('#000').text(
-        `- ${h.status} | ${h.changed_at} | ${h.username || 'Desconocido'} | Obs: ${h.observations || 'Ninguna'}`
+      doc.font('Helvetica-Bold').fontSize(11).fillColor('#000').text(
+        `- ${h.status} | ${h.changed_at} | ${h.username || 'Desconocido'}`
       );
+      doc.font('Helvetica').fillColor('#444').text(`Obs: ${h.observations || 'Ninguna'}`);
+      if (h.attachment && (h.attachment.endsWith('.jpg') || h.attachment.endsWith('.png'))) {
+        try {
+          doc.image(h.attachment, { width: 180 }).moveDown(0.5);
+        } catch (e) {
+          doc.text('[No se pudo cargar la imagen]');
+        }
+      }
+      doc.moveDown(0.5);
     });
 
     doc.end();
