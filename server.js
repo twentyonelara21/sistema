@@ -552,7 +552,6 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
 
 const PDFDocument = require('pdfkit');
 const { PassThrough } = require('stream');
-const path = require('path');
 const fs = require('fs');
 
 async function generarPDFTicket(ticket, history) {
