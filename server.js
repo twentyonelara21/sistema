@@ -520,6 +520,12 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
         'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
         [id, ticket.status, `Ticket autoasignado a usuario ID ${assignedTo}`, userId, null]
       );
+      // Enviar correo al usuario asignado
+      const [assignedUsers] = await pool.query('SELECT username, email FROM users WHERE id = ?', [assignedTo]);
+      const assignedUser = assignedUsers[0];
+      const [ticketRows] = await pool.query('SELECT category, subcategory, priority, description FROM tickets WHERE id = ?', [id]);
+      const ticketInfo = ticketRows[0];
+      await sendAssignedTicketEmail(id, assignedUser, ticketInfo);
       console.log('Ticket autoasignado, ID:', id);
       return res.json({ message: 'Ticket asignado' });
     }
@@ -739,6 +745,22 @@ app.post('/api/forgot-password', async (req, res) => {
     res.status(500).json({ error: 'Error al restablecer la contraseña' });
   }
 });
+
+async function sendAssignedTicketEmail(ticketId, assignedUser, ticket) {
+  if (!assignedUser.email) return;
+  const mailOptions = {
+    from: process.env.SMTP_FROM,
+    to: assignedUser.email,
+    subject: `Nuevo Ticket Asignado #${ticketId}`,
+    text: `Hola ${assignedUser.username},\n\nSe te ha asignado el ticket #${ticketId}.\n\nDetalles:\n- Categoría: ${ticket.category}\n- Subcategoría: ${ticket.subcategory}\n- Prioridad: ${ticket.priority}\n- Descripción: ${ticket.description}\n\nPor favor, ingresa al sistema para gestionarlo.\n\nSaludos,\nEl Sistema de Tickets`
+  };
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Correo de asignación enviado a:', assignedUser.email);
+  } catch (error) {
+    console.error('Error al enviar correo de asignación:', error);
+  }
+}
 
 
 // SOLICITANTES QUE MÁS TICKETS CREAN
