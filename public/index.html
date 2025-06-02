@@ -949,7 +949,11 @@ async function showTicketDetails(ticket, editMode = false) {
         const resolvedEntry = history.find(entry => entry.status === 'Resuelto');
         if (resolvedEntry) {
           const duration = calculateDuration(ticket.created_at, resolvedEntry.changed_at);
-          detailsHtml += `<p><strong>Duración Total:</strong> ${duration}</p>`;
+          detailsHtml += `<p><strong>Duración Total:</strong> ${duration}</p>
+          <button style="margin-top:10px; background:#FF0000; color:#fff; border:none; border-radius:6px; padding:8px 18px; font-weight:700; cursor:pointer;"
+            onclick="window.open('/api/tickets/${ticket.id}/pdf', '_blank')">
+            Descargar PDF del Ticket
+          </button>`;
         }
       }
 

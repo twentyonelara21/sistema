@@ -550,6 +550,87 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
   }
 });
 
+const PDFDocument = require('pdfkit');
+const { PassThrough } = require('stream');
+const path = require('path');
+const fs = require('fs');
+
+async function generarPDFTicket(ticket, history) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument();
+    const buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', () => {
+      const pdfData = Buffer.concat(buffers);
+      resolve(pdfData);
+    });
+
+    // Encabezado
+    doc.fontSize(20).fillColor('#FF0000').text('Ticket Resuelto', { align: 'center' });
+    doc.moveDown();
+
+    // Datos principales
+    doc.fontSize(12).fillColor('#000').text(`ID: ${ticket.id}`);
+    doc.text(`Solicitante: ${ticket.requester}`);
+    doc.text(`Fecha: ${ticket.date}`);
+    doc.text(`Lugar: ${ticket.location}`);
+    doc.text(`Departamento: ${ticket.department}`);
+    doc.text(`Categoría: ${ticket.category}`);
+    doc.text(`Subcategoría: ${ticket.subcategory}`);
+    doc.text(`Prioridad: ${ticket.priority}`);
+    doc.text(`Descripción: ${ticket.description}`);
+    doc.text(`Estado: ${ticket.status}`);
+    doc.text(`Asignado a: ${ticket.assigned_username || 'No asignado'}`);
+    doc.moveDown();
+
+    // Historial de estados
+    doc.fontSize(14).fillColor('#FF0000').text('Historial de Estados', { underline: true });
+    doc.moveDown(0.5);
+    history.forEach(h => {
+      doc.fontSize(11).fillColor('#000').text(
+        `- ${h.status} | ${h.changed_at} | ${h.username || 'Desconocido'} | Obs: ${h.observations || 'Ninguna'}`
+      );
+    });
+
+    doc.end();
+  });
+}
+
+app.get('/api/tickets/:id/pdf', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Obtener ticket
+    const [tickets] = await pool.query(`
+      SELECT t.*, u.username AS assigned_username
+      FROM tickets t
+      LEFT JOIN users u ON t.assigned_to = u.id
+      WHERE t.id = ?
+    `, [id]);
+    if (!tickets.length) return res.status(404).json({ error: 'Ticket no encontrado' });
+    const ticket = tickets[0];
+    if (ticket.status !== 'Resuelto') return res.status(400).json({ error: 'El ticket no está resuelto' });
+
+    // Obtener historial
+    const [history] = await pool.query(`
+      SELECT h.status, DATE_FORMAT(DATE_SUB(h.changed_at, INTERVAL 1 HOUR), '%d/%m/%Y %H:%i:%s') AS changed_at, h.observations, u.username
+      FROM ticket_status_history h
+      LEFT JOIN users u ON h.user_id = u.id
+      WHERE h.ticket_id = ?
+      ORDER BY h.changed_at ASC
+    `, [id]);
+
+    // Generar PDF
+    const pdfBuffer = await generarPDFTicket(ticket, history);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=ticket_${id}.pdf`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error al generar PDF:', error);
+    res.status(500).json({ error: 'Error al generar PDF' });
+  }
+});
+
 // Endpoint: Transfer ticket
 app.put('/api/tickets/:id/transfer', async (req, res) => {
   const { id } = req.params;
