@@ -551,12 +551,11 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
   }
 });
 
-
 const PDFDocument = require('pdfkit');
 
 async function generarPDFTicket(ticket, history) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ margin: 60 });
     const buffers = [];
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => {
@@ -564,81 +563,84 @@ async function generarPDFTicket(ticket, history) {
       resolve(pdfData);
     });
 
-    // Logo (opcional)
-    // doc.image('ruta/logo.png', 50, 30, { width: 80 });
-
-    // Título
+    // Título centrado
     doc
       .fontSize(26)
       .fillColor('#FF0000')
-      .text('Ticket Resuelto', { align: 'center', underline: false });
-    doc.moveDown(1);
+      .text('Ticket Resuelto', { align: 'center' });
+    doc.moveDown(1.5);
 
     // Línea divisoria
-    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e0e0e0').stroke();
-    doc.moveDown(1);
+    doc.moveTo(60, doc.y).lineTo(535, doc.y).strokeColor('#e0e0e0').stroke();
+    doc.moveDown(1.2);
 
-    // Datos principales
+    // Datos principales (centrados)
     doc
-      .fontSize(12)
+      .fontSize(13)
       .fillColor('#222')
       .font('Helvetica-Bold')
-      .text('Datos del Ticket', { underline: true });
-    doc.moveDown(0.5);
+      .text('Datos del Ticket', { align: 'center', underline: true });
+    doc.moveDown(1);
 
-    const fechaFormateada = moment(ticket.date).format('DD/MM/YYYY HH:mm');
-    doc.font('Helvetica').fontSize(11);
-    doc.text(`ID: ${ticket.id}`, { continued: true }).text(`   Estado: ${ticket.status}`);
-    doc.text(`Solicitante: ${ticket.requester}`);
-    doc.text(`Fecha: ${fechaFormateada}`);
-    doc.text(`Lugar: ${ticket.location}`);
-    doc.text(`Departamento: ${ticket.department}`);
-    doc.text(`Categoría: ${ticket.category}`);
-    doc.text(`Subcategoría: ${ticket.subcategory}`);
-    doc.text(`Prioridad: ${ticket.priority}`);
-    doc.text(`Asignado a: ${ticket.assigned_username || 'No asignado'}`);
+    const fechaFormateada = moment(ticket.date).format('DD/MM/YYYY hh:mm a');
+    const datos = [
+      `ID: ${ticket.id}    Estado: ${ticket.status}`,
+      `Solicitante: ${ticket.requester}`,
+      `Fecha: ${fechaFormateada}`,
+      `Lugar: ${ticket.location}`,
+      `Departamento: ${ticket.department}`,
+      `Categoría: ${ticket.category}`,
+      `Subcategoría: ${ticket.subcategory}`,
+      `Prioridad: ${ticket.priority}`,
+      `Asignado a: ${ticket.assigned_username || 'No asignado'}`
+    ];
+    datos.forEach(linea => {
+      doc.font('Helvetica').fontSize(12).fillColor('#222').text(linea, { align: 'center' });
+      doc.moveDown(0.5);
+    });
+
     doc.moveDown(1);
 
     // Descripción
     doc
       .font('Helvetica-Bold')
-      .fontSize(12)
+      .fontSize(13)
       .fillColor('#FF0000')
-      .text('Descripción:', { underline: false });
+      .text('Descripción:', { align: 'center', underline: false });
+    doc.moveDown(0.5);
     doc
       .font('Helvetica')
-      .fontSize(11)
+      .fontSize(12)
       .fillColor('#222')
-      .text(ticket.description, { indent: 20 });
-    doc.moveDown(1);
+      .text(ticket.description, { align: 'center' });
+    doc.moveDown(1.5);
 
     // Línea divisoria
-    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e0e0e0').stroke();
-    doc.moveDown(1);
+    doc.moveTo(60, doc.y).lineTo(535, doc.y).strokeColor('#e0e0e0').stroke();
+    doc.moveDown(1.2);
 
     // Historial de Estados
     doc
       .font('Helvetica-Bold')
       .fontSize(14)
       .fillColor('#FF0000')
-      .text('Historial de Estados', { underline: true });
-    doc.moveDown(0.5);
+      .text('Historial de Estados', { align: 'center', underline: true });
+    doc.moveDown(1);
 
     history.forEach(h => {
       doc
         .font('Helvetica-Bold')
-        .fontSize(11)
+        .fontSize(12)
         .fillColor('#222')
         .text(
-          `- ${h.status} | ${h.changed_at} | ${h.username || 'Desconocido'}`
+          `- ${h.status} | ${h.changed_at} | ${h.username || 'Desconocido'}`,
+          { align: 'center' }
         );
       doc
         .font('Helvetica')
-        .fontSize(10)
+        .fontSize(11)
         .fillColor('#444')
-        .text(`Obs: ${h.observations || 'Ninguna'}`, { indent: 20 });
-
-      // Si hay imagen adjunta
+        .text(`Obs: ${h.observations || 'Ninguna'}`, { align: 'center' });
       if (
         h.attachment &&
         (h.attachment.endsWith('.jpg') ||
@@ -647,13 +649,13 @@ async function generarPDFTicket(ticket, history) {
       ) {
         try {
           doc.moveDown(0.2);
-          doc.image(h.attachment, { width: 160, align: 'left' });
+          doc.image(h.attachment, { width: 180, align: 'center' });
           doc.moveDown(0.5);
         } catch (e) {
-          doc.text('[No se pudo cargar la imagen]', { indent: 20 });
+          doc.text('[No se pudo cargar la imagen]', { align: 'center' });
         }
       }
-      doc.moveDown(0.5);
+      doc.moveDown(1);
     });
 
     // Pie de página
@@ -663,8 +665,8 @@ async function generarPDFTicket(ticket, history) {
       .fillColor('#888')
       .text(
         'Reporte generado automáticamente por el Sistema de Tickets',
-        50,
-        750,
+        60,
+        770,
         { align: 'center' }
       );
 
