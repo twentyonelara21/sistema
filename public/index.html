@@ -966,6 +966,8 @@ async function showTicketDetails(ticket, editMode = false) {
 
   details.innerHTML = detailsHtml;
   modal.style.display = 'block';
+  // Desplaza la ventana al inicio del modal
+  modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
     function closeModal() {
