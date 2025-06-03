@@ -551,7 +551,6 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
   }
 });
 
-const moment = require('moment');
 const PDFDocument = require('pdfkit');
 
 async function generarPDFTicket(ticket, history) {
