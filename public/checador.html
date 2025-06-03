@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reloj Checador</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .checardor-container {
+      background: #fff;
+      margin-top: 2rem;
+      padding: 2rem 1.5rem 2.5rem 1.5rem;
+      border-radius: 18px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      max-width: 370px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: #FF0000;
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    #video {
+      border-radius: 10px;
+      border: 2px solid #FF0000;
+      margin-bottom: 1.2rem;
+      width: 320px;
+      max-width: 100%;
+      background: #222;
+    }
+    #userIdInput {
+      font-size: 2rem;
+      text-align: center;
+      width: 180px;
+      margin: 1rem auto 0.5rem auto;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #FF0000;
+      letter-spacing: 2px;
+      background: #f8f8f8;
+      color: #222;
+      font-weight: bold;
+      outline: none;
+    }
+    .teclado {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      gap: 10px;
+      justify-content: center;
+      margin: 1rem auto 1.5rem auto;
+    }
+    .tecla {
+      font-size: 1.5rem;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .tecla:hover {
+      background: #FF0000;
+      color: #fff;
+      border-color: #FF0000;
+    }
+    .select-tipo {
+      font-size: 1.1rem;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #00877A;
+      margin-bottom: 1.5rem;
+      width: 100%;
+      max-width: 250px;
+      background: #f8f8f8;
+      color: #222;
+      font-weight: 600;
+      outline: none;
+    }
+    .btn-registrar {
+      background: #FF0000;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 1rem 2.5rem;
+      font-size: 1.3rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 1rem;
+      box-shadow: 0 2px 8px rgba(255,0,0,0.08);
+      transition: background 0.2s, box-shadow 0.2s;
+      width: 100%;
+      max-width: 250px;
+    }
+    .btn-registrar:hover {
+      background: #00877A;
+      box-shadow: 0 4px 16px rgba(0,135,122,0.12);
+    }
+    #mensaje {
+      margin-top: 1.5rem;
+      font-size: 1.1rem;
+      color: #00877A;
+      min-height: 1.5em;
+      font-weight: 600;
+      text-align: center;
+    }
+    @media (max-width: 500px) {
+      .checardor-container { padding: 1rem 0.2rem; }
+      #video { width: 100%; }
+      .teclado { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .tecla { padding: 12px; font-size: 1.2rem; }
+      .btn-registrar { font-size: 1.1rem; padding: 0.8rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="checardor-container">
+    <h1>Reloj Checador</h1>
+    <video id="video" width="320" height="240" autoplay></video>
+    <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    <input type="text" id="userIdInput" placeholder="ID de usuario" maxlength="8" autocomplete="off" readonly>
+    <div class="teclado">
+      <button class="tecla" onclick="agregarNumero('1')">1</button>
+      <button class="tecla" onclick="agregarNumero('2')">2</button>
+      <button class="tecla" onclick="agregarNumero('3')">3</button>
+      <button class="tecla" onclick="agregarNumero('4')">4</button>
+      <button class="tecla" onclick="agregarNumero('5')">5</button>
+      <button class="tecla" onclick="agregarNumero('6')">6</button>
+      <button class="tecla" onclick="agregarNumero('7')">7</button>
+      <button class="tecla" onclick="agregarNumero('8')">8</button>
+      <button class="tecla" onclick="agregarNumero('9')">9</button>
+      <button class="tecla" onclick="borrarNumero()">←</button>
+      <button class="tecla" onclick="agregarNumero('0')">0</button>
+      <button class="tecla" onclick="limpiarInput()">C</button>
+    </div>
+    <select id="tipoChecada" class="select-tipo">
+      <option value="">Selecciona tipo de checada</option>
+      <option value="ENTRADA">ENTRADA</option>
+      <option value="INICIO_COMIDA">INICIO DE COMIDA</option>
+      <option value="FIN_COMIDA">FIN DE COMIDA</option>
+      <option value="SALIDA">SALIDA</option>
+    </select>
+    <button class="btn-registrar" onclick="registrarChecada()">Registrar Checada</button>
+    <div id="mensaje"></div>
+  </div>
+  <script>
+    // Acceso a la cámara
+    const video = document.getElementById('video');
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { document.getElementById('mensaje').textContent = 'No se pudo acceder a la cámara'; });
+
+    // Teclado numérico
+    function agregarNumero(num) {
+      const input = document.getElementById('userIdInput');
+      if (input.value.length < input.maxLength) {
+        input.value += num;
+      }
+    }
+    function borrarNumero() {
+      const input = document.getElementById('userIdInput');
+      input.value = input.value.slice(0, -1);
+    }
+    function limpiarInput() {
+      document.getElementById('userIdInput').value = '';
+    }
+
+    function registrarChecada() {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const foto = canvas.toDataURL('image/jpeg');
+      const user_id = document.getElementById('userIdInput').value;
+      const tipo = document.getElementById('tipoChecada').value;
+      const mensaje = document.getElementById('mensaje');
+      mensaje.textContent = '';
+
+      if (!user_id) {
+        mensaje.textContent = 'Por favor, ingresa tu ID de usuario';
+        return;
+      }
+      if (!tipo) {
+        mensaje.textContent = 'Selecciona el tipo de checada';
+        return;
+      }
+
+      fetch('/api/checador', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id, tipo, foto })
+      })
+      .then(res => res.json())
+      .then(data => {
+        mensaje.style.color = data.error ? '#FF0000' : '#00877A';
+        mensaje.textContent = data.message || data.error || 'Registro exitoso';
+        limpiarInput();
+        document.getElementById('tipoChecada').value = '';
+      })
+      .catch(() => {
+        mensaje.style.color = '#FF0000';
+        mensaje.textContent = 'Error al registrar';
+      });
+    }
+  </script>
+</body>
+</html>
