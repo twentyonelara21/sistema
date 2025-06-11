@@ -1132,6 +1132,25 @@ app.get('/api/checador/puntualidad', async (req, res) => {
   res.json(rows);
 });
 
+// Registros individuales de checadas
+app.get('/api/checador/registros', async (req, res) => {
+  const { desde, hasta } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('fecha >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('fecha <= ?'); params.push(hasta + ' 23:59:59'); }
+  const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const query = `
+    SELECT u.username, c.tipo, c.fecha, c.foto
+    FROM checadas c
+    JOIN users u ON c.user_id = u.id
+    ${whereStr}
+    ORDER BY c.fecha ASC
+  `;
+  const [rows] = await pool.query(query, params);
+  res.json(rows);
+});
+
 // En tu server.js
 app.post('/api/checador', async (req, res) => {
   const { user_id, tipo, foto } = req.body;

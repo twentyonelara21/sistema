@@ -34,36 +34,56 @@
   <h2>Hora media de llegada</h2>
   <canvas id="mediaChart" width="400" height="200"></canvas>
   <h2>Tabla de registros</h2>
-  <table id="tablaPuntualidad">
+    <h2>Registros individuales</h2>
+    <table id="tablaRegistros">
     <thead>
-      <tr>
+        <tr>
         <th>Usuario</th>
-        <th>Total Entradas</th>
-        <th>Retardos</th>
-        <th>Primer Hora</th>
-        <th>Última Hora</th>
-        <th>Hora Media</th>
-      </tr>
+        <th>Tipo</th>
+        <th>Fecha</th>
+        <th>Hora</th>
+        <th>Foto</th>
+        </tr>
     </thead>
     <tbody></tbody>
-  </table>
+    </table>
   <script>
     let datosPuntualidad = [];
+    let datosRegistros = [];
     let puntualChart, retardoChart, mediaChart;
 
     function actualizarDashboard() {
-      const desde = document.getElementById('filtroDesde').value;
-      const hasta = document.getElementById('filtroHasta').value;
-      let url = '/api/checador/puntualidad?';
-      if (desde) url += `desde=${desde}&`;
-      if (hasta) url += `hasta=${hasta}&`;
+    const desde = document.getElementById('filtroDesde').value;
+    const hasta = document.getElementById('filtroHasta').value;
+    let url = '/api/checador/registros?';
+    if (desde) url += `desde=${desde}&`;
+    if (hasta) url += `hasta=${hasta}&`;
 
-      fetch(url)
+    fetch(url)
         .then(res => res.json())
         .then(data => {
-          datosPuntualidad = data;
-          actualizarGraficas();
-          actualizarTabla();
+        datosRegistros = data;
+        actualizarTablaRegistros();
+        });
+    }
+
+    function actualizarTablaRegistros() {
+        const tbody = document.querySelector('#tablaRegistros tbody');
+        tbody.innerHTML = '';
+        datosRegistros.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+            <td>${d.username}</td>
+            <td>${d.tipo}</td>
+            <td>${d.fecha.split(' ')[0]}</td>
+            <td>${d.fecha.split(' ')[1]}</td>
+            <td>
+                <a href="${d.foto}" target="_blank">
+                <img src="${d.foto}" alt="foto" style="width:40px; height:40px; object-fit:cover; border-radius:5px;">
+                </a>
+            </td>
+            `;
+            tbody.appendChild(tr);
         });
     }
 
@@ -143,10 +163,10 @@
     }
 
     function descargarExcel() {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.table_to_sheet(document.getElementById('tablaPuntualidad'));
-      XLSX.utils.book_append_sheet(wb, ws, 'Puntualidad');
-      XLSX.writeFile(wb, 'reporte_puntualidad.xlsx');
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.table_to_sheet(document.getElementById('tablaRegistros'));
+    XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+    XLSX.writeFile(wb, 'reporte_registros.xlsx');
     }
 
     // Carga inicial
