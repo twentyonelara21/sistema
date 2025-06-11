@@ -79,19 +79,6 @@
       color: #fff;
       border-color: #FF0000;
     }
-    .select-tipo {
-      font-size: 1.1rem;
-      padding: 10px;
-      border-radius: 8px;
-      border: 2px solid #00877A;
-      margin-bottom: 1.5rem;
-      width: 100%;
-      max-width: 250px;
-      background: #f8f8f8;
-      color: #222;
-      font-weight: 600;
-      outline: none;
-    }
     .btn-registrar {
       background: #FF0000;
       color: #fff;
@@ -148,13 +135,7 @@
       <button class="tecla" onclick="agregarNumero('0')">0</button>
       <button class="tecla" onclick="limpiarInput()">C</button>
     </div>
-    <select id="tipoChecada" class="select-tipo">
-      <option value="">Selecciona tipo de checada</option>
-      <option value="ENTRADA">ENTRADA</option>
-      <option value="INICIO_COMIDA">INICIO DE COMIDA</option>
-      <option value="FIN_COMIDA">FIN DE COMIDA</option>
-      <option value="SALIDA">SALIDA</option>
-    </select>
+    <!-- Select eliminado -->
     <button class="btn-registrar" onclick="registrarChecada()">Registrar Checada</button>
     <div id="mensaje"></div>
   </div>
@@ -172,7 +153,6 @@
         };
       } catch (err) {
         mensaje.textContent = 'No se pudo acceder a la cámara. Permite el acceso y recarga la página.';
-        alert('Debes permitir el acceso a la cámara para usar el checador.');
         video.style.background = '#000';
       }
     }
@@ -200,7 +180,7 @@
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const foto = canvas.toDataURL('image/jpeg');
       const user_id = document.getElementById('userIdInput').value;
-      const tipo = document.getElementById('tipoChecada').value;
+      const tipo = "ENTRADA";
       const mensaje = document.getElementById('mensaje');
         if (!video.srcObject || video.readyState < 2) {
           mensaje.textContent = 'La cámara aún no está lista. Espera unos segundos.';
@@ -209,10 +189,6 @@
 
       if (!user_id) {
         mensaje.textContent = 'Por favor, ingresa tu ID de usuario';
-        return;
-      }
-      if (!tipo) {
-        mensaje.textContent = 'Selecciona el tipo de checada';
         return;
       }
 
@@ -226,7 +202,6 @@
         mensaje.style.color = data.error ? '#FF0000' : '#00877A';
         mensaje.textContent = data.message || data.error || 'Registro exitoso';
         limpiarInput();
-        document.getElementById('tipoChecada').value = '';
       })
       .catch(() => {
         mensaje.style.color = '#FF0000';

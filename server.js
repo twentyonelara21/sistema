@@ -1118,7 +1118,7 @@ app.post('/api/checador', async (req, res) => {
 
   // Guardar en la base de datos
   await pool.query(
-    "INSERT INTO checadas (user_id, tipo, fecha, foto) VALUES (?, ?, CONVERT_TZ(NOW(), '+00:00', '-06:00'), ?)",
+    'INSERT INTO checadas (user_id, tipo, fecha, foto) VALUES (?, ?, NOW(), ?)',
     [user_id, tipo, uploadResponse.secure_url]
   );
 
