@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Checador</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 2rem; }
+    .filtros { background: #fff; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center; }
+    .filtros label { font-weight: 600; }
+    .filtros input { padding: 0.4rem 0.7rem; border-radius: 6px; border: 1px solid #e0e0e0; }
+    .filtros button { background: #FF0000; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1.2rem; font-size: 1rem; font-weight: 700; cursor: pointer; }
+    h1 { color: #FF0000; text-align: center; }
+    canvas { background: #fff; border-radius: 8px; margin-bottom: 2rem; }
+    table { border-collapse: collapse; width: 100%; background: #fff; margin-bottom: 2rem; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #FF0000; color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard de Puntualidad</h1>
+  <div class="filtros">
+    <label>Desde: <input type="date" id="filtroDesde"></label>
+    <label>Hasta: <input type="date" id="filtroHasta"></label>
+    <button onclick="actualizarDashboard()">Filtrar</button>
+    <button onclick="descargarExcel()">Descargar Excel</button>
+  </div>
+  <h2>Usuarios más puntuales</h2>
+  <canvas id="puntualChart" width="400" height="200"></canvas>
+  <h2>Usuarios menos puntuales</h2>
+  <canvas id="retardoChart" width="400" height="200"></canvas>
+  <h2>Hora media de llegada</h2>
+  <canvas id="mediaChart" width="400" height="200"></canvas>
+  <h2>Tabla de registros</h2>
+  <table id="tablaPuntualidad">
+    <thead>
+      <tr>
+        <th>Usuario</th>
+        <th>Total Entradas</th>
+        <th>Retardos</th>
+        <th>Primer Hora</th>
+        <th>Última Hora</th>
+        <th>Hora Media</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script>
+    let datosPuntualidad = [];
+    let puntualChart, retardoChart, mediaChart;
+
+    function actualizarDashboard() {
+      const desde = document.getElementById('filtroDesde').value;
+      const hasta = document.getElementById('filtroHasta').value;
+      let url = '/api/checador/puntualidad?';
+      if (desde) url += `desde=${desde}&`;
+      if (hasta) url += `hasta=${hasta}&`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          datosPuntualidad = data;
+          actualizarGraficas();
+          actualizarTabla();
+        });
+    }
+
+    function actualizarGraficas() {
+      // Usuarios más puntuales (menos retardos)
+      const labels = datosPuntualidad.map(d => d.username);
+      const retardos = datosPuntualidad.map(d => d.retardos);
+      const medias = datosPuntualidad.map(d => d.hora_media);
+
+      // Más puntuales
+      if (puntualChart) puntualChart.destroy();
+      puntualChart = new Chart(document.getElementById('puntualChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Retardos',
+            data: retardos,
+            backgroundColor: 'rgba(16,185,129,0.5)',
+            borderColor: 'rgba(16,185,129,1)',
+            borderWidth: 1
+          }]
+        },
+        options: { responsive: true, indexAxis: 'y' }
+      });
+
+      // Menos puntuales (más retardos)
+      if (retardoChart) retardoChart.destroy();
+      retardoChart = new Chart(document.getElementById('retardoChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Retardos',
+            data: retardos,
+            backgroundColor: 'rgba(239,68,68,0.5)',
+            borderColor: 'rgba(239,68,68,1)',
+            borderWidth: 1
+          }]
+        },
+        options: { responsive: true }
+      });
+
+      // Hora media de llegada
+      if (mediaChart) mediaChart.destroy();
+      mediaChart = new Chart(document.getElementById('mediaChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Hora Media',
+            data: medias,
+            backgroundColor: 'rgba(59,130,246,0.5)',
+            borderColor: 'rgba(59,130,246,1)',
+            borderWidth: 1
+          }]
+        },
+        options: { responsive: true }
+      });
+    }
+
+    function actualizarTabla() {
+      const tbody = document.querySelector('#tablaPuntualidad tbody');
+      tbody.innerHTML = '';
+      datosPuntualidad.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.username}</td>
+          <td>${d.total_entradas}</td>
+          <td>${d.retardos}</td>
+          <td>${d.primer_hora}</td>
+          <td>${d.ultima_hora}</td>
+          <td>${d.hora_media}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function descargarExcel() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.table_to_sheet(document.getElementById('tablaPuntualidad'));
+      XLSX.utils.book_append_sheet(wb, ws, 'Puntualidad');
+      XLSX.writeFile(wb, 'reporte_puntualidad.xlsx');
+    }
+
+    // Carga inicial
+    actualizarDashboard();
+  </script>
+</body>
+</html>

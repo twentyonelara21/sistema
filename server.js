@@ -1105,6 +1105,33 @@ app.get('/api/dashboard/tickets-por-categoria-subcategoria', async (req, res) =>
   }
 });
 
+// dashboard.html
+// Usuarios más y menos puntuales
+app.get('/api/checador/puntualidad', async (req, res) => {
+  const { desde, hasta } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('fecha >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('fecha <= ?'); params.push(hasta + ' 23:59:59'); }
+  const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const query = `
+    SELECT u.username, 
+      COUNT(c.id) AS total_entradas,
+      SUM(TIME(c.fecha) > '09:00:00') AS retardos,
+      MIN(TIME(c.fecha)) AS primer_hora,
+      MAX(TIME(c.fecha)) AS ultima_hora,
+      SEC_TO_TIME(AVG(TIME_TO_SEC(TIME(c.fecha)))) AS hora_media
+    FROM checadas c
+    JOIN users u ON c.user_id = u.id
+    WHERE c.tipo = 'ENTRADA'
+    ${whereStr ? 'AND ' + where.join(' AND ') : ''}
+    GROUP BY c.user_id
+    ORDER BY hora_media ASC
+  `;
+  const [rows] = await pool.query(query, params);
+  res.json(rows);
+});
+
 // En tu server.js
 app.post('/api/checador', async (req, res) => {
   const { user_id, tipo, foto } = req.body;
