@@ -161,9 +161,23 @@
   <script>
     // Acceso a la cámara
     const video = document.getElementById('video');
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => { video.srcObject = stream; })
-      .catch(err => { document.getElementById('mensaje').textContent = 'No se pudo acceder a la cámara'; });
+    const mensaje = document.getElementById('mensaje');
+
+    async function iniciarCamara() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+        };
+      } catch (err) {
+        mensaje.textContent = 'No se pudo acceder a la cámara. Permite el acceso y recarga la página.';
+        alert('Debes permitir el acceso a la cámara para usar el checador.');
+        video.style.background = '#000';
+      }
+    }
+
+    iniciarCamara();
 
     // Teclado numérico
     function agregarNumero(num) {
@@ -185,10 +199,14 @@
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const foto = canvas.toDataURL('image/jpeg');
+      canvas.style.display = 'block';
       const user_id = document.getElementById('userIdInput').value;
       const tipo = document.getElementById('tipoChecada').value;
       const mensaje = document.getElementById('mensaje');
-      mensaje.textContent = '';
+        if (!video.srcObject || video.readyState < 2) {
+          mensaje.textContent = 'La cámara aún no está lista. Espera unos segundos.';
+          return;
+        }
 
       if (!user_id) {
         mensaje.textContent = 'Por favor, ingresa tu ID de usuario';
