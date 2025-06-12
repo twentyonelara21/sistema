@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventario de Sistemas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
+    h1 { color: #FF0000; text-align: center; }
+    .form-section, .table-section { background: #fff; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 1200px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
+    .form-group { margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; }
+    .form-group label { min-width: 120px; font-weight: 600; }
+    .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc; }
+    .form-group input[type='file'] { padding: 0; }
+    .btn { background: #FF0000; color: #fff; border: none; border-radius: 6px; padding: 0.7rem 1.5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-right: 1rem;}
+    .btn:hover { background: #00877A; }
+    .table-responsive { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; background: #fff; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #FF0000; color: #fff; }
+    img { max-width: 60px; max-height: 60px; border-radius: 6px; }
+    @media (max-width: 900px) {
+      .form-group { flex-direction: column; }
+      th, td { font-size: 0.9em; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Inventario de Equipo de Sistemas</h1>
+  <div class="form-section">
+    <h2 id="formTitle">Agregar Equipo</h2>
+    <form id="inventarioForm" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>Tipo</label>
+        <select name="tipo" required>
+          <option value="INVENTARIO">INVENTARIO</option>
+          <option value="PRESTAMO">PRESTAMO</option>
+        </select>
+        <label>ID Inventario</label>
+        <input name="idinventario" required>
+        <label>Etiqueta</label>
+        <input name="etiqueta">
+        <label>Imagen</label>
+        <input type="file" name="equipo_imagen" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label>Complemento</label>
+        <input name="complemento">
+        <label>Marca</label>
+        <input name="marca">
+        <label>N. Serie</label>
+        <input name="n_serie">
+        <label>Modelo</label>
+        <input name="modelo">
+      </div>
+      <div class="form-group">
+        <label>Categoría</label>
+        <input name="categoria">
+        <label>Asignado a</label>
+        <input name="asignado_a">
+        <label>Localización</label>
+        <input name="localizacion">
+        <label>Precio Compra</label>
+        <input name="precio_compra" type="number" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <input name="color">
+        <label>Departamento</label>
+        <input name="departamento">
+        <label>Procesador</label>
+        <input name="procesador">
+        <label>RAM (GB)</label>
+        <input name="ram_gb">
+      </div>
+      <div class="form-group">
+        <label>HDD</label>
+        <input name="hdd">
+        <label>SSD</label>
+        <input name="ssd">
+        <label>Tarjeta Gráfica</label>
+        <input name="tarjeta_grafica">
+        <label>Windows</label>
+        <input name="windows">
+      </div>
+      <div class="form-group">
+        <label>Licenciamiento</label>
+        <input name="licenciamiento">
+        <label>Estatus</label>
+        <input name="estatus">
+        <label>Observaciones</label>
+        <textarea name="observaciones"></textarea>
+      </div>
+      <input type="hidden" name="id" id="equipoId">
+      <button type="submit" class="btn" id="btnGuardar">Guardar</button>
+      <button type="button" class="btn" id="btnCancelar" style="display:none;" onclick="resetForm()">Cancelar</button>
+    </form>
+  </div>
+  <div class="table-section">
+    <h2 style="text-align:center;">Inventario</h2>
+    <div class="table-responsive">
+      <table id="tablaInventario">
+        <thead>
+          <tr>
+            <th>Tipo</th><th>ID Inventario</th><th>Etiqueta</th><th>Imagen</th><th>Complemento</th><th>Marca</th>
+            <th>N. Serie</th><th>Modelo</th><th>Categoría</th><th>Asignado a</th><th>Localización</th>
+            <th>Precio Compra</th><th>Color</th><th>Departamento</th><th>Procesador</th><th>RAM (GB)</th>
+            <th>HDD</th><th>SSD</th><th>Tarjeta Gráfica</th><th>Windows</th><th>Licenciamiento</th>
+            <th>Estatus</th><th>Observaciones</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+    let editando = false;
+    let editId = null;
+
+    function resetForm() {
+      document.getElementById('inventarioForm').reset();
+      document.getElementById('formTitle').textContent = 'Agregar Equipo';
+      document.getElementById('btnGuardar').textContent = 'Guardar';
+      document.getElementById('btnCancelar').style.display = 'none';
+      document.getElementById('equipoId').value = '';
+      editando = false;
+      editId = null;
+    }
+
+    document.getElementById('inventarioForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      let url = '/api/inventario';
+      let method = 'POST';
+      if (editando && editId) {
+        url += '/' + editId;
+        method = 'PUT';
+      }
+      const res = await fetch(url, { method, body: formData });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        alert('Equipo guardado correctamente');
+        resetForm();
+        cargarInventario();
+      }
+    };
+
+    async function cargarInventario() {
+      const res = await fetch('/api/inventario');
+      const data = await res.json();
+      const tbody = document.querySelector('#tablaInventario tbody');
+      tbody.innerHTML = '';
+      data.forEach(eq => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${eq.tipo}</td>
+          <td>${eq.idinventario}</td>
+          <td>${eq.etiqueta}</td>
+          <td>${eq.equipo_imagen ? `<a href="${eq.equipo_imagen}" target="_blank"><img src="${eq.equipo_imagen}"></a>` : ''}</td>
+          <td>${eq.complemento}</td>
+          <td>${eq.marca}</td>
+          <td>${eq.n_serie}</td>
+          <td>${eq.modelo}</td>
+          <td>${eq.categoria}</td>
+          <td>${eq.asignado_a}</td>
+          <td>${eq.localizacion}</td>
+          <td>${eq.precio_compra || ''}</td>
+          <td>${eq.color}</td>
+          <td>${eq.departamento}</td>
+          <td>${eq.procesador}</td>
+          <td>${eq.ram_gb}</td>
+          <td>${eq.hdd}</td>
+          <td>${eq.ssd}</td>
+          <td>${eq.tarjeta_grafica}</td>
+          <td>${eq.windows}</td>
+          <td>${eq.licenciamiento}</td>
+          <td>${eq.estatus}</td>
+          <td>${eq.observaciones}</td>
+          <td>
+            <button onclick='editarEquipo(${JSON.stringify(eq)})'>Editar</button>
+            <button onclick='eliminarEquipo(${eq.id})'>Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function editarEquipo(eq) {
+      document.getElementById('formTitle').textContent = 'Editar Equipo';
+      document.getElementById('btnGuardar').textContent = 'Actualizar';
+      document.getElementById('btnCancelar').style.display = 'inline-block';
+      editando = true;
+      editId = eq.id;
+      for (const key in eq) {
+        if (document.querySelector(`[name='${key}']`)) {
+          document.querySelector(`[name='${key}']`).value = eq[key] || '';
+        }
+      }
+      document.getElementById('equipoId').value = eq.id;
+    }
+
+    async function eliminarEquipo(id) {
+      if (!confirm('¿Seguro que deseas eliminar este equipo?')) return;
+      const res = await fetch('/api/inventario/' + id, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        alert('Equipo eliminado');
+        cargarInventario();
+      }
+    }
+
+    // Carga inicial
+    cargarInventario();
+  </script>
+</body>
+</html>
