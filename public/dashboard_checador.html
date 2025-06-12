@@ -33,140 +33,136 @@
   <canvas id="retardoChart" width="400" height="200"></canvas>
   <h2>Hora media de llegada</h2>
   <canvas id="mediaChart" width="400" height="200"></canvas>
-  <h2>Tabla de registros</h2>
-    <h2>Registros individuales</h2>
-    <table id="tablaRegistros">
+  <h2>Registros individuales</h2>
+  <table id="tablaRegistros">
     <thead>
-        <tr>
+      <tr>
         <th>Usuario</th>
         <th>Tipo</th>
-        <th>Fecha</th>
-        <th>Hora</th>
+        <th>Fecha y Hora</th>
         <th>Foto</th>
-        </tr>
+      </tr>
     </thead>
     <tbody></tbody>
-    </table>
+  </table>
   <script>
-    let datosPuntualidad = [];
     let datosRegistros = [];
     let puntualChart, retardoChart, mediaChart;
 
-    function actualizarDashboard() {
-    const desde = document.getElementById('filtroDesde').value;
-    const hasta = document.getElementById('filtroHasta').value;
-    let url = '/api/checador/registros?';
-    if (desde) url += `desde=${desde}&`;
-    if (hasta) url += `hasta=${hasta}&`;
+    function formatearFecha(fechaISO) {
+      const fecha = new Date(fechaISO);
+      return fecha.toLocaleString('es-MX', { hour12: false, timeZone: 'America/Mexico_City' });
+    }
 
-    fetch(url)
+    function actualizarDashboard() {
+      const desde = document.getElementById('filtroDesde').value;
+      const hasta = document.getElementById('filtroHasta').value;
+      let url = '/api/checador/registros?';
+      if (desde) url += `desde=${desde}&`;
+      if (hasta) url += `hasta=${hasta}&`;
+
+      fetch(url)
         .then(res => res.json())
         .then(data => {
-        datosRegistros = data;
-        actualizarTablaRegistros();
+          datosRegistros = data;
+          actualizarTablaRegistros();
         });
+      cargarGraficas();
     }
 
     function actualizarTablaRegistros() {
-        const tbody = document.querySelector('#tablaRegistros tbody');
-        tbody.innerHTML = '';
-        datosRegistros.forEach(d => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-            <td>${d.username}</td>
-            <td>${d.tipo}</td>
-            <td>${d.fecha.split(' ')[0]}</td>
-            <td>${d.fecha.split(' ')[1]}</td>
-            <td>
-                <a href="${d.foto}" target="_blank">
-                <img src="${d.foto}" alt="foto" style="width:40px; height:40px; object-fit:cover; border-radius:5px;">
-                </a>
-            </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function actualizarGraficas() {
-      // Usuarios más puntuales (menos retardos)
-      const labels = datosPuntualidad.map(d => d.username);
-      const retardos = datosPuntualidad.map(d => d.retardos);
-      const medias = datosPuntualidad.map(d => d.hora_media);
-
-      // Más puntuales
-      if (puntualChart) puntualChart.destroy();
-      puntualChart = new Chart(document.getElementById('puntualChart').getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Retardos',
-            data: retardos,
-            backgroundColor: 'rgba(16,185,129,0.5)',
-            borderColor: 'rgba(16,185,129,1)',
-            borderWidth: 1
-          }]
-        },
-        options: { responsive: true, indexAxis: 'y' }
-      });
-
-      // Menos puntuales (más retardos)
-      if (retardoChart) retardoChart.destroy();
-      retardoChart = new Chart(document.getElementById('retardoChart').getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Retardos',
-            data: retardos,
-            backgroundColor: 'rgba(239,68,68,0.5)',
-            borderColor: 'rgba(239,68,68,1)',
-            borderWidth: 1
-          }]
-        },
-        options: { responsive: true }
-      });
-
-      // Hora media de llegada
-      if (mediaChart) mediaChart.destroy();
-      mediaChart = new Chart(document.getElementById('mediaChart').getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Hora Media',
-            data: medias,
-            backgroundColor: 'rgba(59,130,246,0.5)',
-            borderColor: 'rgba(59,130,246,1)',
-            borderWidth: 1
-          }]
-        },
-        options: { responsive: true }
-      });
-    }
-
-    function actualizarTabla() {
-      const tbody = document.querySelector('#tablaPuntualidad tbody');
+      const tbody = document.querySelector('#tablaRegistros tbody');
       tbody.innerHTML = '';
-      datosPuntualidad.forEach(d => {
+      datosRegistros.forEach(d => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${d.username}</td>
-          <td>${d.total_entradas}</td>
-          <td>${d.retardos}</td>
-          <td>${d.primer_hora}</td>
-          <td>${d.ultima_hora}</td>
-          <td>${d.hora_media}</td>
+          <td>${d.tipo}</td>
+          <td>${formatearFecha(d.fecha)}</td>
+          <td>
+            <a href="${d.foto}" target="_blank">
+              <img src="${d.foto}" alt="foto" style="width:40px; height:40px; object-fit:cover; border-radius:5px;">
+            </a>
+          </td>
         `;
         tbody.appendChild(tr);
       });
     }
 
+    function cargarGraficas() {
+      const desde = document.getElementById('filtroDesde').value;
+      const hasta = document.getElementById('filtroHasta').value;
+      let url = '/api/checador/puntualidad?';
+      if (desde) url += `desde=${desde}&`;
+      if (hasta) url += `hasta=${hasta}&`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          // data debe ser un array con { username, retardos, hora_media }
+          data.sort((a, b) => a.retardos - b.retardos);
+          const labels = data.map(d => d.username);
+          const retardos = data.map(d => d.retardos);
+          const medias = data.map(d => d.hora_media);
+
+          // Gráfica de más puntuales (menos retardos)
+          if (puntualChart) puntualChart.destroy();
+          puntualChart = new Chart(document.getElementById('puntualChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Retardos',
+                data: retardos,
+                backgroundColor: 'rgba(16,185,129,0.5)',
+                borderColor: 'rgba(16,185,129,1)',
+                borderWidth: 1
+              }]
+            },
+            options: { responsive: true, indexAxis: 'y' }
+          });
+
+          // Gráfica de menos puntuales (más retardos)
+          if (retardoChart) retardoChart.destroy();
+          retardoChart = new Chart(document.getElementById('retardoChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Retardos',
+                data: retardos,
+                backgroundColor: 'rgba(239,68,68,0.5)',
+                borderColor: 'rgba(239,68,68,1)',
+                borderWidth: 1
+              }]
+            },
+            options: { responsive: true }
+          });
+
+          // Gráfica de hora media de llegada
+          if (mediaChart) mediaChart.destroy();
+          mediaChart = new Chart(document.getElementById('mediaChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Hora Media',
+                data: medias,
+                backgroundColor: 'rgba(59,130,246,0.5)',
+                borderColor: 'rgba(59,130,246,1)',
+                borderWidth: 1
+              }]
+            },
+            options: { responsive: true }
+          });
+        });
+    }
+
     function descargarExcel() {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.table_to_sheet(document.getElementById('tablaRegistros'));
-    XLSX.utils.book_append_sheet(wb, ws, 'Registros');
-    XLSX.writeFile(wb, 'reporte_registros.xlsx');
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.table_to_sheet(document.getElementById('tablaRegistros'));
+      XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+      XLSX.writeFile(wb, 'reporte_registros.xlsx');
     }
 
     // Carga inicial
