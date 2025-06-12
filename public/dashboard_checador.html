@@ -7,51 +7,143 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 2rem; }
-    .filtros { background: #fff; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center; }
-    .filtros label { font-weight: 600; }
-    .filtros input { padding: 0.4rem 0.7rem; border-radius: 6px; border: 1px solid #e0e0e0; }
-    .filtros button { background: #FF0000; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1.2rem; font-size: 1rem; font-weight: 700; cursor: pointer; }
-    h1 { color: #FF0000; text-align: center; }
-    canvas { background: #fff; border-radius: 8px; margin-bottom: 2rem; }
-    table { border-collapse: collapse; width: 100%; background: #fff; margin-bottom: 2rem; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background: #FF0000; color: #fff; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 2rem 0.5rem;
+    }
+    h1, h2 {
+      color: #FF0000;
+      text-align: center;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+    .filtros {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 0 auto 2rem auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: center;
+      max-width: 900px;
+    }
+    .filtros label {
+      font-weight: 600;
+    }
+    .filtros input {
+      padding: 0.4rem 0.7rem;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+    }
+    .filtros button {
+      background: #FF0000;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1.2rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .filtros button:hover {
+      background: #00877A;
+    }
+    .dashboard-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    canvas {
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      max-width: 100%;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .table-responsive {
+      overflow-x: auto;
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 600px;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    th {
+      background: #FF0000;
+      color: #fff;
+      text-align: center;
+    }
+    @media (max-width: 700px) {
+      .dashboard-container { padding: 0 0.2rem; }
+      .filtros { flex-direction: column; gap: 0.5rem; }
+      table { min-width: 400px; font-size: 0.95em; }
+      th, td { padding: 6px; }
+    }
+    @media (max-width: 500px) {
+      h1 { font-size: 1.3em; }
+      h2 { font-size: 1.1em; }
+      .filtros { padding: 0.5rem; }
+      table { min-width: 320px; font-size: 0.9em; }
+    }
   </style>
 </head>
 <body>
-  <h1>Dashboard de Puntualidad</h1>
-  <div class="filtros">
-    <label>Desde: <input type="date" id="filtroDesde"></label>
-    <label>Hasta: <input type="date" id="filtroHasta"></label>
-    <button onclick="actualizarDashboard()">Filtrar</button>
-    <button onclick="descargarExcel()">Descargar Excel</button>
+  <div class="dashboard-container">
+    <h1>Dashboard de Puntualidad</h1>
+    <div class="filtros">
+      <label>Desde: <input type="date" id="filtroDesde"></label>
+      <label>Hasta: <input type="date" id="filtroHasta"></label>
+      <button onclick="actualizarDashboard()">Filtrar</button>
+      <button onclick="descargarExcel()">Descargar Excel</button>
+    </div>
+    <h2>Usuarios más puntuales</h2>
+    <canvas id="puntualChart" width="400" height="200"></canvas>
+    <h2>Usuarios menos puntuales</h2>
+    <canvas id="retardoChart" width="400" height="200"></canvas>
+    <h2>Hora media de llegada</h2>
+    <canvas id="mediaChart" width="400" height="200"></canvas>
+    <h2>Registros individuales</h2>
+    <div class="table-responsive">
+      <table id="tablaRegistros">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Tipo</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Foto</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
-  <h2>Usuarios más puntuales</h2>
-  <canvas id="puntualChart" width="400" height="200"></canvas>
-  <h2>Usuarios menos puntuales</h2>
-  <canvas id="retardoChart" width="400" height="200"></canvas>
-  <h2>Hora media de llegada</h2>
-  <canvas id="mediaChart" width="400" height="200"></canvas>
-  <h2>Registros individuales</h2>
-  <table id="tablaRegistros">
-    <thead>
-      <tr>
-        <th>Usuario</th>
-        <th>Tipo</th>
-        <th>Fecha y Hora</th>
-        <th>Foto</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
   <script>
     let datosRegistros = [];
     let puntualChart, retardoChart, mediaChart;
 
     function formatearFecha(fechaISO) {
       const fecha = new Date(fechaISO);
-      return fecha.toLocaleString('es-MX', { hour12: false, timeZone: 'America/Mexico_City' });
+      // Ajusta a tu zona horaria si es necesario
+      const fechaStr = fecha.toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' });
+      const horaStr = fecha.toLocaleTimeString('es-MX', { hour12: false, timeZone: 'America/Mexico_City' });
+      return { fecha: fechaStr, hora: horaStr };
     }
 
     function actualizarDashboard() {
@@ -74,11 +166,13 @@
       const tbody = document.querySelector('#tablaRegistros tbody');
       tbody.innerHTML = '';
       datosRegistros.forEach(d => {
+        const { fecha, hora } = formatearFecha(d.fecha);
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${d.username}</td>
           <td>${d.tipo}</td>
-          <td>${formatearFecha(d.fecha)}</td>
+          <td>${fecha}</td>
+          <td>${hora}</td>
           <td>
             <a href="${d.foto}" target="_blank">
               <img src="${d.foto}" alt="foto" style="width:40px; height:40px; object-fit:cover; border-radius:5px;">
@@ -99,13 +193,11 @@
       fetch(url)
         .then(res => res.json())
         .then(data => {
-          // data debe ser un array con { username, retardos, hora_media }
           data.sort((a, b) => a.retardos - b.retardos);
           const labels = data.map(d => d.username);
           const retardos = data.map(d => d.retardos);
           const medias = data.map(d => d.hora_media);
 
-          // Gráfica de más puntuales (menos retardos)
           if (puntualChart) puntualChart.destroy();
           puntualChart = new Chart(document.getElementById('puntualChart').getContext('2d'), {
             type: 'bar',
@@ -122,7 +214,6 @@
             options: { responsive: true, indexAxis: 'y' }
           });
 
-          // Gráfica de menos puntuales (más retardos)
           if (retardoChart) retardoChart.destroy();
           retardoChart = new Chart(document.getElementById('retardoChart').getContext('2d'), {
             type: 'bar',
@@ -139,7 +230,6 @@
             options: { responsive: true }
           });
 
-          // Gráfica de hora media de llegada
           if (mediaChart) mediaChart.destroy();
           mediaChart = new Chart(document.getElementById('mediaChart').getContext('2d'), {
             type: 'bar',
@@ -159,8 +249,16 @@
     }
 
     function descargarExcel() {
+      // Prepara los datos para el Excel (sin la columna de foto, y fecha/hora separadas)
+      const ws_data = [
+        ["Usuario", "Tipo", "Fecha", "Hora"]
+      ];
+      datosRegistros.forEach(d => {
+        const { fecha, hora } = formatearFecha(d.fecha);
+        ws_data.push([d.username, d.tipo, fecha, hora]);
+      });
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.table_to_sheet(document.getElementById('tablaRegistros'));
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
       XLSX.utils.book_append_sheet(wb, ws, 'Registros');
       XLSX.writeFile(wb, 'reporte_registros.xlsx');
     }
