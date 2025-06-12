@@ -6,95 +6,129 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
-    h1 { color: #FF0000; text-align: center; }
-    .form-section, .table-section { background: #fff; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 1200px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
+    h1 { color: #FF0000; text-align: center; margin-bottom: 1.5rem; }
+    .btn-mas {
+      background: #FF0000; color: #fff; border: none; border-radius: 50%; width: 48px; height: 48px;
+      font-size: 2rem; font-weight: bold; cursor: pointer; position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .btn-mas:hover { background: #00877A; }
+    .modal-bg {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.3); z-index: 999; align-items: center; justify-content: center;
+    }
+    .modal-bg.active { display: flex; }
+    .form-modal {
+      background: #fff; border-radius: 12px; padding: 2rem 1.5rem; max-width: 700px; width: 98vw;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12); position: relative;
+      animation: modalIn 0.2s;
+    }
+    @keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .close-modal {
+      position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 2rem; color: #FF0000; cursor: pointer;
+    }
     .form-group { margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; }
     .form-group label { min-width: 120px; font-weight: 600; }
     .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc; }
     .form-group input[type='file'] { padding: 0; }
     .btn { background: #FF0000; color: #fff; border: none; border-radius: 6px; padding: 0.7rem 1.5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-right: 1rem;}
     .btn:hover { background: #00877A; }
+    .table-section { background: #fff; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 1200px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
     .table-responsive { overflow-x: auto; }
-    table { border-collapse: collapse; width: 100%; background: #fff; margin-top: 1rem; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background: #FF0000; color: #fff; }
     img { max-width: 60px; max-height: 60px; border-radius: 6px; }
     @media (max-width: 900px) {
       .form-group { flex-direction: column; }
       th, td { font-size: 0.9em; }
+      .form-modal { padding: 1rem 0.5rem; }
+    }
+    @media (max-width: 600px) {
+      .form-modal { max-width: 99vw; }
+      table { font-size: 0.85em; }
     }
   </style>
 </head>
 <body>
   <h1>Inventario de Equipo de Sistemas</h1>
-  <div class="form-section">
-    <h2 id="formTitle">Agregar Equipo</h2>
-    <form id="inventarioForm" enctype="multipart/form-data">
-      <div class="form-group">
-        <label>Tipo</label>
-        <select name="tipo" required>
-          <option value="INVENTARIO">INVENTARIO</option>
-          <option value="PRESTAMO">PRESTAMO</option>
-        </select>
-        <label>ID Inventario</label>
-        <input name="idinventario" required>
-        <label>Etiqueta</label>
-        <input name="etiqueta">
-        <label>Imagen</label>
-        <input type="file" name="equipo_imagen" accept="image/*">
-      </div>
-      <div class="form-group">
-        <label>Complemento</label>
-        <input name="complemento">
-        <label>Marca</label>
-        <input name="marca">
-        <label>N. Serie</label>
-        <input name="n_serie">
-        <label>Modelo</label>
-        <input name="modelo">
-      </div>
-      <div class="form-group">
-        <label>Categoría</label>
-        <input name="categoria">
-        <label>Asignado a</label>
-        <input name="asignado_a">
-        <label>Localización</label>
-        <input name="localizacion">
-        <label>Precio Compra</label>
-        <input name="precio_compra" type="number" step="0.01">
-      </div>
-      <div class="form-group">
-        <label>Color</label>
-        <input name="color">
-        <label>Departamento</label>
-        <input name="departamento">
-        <label>Procesador</label>
-        <input name="procesador">
-        <label>RAM (GB)</label>
-        <input name="ram_gb">
-      </div>
-      <div class="form-group">
-        <label>HDD</label>
-        <input name="hdd">
-        <label>SSD</label>
-        <input name="ssd">
-        <label>Tarjeta Gráfica</label>
-        <input name="tarjeta_grafica">
-        <label>Windows</label>
-        <input name="windows">
-      </div>
-      <div class="form-group">
-        <label>Licenciamiento</label>
-        <input name="licenciamiento">
-        <label>Estatus</label>
-        <input name="estatus">
-        <label>Observaciones</label>
-        <textarea name="observaciones"></textarea>
-      </div>
-      <input type="hidden" name="id" id="equipoId">
-      <button type="submit" class="btn" id="btnGuardar">Guardar</button>
-      <button type="button" class="btn" id="btnCancelar" style="display:none;" onclick="resetForm()">Cancelar</button>
-    </form>
+  <button class="btn-mas" onclick="abrirModal()">
+    +
+  </button>
+  <div class="modal-bg" id="modalBg">
+    <div class="form-modal">
+      <button class="close-modal" onclick="cerrarModal()">&times;</button>
+      <h2 id="formTitle" style="text-align:center; color:#FF0000;">Agregar Equipo</h2>
+      <form id="inventarioForm" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="tipo" required>
+            <option value="INVENTARIO">INVENTARIO</option>
+            <option value="PRESTAMO">PRESTAMO</option>
+          </select>
+          <label>ID Inventario</label>
+          <input name="idinventario" required>
+          <label>Etiqueta</label>
+          <input name="etiqueta">
+          <label>Imagen</label>
+          <input type="file" name="equipo_imagen" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label>Complemento</label>
+          <input name="complemento">
+          <label>Marca</label>
+          <input name="marca">
+          <label>N. Serie</label>
+          <input name="n_serie">
+          <label>Modelo</label>
+          <input name="modelo">
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <input name="categoria">
+          <label>Asignado a</label>
+          <input name="asignado_a">
+          <label>Localización</label>
+          <input name="localizacion">
+          <label>Precio Compra</label>
+          <input name="precio_compra" type="number" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Color</label>
+          <input name="color">
+          <label>Departamento</label>
+          <input name="departamento">
+          <label>Procesador</label>
+          <input name="procesador">
+          <label>RAM (GB)</label>
+          <input name="ram_gb">
+        </div>
+        <div class="form-group">
+          <label>HDD</label>
+          <input name="hdd">
+          <label>SSD</label>
+          <input name="ssd">
+          <label>Tarjeta Gráfica</label>
+          <input name="tarjeta_grafica">
+          <label>Windows</label>
+          <input name="windows">
+        </div>
+        <div class="form-group">
+          <label>Licenciamiento</label>
+          <input name="licenciamiento">
+          <label>Estatus</label>
+          <input name="estatus">
+          <label>Observaciones</label>
+          <textarea name="observaciones"></textarea>
+        </div>
+        <input type="hidden" name="id" id="equipoId">
+        <div style="text-align:center;">
+          <button type="submit" class="btn" id="btnGuardar">Guardar</button>
+          <button type="button" class="btn" id="btnCancelar" style="display:none;" onclick="resetForm()">Cancelar</button>
+        </div>
+      </form>
+    </div>
   </div>
   <div class="table-section">
     <h2 style="text-align:center;">Inventario</h2>
@@ -117,6 +151,14 @@
     let editando = false;
     let editId = null;
 
+    function abrirModal() {
+      document.getElementById('modalBg').classList.add('active');
+      resetForm();
+    }
+    function cerrarModal() {
+      document.getElementById('modalBg').classList.remove('active');
+      resetForm();
+    }
     function resetForm() {
       document.getElementById('inventarioForm').reset();
       document.getElementById('formTitle').textContent = 'Agregar Equipo';
@@ -143,7 +185,7 @@
         alert(data.error);
       } else {
         alert('Equipo guardado correctamente');
-        resetForm();
+        cerrarModal();
         cargarInventario();
       }
     };
@@ -189,6 +231,7 @@
     }
 
     function editarEquipo(eq) {
+      abrirModal();
       document.getElementById('formTitle').textContent = 'Editar Equipo';
       document.getElementById('btnGuardar').textContent = 'Actualizar';
       document.getElementById('btnCancelar').style.display = 'inline-block';
@@ -213,6 +256,11 @@
         cargarInventario();
       }
     }
+
+    // Cierra el modal al hacer click fuera del formulario
+    document.getElementById('modalBg').onclick = function(e) {
+      if (e.target === this) cerrarModal();
+    };
 
     // Carga inicial
     cargarInventario();
