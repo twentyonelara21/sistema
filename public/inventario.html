@@ -6,48 +6,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
-    h1 { color: #FF0000; text-align: center; margin-bottom: 1.5rem; }
+    h1 { color: #FF0000; text-align: center; margin-top: 1rem; }
     .btn-mas {
-      background: #FF0000; color: #fff; border: none; border-radius: 50%; width: 48px; height: 48px;
-      font-size: 2rem; font-weight: bold; cursor: pointer; position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center;
+      display: block;
+      margin: 1.5rem auto 1rem auto;
+      background: #FF0000;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      font-size: 2.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(255,0,0,0.08);
       transition: background 0.2s;
     }
     .btn-mas:hover { background: #00877A; }
-    .modal-bg {
-      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.3); z-index: 999; align-items: center; justify-content: center;
+    .table-section {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1rem auto;
+      max-width: 1200px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    .modal-bg.active { display: flex; }
-    .form-modal {
-      background: #fff; border-radius: 12px; padding: 2rem 1.5rem; max-width: 700px; width: 98vw;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.12); position: relative;
-      animation: modalIn 0.2s;
+    .table-section h2 { text-align: center; color: #FF0000; }
+    .table-responsive { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
+    th { background: #FF0000; color: #fff; }
+    img { max-width: 60px; max-height: 60px; border-radius: 6px; }
+    .btn { background: #FF0000; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 0 2px;}
+    .btn:hover { background: #00877A; }
+    /* Modal */
+    .modal {
+      display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.35); align-items: center; justify-content: center;
     }
-    @keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .close-modal {
-      position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 2rem; color: #FF0000; cursor: pointer;
+    .modal-content {
+      background: #fff; border-radius: 12px; padding: 2rem 1.5rem; max-width: 900px; width: 98vw; box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+      position: relative; margin: 2rem auto;
     }
+    .close { position: absolute; right: 18px; top: 10px; font-size: 2rem; color: #FF0000; cursor: pointer; }
+    .form-title { color: #FF0000; text-align: center; margin-bottom: 1rem; }
     .form-group { margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; }
     .form-group label { min-width: 120px; font-weight: 600; }
     .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc; }
     .form-group input[type='file'] { padding: 0; }
-    .btn { background: #FF0000; color: #fff; border: none; border-radius: 6px; padding: 0.7rem 1.5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-right: 1rem;}
-    .btn:hover { background: #00877A; }
-    .table-section { background: #fff; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 1200px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
-    .table-responsive { overflow-x: auto; }
-    table { border-collapse: collapse; width: 100%; background: #fff; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background: #FF0000; color: #fff; }
-    img { max-width: 60px; max-height: 60px; border-radius: 6px; }
     @media (max-width: 900px) {
       .form-group { flex-direction: column; }
       th, td { font-size: 0.9em; }
-      .form-modal { padding: 1rem 0.5rem; }
+      .modal-content { padding: 1rem 0.2rem; }
     }
     @media (max-width: 600px) {
-      .form-modal { max-width: 99vw; }
-      table { font-size: 0.85em; }
+      .modal-content { max-width: 99vw; }
+      table { font-size: 0.9em; }
     }
   </style>
 </head>
@@ -56,10 +70,28 @@
   <button class="btn-mas" onclick="abrirModal()">
     +
   </button>
-  <div class="modal-bg" id="modalBg">
-    <div class="form-modal">
-      <button class="close-modal" onclick="cerrarModal()">&times;</button>
-      <h2 id="formTitle" style="text-align:center; color:#FF0000;">Agregar Equipo</h2>
+  <div class="table-section">
+    <h2>Inventario</h2>
+    <div class="table-responsive">
+      <table id="tablaInventario">
+        <thead>
+          <tr>
+            <th>Tipo</th><th>ID Inventario</th><th>Etiqueta</th><th>Imagen</th><th>Complemento</th><th>Marca</th>
+            <th>N. Serie</th><th>Modelo</th><th>Categoría</th><th>Asignado a</th><th>Localización</th>
+            <th>Precio Compra</th><th>Color</th><th>Departamento</th><th>Procesador</th><th>RAM (GB)</th>
+            <th>HDD</th><th>SSD</th><th>Tarjeta Gráfica</th><th>Windows</th><th>Licenciamiento</th>
+            <th>Estatus</th><th>Observaciones</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Modal para agregar/editar equipo -->
+  <div id="modalEquipo" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="cerrarModal()">&times;</span>
+      <h2 class="form-title" id="formTitle">Agregar Equipo</h2>
       <form id="inventarioForm" enctype="multipart/form-data">
         <div class="form-group">
           <label>Tipo</label>
@@ -123,28 +155,9 @@
           <textarea name="observaciones"></textarea>
         </div>
         <input type="hidden" name="id" id="equipoId">
-        <div style="text-align:center;">
-          <button type="submit" class="btn" id="btnGuardar">Guardar</button>
-          <button type="button" class="btn" id="btnCancelar" style="display:none;" onclick="resetForm()">Cancelar</button>
-        </div>
+        <button type="submit" class="btn" id="btnGuardar">Guardar</button>
+        <button type="button" class="btn" id="btnCancelar" style="display:none;" onclick="resetForm()">Cancelar</button>
       </form>
-    </div>
-  </div>
-  <div class="table-section">
-    <h2 style="text-align:center;">Inventario</h2>
-    <div class="table-responsive">
-      <table id="tablaInventario">
-        <thead>
-          <tr>
-            <th>Tipo</th><th>ID Inventario</th><th>Etiqueta</th><th>Imagen</th><th>Complemento</th><th>Marca</th>
-            <th>N. Serie</th><th>Modelo</th><th>Categoría</th><th>Asignado a</th><th>Localización</th>
-            <th>Precio Compra</th><th>Color</th><th>Departamento</th><th>Procesador</th><th>RAM (GB)</th>
-            <th>HDD</th><th>SSD</th><th>Tarjeta Gráfica</th><th>Windows</th><th>Licenciamiento</th>
-            <th>Estatus</th><th>Observaciones</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
     </div>
   </div>
   <script>
@@ -152,11 +165,11 @@
     let editId = null;
 
     function abrirModal() {
-      document.getElementById('modalBg').classList.add('active');
+      document.getElementById('modalEquipo').style.display = 'flex';
       resetForm();
     }
     function cerrarModal() {
-      document.getElementById('modalBg').classList.remove('active');
+      document.getElementById('modalEquipo').style.display = 'none';
       resetForm();
     }
     function resetForm() {
@@ -222,8 +235,8 @@
           <td>${eq.estatus}</td>
           <td>${eq.observaciones}</td>
           <td>
-            <button onclick='editarEquipo(${JSON.stringify(eq)})'>Editar</button>
-            <button onclick='eliminarEquipo(${eq.id})'>Eliminar</button>
+            <button class="btn" onclick='editarEquipo(${JSON.stringify(eq)})'>Editar</button>
+            <button class="btn" onclick='eliminarEquipo(${eq.id})'>Eliminar</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -257,10 +270,13 @@
       }
     }
 
-    // Cierra el modal al hacer click fuera del formulario
-    document.getElementById('modalBg').onclick = function(e) {
-      if (e.target === this) cerrarModal();
-    };
+    // Cerrar modal al hacer click fuera del contenido
+    window.onclick = function(event) {
+      const modal = document.getElementById('modalEquipo');
+      if (event.target === modal) {
+        cerrarModal();
+      }
+    }
 
     // Carga inicial
     cargarInventario();

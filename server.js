@@ -27,6 +27,16 @@ const storage = new CloudinaryStorage({
   }
 });
 
+// Multer para inventario (usa Cloudinary)
+const inventarioStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'inventario',
+    allowed_formats: ['jpg', 'jpeg', 'png']
+  }
+});
+const uploadInventario = multer({ storage: inventarioStorage });
+
 const upload = multer({ storage });
 
 const app = express();
@@ -1169,6 +1179,92 @@ app.post('/api/checador', async (req, res) => {
   );
 
   res.json({ message: 'Registro guardado correctamente' });
+});
+
+//inventario.html
+
+// Listar inventario
+app.get('/api/inventario', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM inventario ORDER BY id DESC');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener inventario' });
+  }
+});
+
+// Agregar equipo
+app.post('/api/inventario', uploadInventario.single('equipo_imagen'), async (req, res) => {
+  try {
+    const {
+      tipo, idinventario, etiqueta, complemento, marca, n_serie, modelo, categoria, asignado_a,
+      localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd,
+      tarjeta_grafica, windows, licenciamiento, estatus, observaciones
+    } = req.body;
+    const equipo_imagen = req.file ? req.file.path : null;
+
+    await pool.query(
+      `INSERT INTO inventario (
+        tipo, idinventario, etiqueta, equipo_imagen, complemento, marca, n_serie, modelo, categoria, asignado_a,
+        localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd, tarjeta_grafica, windows,
+        licenciamiento, estatus, observaciones
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        tipo, idinventario, etiqueta, equipo_imagen, complemento, marca, n_serie, modelo, categoria, asignado_a,
+        localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd, tarjeta_grafica, windows,
+        licenciamiento, estatus, observaciones
+      ]
+    );
+    res.json({ message: 'Equipo agregado correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al agregar equipo' });
+  }
+});
+
+// Editar equipo
+app.put('/api/inventario/:id', uploadInventario.single('equipo_imagen'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      tipo, idinventario, etiqueta, complemento, marca, n_serie, modelo, categoria, asignado_a,
+      localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd,
+      tarjeta_grafica, windows, licenciamiento, estatus, observaciones
+    } = req.body;
+    let equipo_imagen = req.file ? req.file.path : null;
+
+    // Si no se subió nueva imagen, no actualices ese campo
+    let query = `UPDATE inventario SET
+      tipo=?, idinventario=?, etiqueta=?, complemento=?, marca=?, n_serie=?, modelo=?, categoria=?, asignado_a=?,
+      localizacion=?, precio_compra=?, color=?, departamento=?, procesador=?, ram_gb=?, hdd=?, ssd=?, tarjeta_grafica=?, windows=?,
+      licenciamiento=?, estatus=?, observaciones=?`;
+    const params = [
+      tipo, idinventario, etiqueta, complemento, marca, n_serie, modelo, categoria, asignado_a,
+      localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd, tarjeta_grafica, windows,
+      licenciamiento, estatus, observaciones
+    ];
+    if (equipo_imagen) {
+      query += `, equipo_imagen=?`;
+      params.push(equipo_imagen);
+    }
+    query += ` WHERE id=?`;
+    params.push(id);
+
+    await pool.query(query, params);
+    res.json({ message: 'Equipo actualizado correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar equipo' });
+  }
+});
+
+// Eliminar equipo
+app.delete('/api/inventario/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM inventario WHERE id=?', [id]);
+    res.json({ message: 'Equipo eliminado correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar equipo' });
+  }
 });
 
 
