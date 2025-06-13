@@ -67,32 +67,18 @@
 </head>
 <body>
   <h1>Inventario de Equipo de Sistemas</h1>
-  <button class="btn-mas" onclick="abrirModal()">
-    +
-  </button>
-  <div class="table-section">
-    <h2>Inventario</h2>
-    <div class="table-responsive">
-      <table id="tablaInventario">
-        <thead>
-          <tr>
-            <th>Tipo</th><th>ID Inventario</th><th>Etiqueta</th><th>Imagen</th><th>Complemento</th><th>Marca</th>
-            <th>N. Serie</th><th>Modelo</th><th>Categoría</th><th>Asignado a</th><th>Localización</th>
-            <th>Precio Compra</th><th>Color</th><th>Departamento</th><th>Procesador</th><th>RAM (GB)</th>
-            <th>HDD</th><th>SSD</th><th>Tarjeta Gráfica</th><th>Windows</th><th>Licenciamiento</th>
-            <th>Estatus</th><th>Observaciones</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-  <!-- Modal para agregar/editar equipo -->
-  <div id="modalEquipo" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="cerrarModal()">&times;</span>
-      <h2 class="form-title" id="formTitle">Agregar Equipo</h2>
-      <form id="inventarioForm" enctype="multipart/form-data">
+<!-- Botón para abrir el modal -->
+<button class="btn-mas" onclick="abrirModal()">+</button>
+
+<!-- Modal para agregar/editar equipo -->
+<div id="modalEquipo" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="cerrarModal()">&times;</span>
+    <h2 class="form-title" id="formTitle">Agregar Equipo</h2>
+    <form id="inventarioForm" enctype="multipart/form-data">
+      <!-- Sección 1: Identificación -->
+      <fieldset style="border:none; margin-bottom:1rem;">
+        <legend style="font-weight:bold; color:#FF0000;">Identificación</legend>
         <div class="form-group">
           <label>Tipo</label>
           <select name="tipo" required>
@@ -103,63 +89,151 @@
           <input name="idinventario" required>
           <label>Etiqueta</label>
           <input name="etiqueta">
+          <label>Equipo</label>
+          <input name="equipo" required>
+        </div>
+      </fieldset>
+      <!-- Sección 2: Imagen y características -->
+      <fieldset style="border:none; margin-bottom:1rem;">
+        <legend style="font-weight:bold; color:#FF0000;">Características</legend>
+        <div class="form-group">
           <label>Imagen</label>
           <input type="file" name="equipo_imagen" accept="image/*">
-        </div>
-        <div class="form-group">
           <label>Complemento</label>
           <input name="complemento">
           <label>Marca</label>
-          <input name="marca">
+          <select name="marca" id="marcaSelect" onchange="checkOtraMarca(this)">
+            <option value="">Selecciona marca</option>
+            <option>Apple</option>
+            <option>Samsung</option>
+            <option>HP</option>
+            <option>Dell</option>
+            <option>Lenovo</option>
+            <option>Acer</option>
+            <option>Asus</option>
+            <option>Toshiba</option>
+            <option>MSI</option>
+            <option>Microsoft</option>
+            <option>Logitech</option>
+            <option>Kingston</option>
+            <option>ADATA</option>
+            <option>Western Digital</option>
+            <option>Seagate</option>
+            <option>Sandisk</option>
+            <option>Canon</option>
+            <option>Epson</option>
+            <option>Brother</option>
+            <option>Otra...</option>
+          </select>
+          <input name="marca" id="otraMarcaInput" style="display:none;" placeholder="Especifica la marca">
           <label>N. Serie</label>
           <input name="n_serie">
-          <label>Modelo</label>
-          <input name="modelo">
         </div>
         <div class="form-group">
+          <label>Modelo</label>
+          <input name="modelo">
           <label>Categoría</label>
+          <select name="categoria" id="categoriaSelect" onchange="mostrarCamposTecnicos()">
+            <option value="">Selecciona categoría</option>
+            <option>CPU</option>
+            <option>ALL IN ONE</option>
+            <option>LAPTOP</option>
+            <option>TECLADO</option>
+            <option>MOUSE</option>
+            <option>MONITOR</option>
+            <option>IMPRESORA</option>
+            <option>DISCO DURO</option>
+            <option>MEMORIA RAM</option>
+            <option>PROYECTOR</option>
+            <option>SWITCH</option>
+            <option>ROUTER</option>
+            <option>ACCESS POINT</option>
+            <option>OTRO</option>
+          </select>
           <input name="categoria">
+          <label>Color</label>
+          <input name="color">
+        </div>
+      </fieldset>
+      <!-- Sección 3: Asignación y localización -->
+      <fieldset style="border:none; margin-bottom:1rem;">
+        <legend style="font-weight:bold; color:#FF0000;">Asignación y Ubicación</legend>
+        <div class="form-group">
           <label>Asignado a</label>
           <input name="asignado_a">
           <label>Localización</label>
           <input name="localizacion">
-          <label>Precio Compra</label>
-          <input name="precio_compra" type="number" step="0.01">
-        </div>
-        <div class="form-group">
-          <label>Color</label>
-          <input name="color">
           <label>Departamento</label>
           <input name="departamento">
-          <label>Procesador</label>
-          <input name="procesador">
-          <label>RAM (GB)</label>
-          <input name="ram_gb">
         </div>
+      </fieldset>
+      <!-- Sección 4: Especificaciones técnicas -->
+       <div id="camposTecnicos" style="display:none;">
+            <fieldset style="border:none; margin-bottom:1rem;">
+                <legend style="font-weight:bold; color:#FF0000;">Especificaciones Técnicas</legend>
+                <div class="form-group">
+                <label>Procesador</label>
+                <input name="procesador">
+                <label>RAM (GB)</label>
+                <input name="ram_gb">
+                <label>HDD</label>
+                <input name="hdd">
+                <label>SSD</label>
+                <input name="ssd">
+                <label>Tarjeta Gráfica</label>
+                <input name="tarjeta_grafica">
+                </div>
+            </fieldset>
+        </div>
+      <!-- Sección 5: Software y licencias -->
+      <fieldset style="border:none; margin-bottom:1rem;">
+        <legend style="font-weight:bold; color:#FF0000;">Software y Licencias</legend>
         <div class="form-group">
-          <label>HDD</label>
-          <input name="hdd">
-          <label>SSD</label>
-          <input name="ssd">
-          <label>Tarjeta Gráfica</label>
-          <input name="tarjeta_grafica">
           <label>Windows</label>
           <input name="windows">
-        </div>
-        <div class="form-group">
           <label>Licenciamiento</label>
           <input name="licenciamiento">
+        </div>
+      </fieldset>
+      <!-- Sección 6: Otros -->
+      <fieldset style="border:none; margin-bottom:1rem;">
+        <legend style="font-weight:bold; color:#FF0000;">Otros</legend>
+        <div class="form-group">
+          <label>Precio Compra</label>
+          <input name="precio_compra" type="number" step="0.01">
           <label>Estatus</label>
           <input name="estatus">
+        </div>
+        <div class="form-group">
           <label>Observaciones</label>
           <textarea name="observaciones"></textarea>
         </div>
-        <input type="hidden" name="id" id="equipoId">
-        <button type="submit" class="btn" id="btnGuardar">Guardar</button>
-        <button type="button" class="btn" id="btnCancelar" style="display:none;" onclick="resetForm()">Cancelar</button>
-      </form>
-    </div>
+      </fieldset>
+      <input type="hidden" name="id" id="equipoId">
+      <button type="submit" class="btn" id="btnGuardar">Guardar</button>
+      <button type="button" class="btn" id="btnCancelar" style="display:none;" onclick="resetForm()">Cancelar</button>
+    </form>
   </div>
+</div>
+
+<!-- Tabla de inventario -->
+<div class="table-section">
+  <h2>Inventario</h2>
+  <div class="table-responsive">
+    <table id="tablaInventario">
+      <thead>
+        <tr>
+          <th>Tipo</th><th>ID Inventario</th><th>Etiqueta</th><th>Equipo</th><th>Imagen</th><th>Complemento</th><th>Marca</th>
+          <th>N. Serie</th><th>Modelo</th><th>Categoría</th><th>Asignado a</th><th>Localización</th>
+          <th>Precio Compra</th><th>Color</th><th>Departamento</th><th>Procesador</th><th>RAM (GB)</th>
+          <th>HDD</th><th>SSD</th><th>Tarjeta Gráfica</th><th>Windows</th><th>Licenciamiento</th>
+          <th>Estatus</th><th>Observaciones</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
   <script>
     let editando = false;
     let editId = null;
@@ -268,6 +342,35 @@
         alert('Equipo eliminado');
         cargarInventario();
       }
+    }
+
+    function mostrarCamposTecnicos() {
+        const categoria = document.getElementById('categoriaSelect').value;
+        const tecnicos = document.getElementById('camposTecnicos');
+        if (categoria === 'CPU' || categoria === 'ALL IN ONE') {
+            tecnicos.style.display = '';
+        } else {
+            tecnicos.style.display = 'none';
+            // Opcional: limpiar los campos técnicos si se ocultan
+            tecnicos.querySelectorAll('input').forEach(input => input.value = '');
+        }
+    }
+
+    // Para mostrar input de "Otra marca"
+    function checkOtraMarca(select) {
+    const otra = document.getElementById('otraMarcaInput');
+    if (select.value === 'Otra...') {
+        otra.style.display = '';
+        otra.name = 'marca';
+        otra.required = true;
+        select.removeAttribute('name');
+    } else {
+        otra.style.display = 'none';
+        otra.value = '';
+        otra.required = false;
+        otra.removeAttribute('name');
+        select.name = 'marca';
+    }
     }
 
     // Cerrar modal al hacer click fuera del contenido

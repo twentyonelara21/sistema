@@ -1268,6 +1268,8 @@ app.delete('/api/inventario/:id', async (req, res) => {
 });
 
 
+
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error.stack);
