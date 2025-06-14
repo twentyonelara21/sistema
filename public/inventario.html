@@ -54,18 +54,31 @@
     .modal-content {
     background: #fff;
     border-radius: 12px;
-    padding: 2rem 1.5rem;
+    padding: 2rem 1.5rem 1.5rem 1.5rem;
     max-width: 600px;
     width: 95vw;
+    max-height: 95vh; /* <-- Limita el alto del modal */
     box-shadow: 0 4px 24px rgba(0,0,0,0.13);
     position: relative;
     margin: 2rem auto;
-    /* Centrado vertical */
     display: flex;
     flex-direction: column;
     align-items: center;
+    overflow-y: auto; /* <-- Hace scrolleable el contenido interno */
     }
-    .close { position: absolute; right: 18px; top: 10px; font-size: 2rem; color: #FF0000; cursor: pointer; }
+    .close {
+    position: absolute;
+    right: 18px;
+    top: 10px;
+    font-size: 2rem;
+    color: #FF0000;
+    cursor: pointer;
+    z-index: 10;
+    background: #fff;
+    border-radius: 50%;
+    padding: 0 8px;
+    line-height: 1;
+    }
     .form-title { color: #FF0000; text-align: center; margin-bottom: 1rem; }
     .form-group { margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; }
     .form-group label { min-width: 120px; font-weight: 600; }
@@ -78,7 +91,7 @@
     }
     @media (max-width: 700px) {
     .modal-content {
-        padding: 1rem 0.2rem;
+        padding: 1rem 0.2rem 1rem 0.2rem;
         max-width: 99vw;
     }
     }
