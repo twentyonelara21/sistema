@@ -1,0 +1,50 @@
+<!-- dashboard_inventario.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Inventario</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
+    h1 { color: #FF0000; text-align: center; margin-top: 1rem; }
+    .btn {
+      background: #FF0000; color: #fff; border: none; border-radius: 6px;
+      padding: 0.5rem 1rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 1rem auto; display: block;
+    }
+    .btn:hover { background: #00877A; }
+    .dashboard-section { background: #fff; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 900px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
+    .chart-container { width: 100%; max-width: 600px; margin: 2rem auto; }
+  </style>
+</head>
+<body>
+  <button class="btn" onclick="window.location.href='inventario.html'">Volver a Inventario</button>
+  <h1>Dashboard de Inventario</h1>
+  <div class="dashboard-section">
+    <div class="chart-container">
+      <canvas id="chartInventario"></canvas>
+    </div>
+    <!-- Aquí puedes agregar más gráficas, tablas, métricas, etc. -->
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Ejemplo de gráfica (puedes reemplazar los datos por los reales)
+    const ctx = document.getElementById('chartInventario').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['CPU', 'LAPTOP', 'MONITOR', 'IMPRESORA'],
+        datasets: [{
+          label: 'Cantidad por categoría',
+          data: [12, 7, 5, 3],
+          backgroundColor: ['#FF0000', '#00877A', '#FFA500', '#0074D9']
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } }
+      }
+    });
+  </script>
+</body>
+</html>
