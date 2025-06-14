@@ -95,170 +95,172 @@
 <button class="btn-mas" onclick="abrirModal()">+</button>
 
 <!-- Modal para agregar/editar equipo -->
-<div class="modal-content">
-  <span class="close" onclick="cerrarModal()">&times;</span>
-  <h2 class="form-title" id="formTitle" style="text-align:center;">Agregar Equipo</h2>
-  <form id="inventarioForm" enctype="multipart/form-data" style="max-width:500px; margin:auto;">
-    <!-- Identificación -->
-    <fieldset style="border:none; margin-bottom:1rem;">
-      <legend class="section-title">Identificación</legend>
-      <label>Tipo</label>
-      <select name="tipo" required>
-        <option value="INVENTARIO">INVENTARIO</option>
-        <option value="PRESTAMO">PRESTAMO</option>
-      </select>
-      <label>ID Inventario</label>
-      <input name="idinventario" required>
-      <label>Etiqueta</label>
-      <input name="etiqueta">
-      <label>Equipo</label>
-      <input name="equipo" required>
-    </fieldset>
-    <!-- Características -->
-    <fieldset style="border:none; margin-bottom:1rem;">
-      <legend class="section-title">Características</legend>
-      <label>Imagen</label>
-      <input type="file" name="equipo_imagen" accept="image/*">
-      <label>Complemento</label>
-      <input name="complemento">
-      <label>Marca</label>
-      <select name="marca" id="marcaSelect" onchange="checkOtraMarca(this)">
-        <option value="">Selecciona marca</option>
-        <option>Apple</option>
-        <option>Samsung</option>
-        <option>HP</option>
-        <option>Dell</option>
-        <option>Lenovo</option>
-        <option>Acer</option>
-        <option>Asus</option>
-        <option>Toshiba</option>
-        <option>MSI</option>
-        <option>Microsoft</option>
-        <option>Logitech</option>
-        <option>Kingston</option>
-        <option>ADATA</option>
-        <option>Western Digital</option>
-        <option>Seagate</option>
-        <option>Sandisk</option>
-        <option>Canon</option>
-        <option>Epson</option>
-        <option>Brother</option>
-        <option>Otra...</option>
-      </select>
-      <input id="otraMarcaInput" style="display:none;" placeholder="Especifica la marca">
-      <label>N. Serie</label>
-      <input name="n_serie">
-      <label>Modelo</label>
-      <input name="modelo">
-      <label>Categoría</label>
-      <select name="categoria" id="categoriaSelect" onchange="mostrarCamposTecnicos()">
-        <option value="">Selecciona categoría</option>
-        <option>CPU</option>
-        <option>ALL IN ONE</option>
-        <option>LAPTOP</option>
-        <option>TECLADO</option>
-        <option>MOUSE</option>
-        <option>MONITOR</option>
-        <option>IMPRESORA</option>
-        <option>DISCO DURO</option>
-        <option>MEMORIA RAM</option>
-        <option>PROYECTOR</option>
-        <option>SWITCH</option>
-        <option>ROUTER</option>
-        <option>ACCESS POINT</option>
-        <option>OTRO</option>
-      </select>
-      <label>Color</label>
-      <input name="color">
-    </fieldset>
-    <!-- Asignación y Ubicación -->
-    <fieldset style="border:none; margin-bottom:1rem;">
-      <legend class="section-title">Asignación y Ubicación</legend>
-      <label>Asignado a</label>
-      <select name="asignado_a" required>
-        <option value="">Selecciona persona</option>
-        <option>JUAN DIEGO LARA LOPEZ</option>
-        <option>MORALES DELGADO VICTOR HUGO</option>
-        <option>LARA NAVA TANIA</option>
-        <option>RODRIGUEZ RODRIGUEZ ZULEMA MARINA</option>
-        <option>HERNANDEZ GONZALEZ EMMA LILIANA</option>
-        <option>RICO GARCIA JOSE ENRIQUE</option>
-        <option>RAMOS JASSO DIANA GISELA</option>
-        <option>BOTELLO SANCHEZ SANDRA YANELY</option>
-        <option>WITRAGO LOPEZ CARLOS ALFREDO</option>
-        <option>AYALA ZUÑIGA FABIOLA MARIA DEL ROSARIO</option>
-        <option>NEGRETE RAMIREZ ROCIO</option>
-        <option>VEGA ARREDONDO PATRICIA</option>
-        <option>RAMOS CUEVAS MORELIA ALEJANDRA</option>
-        <option>HERNANDEZ MENDOZA JUANA MAYELA</option>
-        <option>OROZCO GUTIERREZ CAMILA ESMERALDA</option>
-        <option>VILLANUEVA HERNANDEZ CAROLINA</option>
-        <option>NOÉ GRAJEDA</option>
-        <option>LILIANA GUADALUPE GUEVARA BRAVO</option>
-        <option>ALMA PATRICIA MORENO LOPEZ</option>
-        <option>LUZ ROMINA GONZALEZ RODRIGUEZ</option>
-        <option>SURIEL PÉREZ MARTINEZ</option>
-        <option>MIGUEL ANGEL JANTES AGUILAR</option>
-        <option>ALEJANDRA VELA SANTOYO</option>
-        <option>URIEL CRUZ VALDAVIA</option>
-        <option>BLANCA STEPHANIE GARCIA LOPEZ</option>
-        <option>CALEB ORTIZ</option>
-        <option>MARIANA YANELLI VARGAS HERNANDEZ</option>
-        <option>AMERICA CIBELES FLORES MENDEZ</option>
-        <option>ANA HIDALGO</option>
-        <option>CÉSAR NEFTALÍ TAPIA ROSTRO</option>
-      </select>
-      <label>Localización</label>
-      <input name="localizacion">
-      <label>Departamento</label>
-      <select name="departamento" required>
-        <option value="">Selecciona departamento</option>
-        <option>SISTEMAS</option>
-        <option>MANTENIMIENTO</option>
-        <option>JURIDICO</option>
-        <option>VENTAS</option>
-        <option>DIRECCION GENERAL</option>
-        <option>CONTABILIDAD</option>
-      </select>
-    </fieldset>
-    <!-- Especificaciones Técnicas -->
-    <div id="camposTecnicos" style="display:none;">
-      <fieldset style="border:none; margin-bottom:1rem;">
-        <legend class="section-title">Especificaciones Técnicas</legend>
-        <label>Procesador</label>
-        <input name="procesador">
-        <label>RAM (GB)</label>
-        <input name="ram_gb">
-        <label>HDD</label>
-        <input name="hdd">
-        <label>SSD</label>
-        <input name="ssd">
-        <label>Tarjeta Gráfica</label>
-        <input name="tarjeta_grafica">
-      </fieldset>
+<div id="modalEquipo" class="modal">
+    <div class="modal-content">
+    <span class="close" onclick="cerrarModal()">&times;</span>
+    <h2 class="form-title" id="formTitle" style="text-align:center;">Agregar Equipo</h2>
+    <form id="inventarioForm" enctype="multipart/form-data" style="max-width:500px; margin:auto;">
+        <!-- Identificación -->
+        <fieldset style="border:none; margin-bottom:1rem;">
+        <legend class="section-title">Identificación</legend>
+        <label>Tipo</label>
+        <select name="tipo" required>
+            <option value="INVENTARIO">INVENTARIO</option>
+            <option value="PRESTAMO">PRESTAMO</option>
+        </select>
+        <label>ID Inventario</label>
+        <input name="idinventario" required>
+        <label>Etiqueta</label>
+        <input name="etiqueta">
+        <label>Equipo</label>
+        <input name="equipo" required>
+        </fieldset>
+        <!-- Características -->
+        <fieldset style="border:none; margin-bottom:1rem;">
+        <legend class="section-title">Características</legend>
+        <label>Imagen</label>
+        <input type="file" name="equipo_imagen" accept="image/*">
+        <label>Complemento</label>
+        <input name="complemento">
+        <label>Marca</label>
+        <select name="marca" id="marcaSelect" onchange="checkOtraMarca(this)">
+            <option value="">Selecciona marca</option>
+            <option>Apple</option>
+            <option>Samsung</option>
+            <option>HP</option>
+            <option>Dell</option>
+            <option>Lenovo</option>
+            <option>Acer</option>
+            <option>Asus</option>
+            <option>Toshiba</option>
+            <option>MSI</option>
+            <option>Microsoft</option>
+            <option>Logitech</option>
+            <option>Kingston</option>
+            <option>ADATA</option>
+            <option>Western Digital</option>
+            <option>Seagate</option>
+            <option>Sandisk</option>
+            <option>Canon</option>
+            <option>Epson</option>
+            <option>Brother</option>
+            <option>Otra...</option>
+        </select>
+        <input id="otraMarcaInput" style="display:none;" placeholder="Especifica la marca">
+        <label>N. Serie</label>
+        <input name="n_serie">
+        <label>Modelo</label>
+        <input name="modelo">
+        <label>Categoría</label>
+        <select name="categoria" id="categoriaSelect" onchange="mostrarCamposTecnicos()">
+            <option value="">Selecciona categoría</option>
+            <option>CPU</option>
+            <option>ALL IN ONE</option>
+            <option>LAPTOP</option>
+            <option>TECLADO</option>
+            <option>MOUSE</option>
+            <option>MONITOR</option>
+            <option>IMPRESORA</option>
+            <option>DISCO DURO</option>
+            <option>MEMORIA RAM</option>
+            <option>PROYECTOR</option>
+            <option>SWITCH</option>
+            <option>ROUTER</option>
+            <option>ACCESS POINT</option>
+            <option>OTRO</option>
+        </select>
+        <label>Color</label>
+        <input name="color">
+        </fieldset>
+        <!-- Asignación y Ubicación -->
+        <fieldset style="border:none; margin-bottom:1rem;">
+        <legend class="section-title">Asignación y Ubicación</legend>
+        <label>Asignado a</label>
+        <select name="asignado_a" required>
+            <option value="">Selecciona persona</option>
+            <option>JUAN DIEGO LARA LOPEZ</option>
+            <option>MORALES DELGADO VICTOR HUGO</option>
+            <option>LARA NAVA TANIA</option>
+            <option>RODRIGUEZ RODRIGUEZ ZULEMA MARINA</option>
+            <option>HERNANDEZ GONZALEZ EMMA LILIANA</option>
+            <option>RICO GARCIA JOSE ENRIQUE</option>
+            <option>RAMOS JASSO DIANA GISELA</option>
+            <option>BOTELLO SANCHEZ SANDRA YANELY</option>
+            <option>WITRAGO LOPEZ CARLOS ALFREDO</option>
+            <option>AYALA ZUÑIGA FABIOLA MARIA DEL ROSARIO</option>
+            <option>NEGRETE RAMIREZ ROCIO</option>
+            <option>VEGA ARREDONDO PATRICIA</option>
+            <option>RAMOS CUEVAS MORELIA ALEJANDRA</option>
+            <option>HERNANDEZ MENDOZA JUANA MAYELA</option>
+            <option>OROZCO GUTIERREZ CAMILA ESMERALDA</option>
+            <option>VILLANUEVA HERNANDEZ CAROLINA</option>
+            <option>NOÉ GRAJEDA</option>
+            <option>LILIANA GUADALUPE GUEVARA BRAVO</option>
+            <option>ALMA PATRICIA MORENO LOPEZ</option>
+            <option>LUZ ROMINA GONZALEZ RODRIGUEZ</option>
+            <option>SURIEL PÉREZ MARTINEZ</option>
+            <option>MIGUEL ANGEL JANTES AGUILAR</option>
+            <option>ALEJANDRA VELA SANTOYO</option>
+            <option>URIEL CRUZ VALDAVIA</option>
+            <option>BLANCA STEPHANIE GARCIA LOPEZ</option>
+            <option>CALEB ORTIZ</option>
+            <option>MARIANA YANELLI VARGAS HERNANDEZ</option>
+            <option>AMERICA CIBELES FLORES MENDEZ</option>
+            <option>ANA HIDALGO</option>
+            <option>CÉSAR NEFTALÍ TAPIA ROSTRO</option>
+        </select>
+        <label>Localización</label>
+        <input name="localizacion">
+        <label>Departamento</label>
+        <select name="departamento" required>
+            <option value="">Selecciona departamento</option>
+            <option>SISTEMAS</option>
+            <option>MANTENIMIENTO</option>
+            <option>JURIDICO</option>
+            <option>VENTAS</option>
+            <option>DIRECCION GENERAL</option>
+            <option>CONTABILIDAD</option>
+        </select>
+        </fieldset>
+        <!-- Especificaciones Técnicas -->
+        <div id="camposTecnicos" style="display:none;">
+        <fieldset style="border:none; margin-bottom:1rem;">
+            <legend class="section-title">Especificaciones Técnicas</legend>
+            <label>Procesador</label>
+            <input name="procesador">
+            <label>RAM (GB)</label>
+            <input name="ram_gb">
+            <label>HDD</label>
+            <input name="hdd">
+            <label>SSD</label>
+            <input name="ssd">
+            <label>Tarjeta Gráfica</label>
+            <input name="tarjeta_grafica">
+        </fieldset>
+        </div>
+        <!-- Software y Licencias -->
+        <fieldset style="border:none; margin-bottom:1rem;">
+        <legend class="section-title">Software y Licencias</legend>
+        <label>Windows</label>
+        <input name="windows">
+        <label>Licenciamiento</label>
+        <input name="licenciamiento">
+        </fieldset>
+        <!-- Otros -->
+        <fieldset style="border:none; margin-bottom:1rem;">
+        <legend class="section-title">Otros</legend>
+        <label>Precio Compra</label>
+        <input name="precio_compra" type="number" step="0.01">
+        <label>Estatus</label>
+        <input name="estatus">
+        <label>Observaciones</label>
+        <textarea name="observaciones"></textarea>
+        </fieldset>
+        <input type="hidden" name="id" id="equipoId">
+        <button type="submit" class="btn" id="btnGuardar" style="width:100%;margin-top:10px;">Guardar</button>
+        <button type="button" class="btn" id="btnCancelar" style="display:none;width:100%;margin-top:10px;" onclick="resetForm()">Cancelar</button>
+    </form>
     </div>
-    <!-- Software y Licencias -->
-    <fieldset style="border:none; margin-bottom:1rem;">
-      <legend class="section-title">Software y Licencias</legend>
-      <label>Windows</label>
-      <input name="windows">
-      <label>Licenciamiento</label>
-      <input name="licenciamiento">
-    </fieldset>
-    <!-- Otros -->
-    <fieldset style="border:none; margin-bottom:1rem;">
-      <legend class="section-title">Otros</legend>
-      <label>Precio Compra</label>
-      <input name="precio_compra" type="number" step="0.01">
-      <label>Estatus</label>
-      <input name="estatus">
-      <label>Observaciones</label>
-      <textarea name="observaciones"></textarea>
-    </fieldset>
-    <input type="hidden" name="id" id="equipoId">
-    <button type="submit" class="btn" id="btnGuardar" style="width:100%;margin-top:10px;">Guardar</button>
-    <button type="button" class="btn" id="btnCancelar" style="display:none;width:100%;margin-top:10px;" onclick="resetForm()">Cancelar</button>
-  </form>
 </div>
 
 <!-- Tabla de inventario -->
