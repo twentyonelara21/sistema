@@ -242,7 +242,17 @@
             <option>CÉSAR NEFTALÍ TAPIA ROSTRO</option>
         </select>
         <label>Localización</label>
-        <input name="localizacion">
+        <select name="localizacion" required>
+            <option value="">Selecciona una localización</option>
+            <option>Corporativo</option>
+            <option>Cedis Centro</option>
+            <option>Cedis León</option>
+            <option>Cedis Celaya</option>
+            <option>Cedis Guadalajara</option>
+            <option>Cedis Tijuana</option>
+            <option>Labs</option>
+            <option>Estacionamiento</option>
+        </select>
         <label>Departamento</label>
         <select name="departamento" required>
             <option value="">Selecciona departamento</option>
@@ -284,7 +294,12 @@
         <label>Precio Compra</label>
         <input name="precio_compra" type="number" step="0.01">
         <label>Estatus</label>
-        <input name="estatus">
+        <select name="estatus" required>
+            <option value="">Selecciona un estatus</option>
+            <option>Nuevo</option>
+            <option>Funcional</option>
+            <option>Obsoleto</option>
+        </select>
         <label>Observaciones</label>
         <textarea name="observaciones"></textarea>
         </fieldset>
