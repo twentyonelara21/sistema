@@ -21,11 +21,27 @@
   <button class="btn" onclick="window.location.href='inventario.html'">Volver a Inventario</button>
   <h1>Dashboard de Inventario</h1>
   <div class="dashboard-section">
-    <div class="chart-container">
-      <canvas id="chartInventario"></canvas>
-    </div>
-    <!-- Aquí puedes agregar más gráficas, tablas, métricas, etc. -->
+  <div class="chart-container">
+    <div class="chart-title">Por Marca</div>
+    <canvas id="chartMarca"></canvas>
   </div>
+  <div class="chart-container">
+    <div class="chart-title">Por Asignado a</div>
+    <canvas id="chartAsignado"></canvas>
+  </div>
+  <div class="chart-container">
+    <div class="chart-title">Por Localización</div>
+    <canvas id="chartLocalizacion"></canvas>
+  </div>
+  <div class="chart-container">
+    <div class="chart-title">Por Departamento</div>
+    <canvas id="chartDepartamento"></canvas>
+  </div>
+  <div class="chart-container">
+    <div class="chart-title">Por Estatus</div>
+    <canvas id="chartEstatus"></canvas>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   // Paleta de colores
