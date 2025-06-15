@@ -26,25 +26,60 @@
     </div>
     <!-- Aquí puedes agregar más gráficas, tablas, métricas, etc. -->
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    // Ejemplo de gráfica (puedes reemplazar los datos por los reales)
-    const ctx = document.getElementById('chartInventario').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Paleta de colores
+  const colores = [
+    '#FF0000', '#00877A', '#FFA500', '#0074D9', '#FF69B4', '#00C49A', '#FFB347', '#B10DC9', '#FF6347', '#1E90FF'
+  ];
+
+  // Función para crear gráfica
+  function crearGrafica(id, tipo, labels, data, colores) {
+    new Chart(document.getElementById(id), {
+      type: tipo,
       data: {
-        labels: ['CPU', 'LAPTOP', 'MONITOR', 'IMPRESORA'],
+        labels: labels,
         datasets: [{
-          label: 'Cantidad por categoría',
-          data: [12, 7, 5, 3],
-          backgroundColor: ['#FF0000', '#00877A', '#FFA500', '#0074D9']
+          data: data,
+          backgroundColor: colores,
+          borderWidth: 1
         }]
       },
       options: {
         responsive: true,
-        plugins: { legend: { display: false } }
+        plugins: {
+          legend: { display: tipo !== 'bar' }
+        },
+        scales: tipo === 'bar' ? { y: { beginAtZero: true } } : {}
       }
     });
-  </script>
+  }
+
+  // Función para cargar y graficar datos
+  async function cargarGraficas() {
+    // Marca
+    const marca = await fetch('/api/dashboard/inventario/marca').then(r => r.json());
+    crearGrafica('chartMarca', 'bar', marca.map(x => x.marca || 'Sin marca'), marca.map(x => x.total), colores);
+
+    // Asignado a
+    const asignado = await fetch('/api/dashboard/inventario/asignado').then(r => r.json());
+    crearGrafica('chartAsignado', 'doughnut', asignado.map(x => x.asignado_a || 'Sin asignar'), asignado.map(x => x.total), colores);
+
+    // Localización
+    const localizacion = await fetch('/api/dashboard/inventario/localizacion').then(r => r.json());
+    crearGrafica('chartLocalizacion', 'bar', localizacion.map(x => x.localizacion || 'Sin localización'), localizacion.map(x => x.total), colores);
+
+    // Departamento
+    const departamento = await fetch('/api/dashboard/inventario/departamento').then(r => r.json());
+    crearGrafica('chartDepartamento', 'doughnut', departamento.map(x => x.departamento || 'Sin departamento'), departamento.map(x => x.total), colores);
+
+    // Estatus
+    const estatus = await fetch('/api/dashboard/inventario/estatus').then(r => r.json());
+    crearGrafica('chartEstatus', 'bar', estatus.map(x => x.estatus || 'Sin estatus'), estatus.map(x => x.total), colores);
+  }
+
+  // Llama la función al cargar la página
+  cargarGraficas();
+</script>
 </body>
 </html>

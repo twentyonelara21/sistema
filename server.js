@@ -1267,6 +1267,81 @@ app.delete('/api/inventario/:id', async (req, res) => {
   }
 });
 
+// dashboardinventario.html
+// Equipos por Marca
+app.get('/api/dashboard/inventario/marca', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT marca, COUNT(*) AS total
+      FROM inventario
+      GROUP BY marca
+      ORDER BY total DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener datos por marca' });
+  }
+});
+
+// Equipos por Asignado a
+app.get('/api/dashboard/inventario/asignado', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT asignado_a, COUNT(*) AS total
+      FROM inventario
+      GROUP BY asignado_a
+      ORDER BY total DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener datos por asignado' });
+  }
+});
+
+// Equipos por Localización
+app.get('/api/dashboard/inventario/localizacion', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT localizacion, COUNT(*) AS total
+      FROM inventario
+      GROUP BY localizacion
+      ORDER BY total DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener datos por localización' });
+  }
+});
+
+// Equipos por Departamento
+app.get('/api/dashboard/inventario/departamento', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT departamento, COUNT(*) AS total
+      FROM inventario
+      GROUP BY departamento
+      ORDER BY total DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener datos por departamento' });
+  }
+});
+
+// Equipos por Estatus
+app.get('/api/dashboard/inventario/estatus', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT estatus, COUNT(*) AS total
+      FROM inventario
+      GROUP BY estatus
+      ORDER BY total DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener datos por estatus' });
+  }
+});
 
 
 
