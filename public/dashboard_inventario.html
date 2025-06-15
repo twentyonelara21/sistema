@@ -1,4 +1,3 @@
-<!-- dashboard_inventario.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,89 +12,192 @@
       padding: 0.5rem 1rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 1rem auto; display: block;
     }
     .btn:hover { background: #00877A; }
-    .dashboard-section { background: #fff; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 900px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
-    .chart-container { width: 100%; max-width: 600px; margin: 2rem auto; }
+    .dashboard-section { background: #fff; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 1200px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
+    .charts-grid { display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center; }
+    .chart-container { width: 350px; min-width: 250px; background: #fafafa; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04);}
+    .chart-title { text-align: center; color: #FF0000; font-weight: bold; margin-bottom: 0.5rem;}
+    .filtros { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-bottom: 1.5rem; }
+    .filtros label { font-weight: bold; color: #FF0000; }
+    .filtros select, .filtros input { padding: 0.3rem; border-radius: 5px; border: 1px solid #ccc; }
+    @media (max-width: 900px) {
+      .charts-grid { flex-direction: column; align-items: center; }
+      .chart-container { width: 95vw; }
+      .filtros { flex-direction: column; align-items: center; }
+    }
   </style>
 </head>
 <body>
   <button class="btn" onclick="window.location.href='inventario.html'">Volver a Inventario</button>
   <h1>Dashboard de Inventario</h1>
   <div class="dashboard-section">
-  <div class="chart-container">
-    <div class="chart-title">Por Marca</div>
-    <canvas id="chartMarca"></canvas>
+    <form class="filtros" id="filtrosForm" onsubmit="aplicarFiltros(event)">
+      <label>Desde: <input type="date" id="filtroDesde" name="desde"></label>
+      <label>Hasta: <input type="date" id="filtroHasta" name="hasta"></label>
+      <label>Departamento:
+        <select id="filtroDepartamento" name="departamento">
+          <option value="">Todos</option>
+        </select>
+      </label>
+      <label>Estatus:
+        <select id="filtroEstatus" name="estatus">
+          <option value="">Todos</option>
+        </select>
+      </label>
+      <label>Asignado a:
+        <select id="filtroAsignado" name="asignado_a">
+          <option value="">Todos</option>
+        </select>
+      </label>
+      <label>Marca:
+        <select id="filtroMarca" name="marca">
+          <option value="">Todas</option>
+        </select>
+      </label>
+      <label>Localización:
+        <select id="filtroLocalizacion" name="localizacion">
+          <option value="">Todas</option>
+        </select>
+      </label>
+      <button class="btn" type="submit">Aplicar Filtros</button>
+    </form>
+    <div class="charts-grid">
+      <div class="chart-container">
+        <div class="chart-title">Por Marca</div>
+        <canvas id="chartMarca"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Por Asignado a</div>
+        <canvas id="chartAsignado"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Por Localización</div>
+        <canvas id="chartLocalizacion"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Por Departamento</div>
+        <canvas id="chartDepartamento"></canvas>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Por Estatus</div>
+        <canvas id="chartEstatus"></canvas>
+      </div>
+    </div>
   </div>
-  <div class="chart-container">
-    <div class="chart-title">Por Asignado a</div>
-    <canvas id="chartAsignado"></canvas>
-  </div>
-  <div class="chart-container">
-    <div class="chart-title">Por Localización</div>
-    <canvas id="chartLocalizacion"></canvas>
-  </div>
-  <div class="chart-container">
-    <div class="chart-title">Por Departamento</div>
-    <canvas id="chartDepartamento"></canvas>
-  </div>
-  <div class="chart-container">
-    <div class="chart-title">Por Estatus</div>
-    <canvas id="chartEstatus"></canvas>
-  </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  // Paleta de colores
-  const colores = [
-    '#FF0000', '#00877A', '#FFA500', '#0074D9', '#FF69B4', '#00C49A', '#FFB347', '#B10DC9', '#FF6347', '#1E90FF'
-  ];
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Paleta de colores
+    const colores = [
+      '#FF0000', '#00877A', '#FFA500', '#0074D9', '#FF69B4', '#00C49A', '#FFB347', '#B10DC9', '#FF6347', '#1E90FF'
+    ];
 
-  // Función para crear gráfica
-  function crearGrafica(id, tipo, labels, data, colores) {
-    new Chart(document.getElementById(id), {
-      type: tipo,
-      data: {
-        labels: labels,
-        datasets: [{
-          data: data,
-          backgroundColor: colores,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: tipo !== 'bar' }
+    // Referencias a los charts para poder destruirlos antes de crear nuevos
+    let charts = {};
+
+    // Función para crear gráfica
+    function crearGrafica(id, tipo, labels, data, colores) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), {
+        type: tipo,
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: colores,
+            borderWidth: 1
+          }]
         },
-        scales: tipo === 'bar' ? { y: { beginAtZero: true } } : {}
-      }
-    });
-  }
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: tipo !== 'bar' }
+          },
+          scales: tipo === 'bar' ? { y: { beginAtZero: true } } : {}
+        }
+      });
+    }
 
-  // Función para cargar y graficar datos
-  async function cargarGraficas() {
-    // Marca
-    const marca = await fetch('/api/dashboard/inventario/marca').then(r => r.json());
-    crearGrafica('chartMarca', 'bar', marca.map(x => x.marca || 'Sin marca'), marca.map(x => x.total), colores);
+    // Cargar opciones de filtro dinámicamente
+    async function cargarOpcionesFiltro() {
+      const inventario = await fetch('/api/inventario').then(r => r.json());
+      const departamentos = [...new Set(inventario.map(x => x.departamento).filter(Boolean))];
+      const estatus = [...new Set(inventario.map(x => x.estatus).filter(Boolean))];
+      const asignados = [...new Set(inventario.map(x => x.asignado_a).filter(Boolean))];
+      const marcas = [...new Set(inventario.map(x => x.marca).filter(Boolean))];
+      const localizaciones = [...new Set(inventario.map(x => x.localizacion).filter(Boolean))];
 
-    // Asignado a
-    const asignado = await fetch('/api/dashboard/inventario/asignado').then(r => r.json());
-    crearGrafica('chartAsignado', 'doughnut', asignado.map(x => x.asignado_a || 'Sin asignar'), asignado.map(x => x.total), colores);
+      const setOptions = (id, arr) => {
+        const select = document.getElementById(id);
+        arr.forEach(val => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = val;
+          select.appendChild(opt);
+        });
+      };
+      setOptions('filtroDepartamento', departamentos);
+      setOptions('filtroEstatus', estatus);
+      setOptions('filtroAsignado', asignados);
+      setOptions('filtroMarca', marcas);
+      setOptions('filtroLocalizacion', localizaciones);
+    }
 
-    // Localización
-    const localizacion = await fetch('/api/dashboard/inventario/localizacion').then(r => r.json());
-    crearGrafica('chartLocalizacion', 'bar', localizacion.map(x => x.localizacion || 'Sin localización'), localizacion.map(x => x.total), colores);
+    // Función para cargar y graficar datos con filtros
+    async function cargarGraficas(filtros = {}) {
+      // Construir query string
+      const params = new URLSearchParams(filtros).toString();
+      // Diferentes estilos de gráfica
+      const tipos = {
+        chartMarca: 'bar',
+        chartAsignado: 'doughnut',
+        chartLocalizacion: 'pie',
+        chartDepartamento: 'polarArea',
+        chartEstatus: 'radar'
+      };
 
-    // Departamento
-    const departamento = await fetch('/api/dashboard/inventario/departamento').then(r => r.json());
-    crearGrafica('chartDepartamento', 'doughnut', departamento.map(x => x.departamento || 'Sin departamento'), departamento.map(x => x.total), colores);
+      // Marca
+      const marca = await fetch('/api/dashboard/inventario/marca' + (params ? '?' + params : '')).then(r => r.json());
+      crearGrafica('chartMarca', tipos.chartMarca, marca.map(x => x.marca || 'Sin marca'), marca.map(x => x.total), colores);
 
-    // Estatus
-    const estatus = await fetch('/api/dashboard/inventario/estatus').then(r => r.json());
-    crearGrafica('chartEstatus', 'bar', estatus.map(x => x.estatus || 'Sin estatus'), estatus.map(x => x.total), colores);
-  }
+      // Asignado a
+      const asignado = await fetch('/api/dashboard/inventario/asignado' + (params ? '?' + params : '')).then(r => r.json());
+      crearGrafica('chartAsignado', tipos.chartAsignado, asignado.map(x => x.asignado_a || 'Sin asignar'), asignado.map(x => x.total), colores);
 
-  // Llama la función al cargar la página
-  cargarGraficas();
-</script>
+      // Localización
+      const localizacion = await fetch('/api/dashboard/inventario/localizacion' + (params ? '?' + params : '')).then(r => r.json());
+      crearGrafica('chartLocalizacion', tipos.chartLocalizacion, localizacion.map(x => x.localizacion || 'Sin localización'), localizacion.map(x => x.total), colores);
+
+      // Departamento
+      const departamento = await fetch('/api/dashboard/inventario/departamento' + (params ? '?' + params : '')).then(r => r.json());
+      crearGrafica('chartDepartamento', tipos.chartDepartamento, departamento.map(x => x.departamento || 'Sin departamento'), departamento.map(x => x.total), colores);
+
+      // Estatus
+      const estatus = await fetch('/api/dashboard/inventario/estatus' + (params ? '?' + params : '')).then(r => r.json());
+      crearGrafica('chartEstatus', tipos.chartEstatus, estatus.map(x => x.estatus || 'Sin estatus'), estatus.map(x => x.total), colores);
+    }
+
+    // Al enviar el formulario de filtros
+    function aplicarFiltros(e) {
+      e.preventDefault();
+      const filtros = {};
+      const desde = document.getElementById('filtroDesde').value;
+      const hasta = document.getElementById('filtroHasta').value;
+      const departamento = document.getElementById('filtroDepartamento').value;
+      const estatus = document.getElementById('filtroEstatus').value;
+      const asignado_a = document.getElementById('filtroAsignado').value;
+      const marca = document.getElementById('filtroMarca').value;
+      const localizacion = document.getElementById('filtroLocalizacion').value;
+      if (desde) filtros.desde = desde;
+      if (hasta) filtros.hasta = hasta;
+      if (departamento) filtros.departamento = departamento;
+      if (estatus) filtros.estatus = estatus;
+      if (asignado_a) filtros.asignado_a = asignado_a;
+      if (marca) filtros.marca = marca;
+      if (localizacion) filtros.localizacion = localizacion;
+      cargarGraficas(filtros);
+    }
+
+    // Inicializar
+    cargarOpcionesFiltro().then(() => cargarGraficas());
+  </script>
 </body>
 </html>

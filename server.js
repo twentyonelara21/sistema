@@ -1270,13 +1270,25 @@ app.delete('/api/inventario/:id', async (req, res) => {
 // dashboardinventario.html
 // Equipos por Marca
 app.get('/api/dashboard/inventario/marca', async (req, res) => {
+  const { desde, hasta, departamento, estatus, asignado_a, marca, localizacion } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('fecha_alta >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('fecha_alta <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('departamento = ?'); params.push(departamento); }
+  if (estatus) { where.push('estatus = ?'); params.push(estatus); }
+  if (asignado_a) { where.push('asignado_a = ?'); params.push(asignado_a); }
+  if (marca) { where.push('marca = ?'); params.push(marca); }
+  if (localizacion) { where.push('localizacion = ?'); params.push(localizacion); }
+  const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT marca, COUNT(*) AS total
       FROM inventario
+      ${whereStr}
       GROUP BY marca
       ORDER BY total DESC
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener datos por marca' });
@@ -1285,13 +1297,25 @@ app.get('/api/dashboard/inventario/marca', async (req, res) => {
 
 // Equipos por Asignado a
 app.get('/api/dashboard/inventario/asignado', async (req, res) => {
+  const { desde, hasta, departamento, estatus, asignado_a, marca, localizacion } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('fecha_alta >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('fecha_alta <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('departamento = ?'); params.push(departamento); }
+  if (estatus) { where.push('estatus = ?'); params.push(estatus); }
+  if (asignado_a) { where.push('asignado_a = ?'); params.push(asignado_a); }
+  if (marca) { where.push('marca = ?'); params.push(marca); }
+  if (localizacion) { where.push('localizacion = ?'); params.push(localizacion); }
+  const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT asignado_a, COUNT(*) AS total
       FROM inventario
+      ${whereStr}
       GROUP BY asignado_a
       ORDER BY total DESC
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener datos por asignado' });
@@ -1300,13 +1324,25 @@ app.get('/api/dashboard/inventario/asignado', async (req, res) => {
 
 // Equipos por Localización
 app.get('/api/dashboard/inventario/localizacion', async (req, res) => {
+  const { desde, hasta, departamento, estatus, asignado_a, marca, localizacion } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('fecha_alta >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('fecha_alta <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('departamento = ?'); params.push(departamento); }
+  if (estatus) { where.push('estatus = ?'); params.push(estatus); }
+  if (asignado_a) { where.push('asignado_a = ?'); params.push(asignado_a); }
+  if (marca) { where.push('marca = ?'); params.push(marca); }
+  if (localizacion) { where.push('localizacion = ?'); params.push(localizacion); }
+  const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT localizacion, COUNT(*) AS total
       FROM inventario
+      ${whereStr}
       GROUP BY localizacion
       ORDER BY total DESC
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener datos por localización' });
@@ -1315,13 +1351,25 @@ app.get('/api/dashboard/inventario/localizacion', async (req, res) => {
 
 // Equipos por Departamento
 app.get('/api/dashboard/inventario/departamento', async (req, res) => {
+  const { desde, hasta, departamento, estatus, asignado_a, marca, localizacion } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('fecha_alta >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('fecha_alta <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('departamento = ?'); params.push(departamento); }
+  if (estatus) { where.push('estatus = ?'); params.push(estatus); }
+  if (asignado_a) { where.push('asignado_a = ?'); params.push(asignado_a); }
+  if (marca) { where.push('marca = ?'); params.push(marca); }
+  if (localizacion) { where.push('localizacion = ?'); params.push(localizacion); }
+  const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT departamento, COUNT(*) AS total
       FROM inventario
+      ${whereStr}
       GROUP BY departamento
       ORDER BY total DESC
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener datos por departamento' });
@@ -1330,13 +1378,25 @@ app.get('/api/dashboard/inventario/departamento', async (req, res) => {
 
 // Equipos por Estatus
 app.get('/api/dashboard/inventario/estatus', async (req, res) => {
+  const { desde, hasta, departamento, estatus, asignado_a, marca, localizacion } = req.query;
+  let where = [];
+  let params = [];
+  if (desde) { where.push('fecha_alta >= ?'); params.push(desde + ' 00:00:00'); }
+  if (hasta) { where.push('fecha_alta <= ?'); params.push(hasta + ' 23:59:59'); }
+  if (departamento) { where.push('departamento = ?'); params.push(departamento); }
+  if (estatus) { where.push('estatus = ?'); params.push(estatus); }
+  if (asignado_a) { where.push('asignado_a = ?'); params.push(asignado_a); }
+  if (marca) { where.push('marca = ?'); params.push(marca); }
+  if (localizacion) { where.push('localizacion = ?'); params.push(localizacion); }
+  const whereStr = where.length ? 'WHERE ' + where.join(' AND ') : '';
   try {
     const [rows] = await pool.query(`
       SELECT estatus, COUNT(*) AS total
       FROM inventario
+      ${whereStr}
       GROUP BY estatus
       ORDER BY total DESC
-    `);
+    `, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener datos por estatus' });
