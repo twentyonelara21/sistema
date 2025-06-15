@@ -31,8 +31,6 @@
   <h1>Dashboard de Inventario</h1>
   <div class="dashboard-section">
     <form class="filtros" id="filtrosForm" onsubmit="aplicarFiltros(event)">
-      <label>Desde: <input type="date" id="filtroDesde" name="desde"></label>
-      <label>Hasta: <input type="date" id="filtroHasta" name="hasta"></label>
       <label>Departamento:
         <select id="filtroDepartamento" name="departamento">
           <option value="">Todos</option>
@@ -179,8 +177,6 @@
     function aplicarFiltros(e) {
       e.preventDefault();
       const filtros = {};
-      const desde = document.getElementById('filtroDesde').value;
-      const hasta = document.getElementById('filtroHasta').value;
       const departamento = document.getElementById('filtroDepartamento').value;
       const estatus = document.getElementById('filtroEstatus').value;
       const asignado_a = document.getElementById('filtroAsignado').value;
