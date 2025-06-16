@@ -685,12 +685,9 @@ async function generarPDFTicket(ticket, history) {
   });
 }
 
-// Cambia la ruta por la de tu logo real o usa una URL pública
-const LOGO_URL = 'https://res.cloudinary.com/dohptxcff/image/upload/v1749773761/inventario/y5xldnkzijx773q9uqbx.png';
-
 async function generarResponsivaPDF(equipo) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const doc = new PDFDocument({ margin: 50 });
     const bufs = [];
     doc.on('data', bufs.push.bind(bufs));
     doc.on('end', async () => {
@@ -706,75 +703,52 @@ async function generarResponsivaPDF(equipo) {
       stream.Readable.from(pdfBuffer).pipe(uploadStream);
     });
 
-    // --- Encabezado con logo y título ---
-    doc.image(LOGO_URL, 45, 40, { width: 120 });
-    doc.fontSize(16).font('Helvetica-Bold').text('Carta Responsiva de\nEquipo', 350, 55, { align: 'right' });
-
-    // --- Cuadro principal ---
-    doc.rect(40, 35, 515, 720).stroke();
-
-    // --- Saludo y texto inicial ---
-    doc.fontSize(11).font('Helvetica').text('', 50, 110);
-    doc.rect(45, 110, 505, 35).stroke();
-    doc.font('Helvetica').fontSize(11).text(
-      `Estimado/a `, 55, 120, { continued: true }
-    ).font('Helvetica-Bold').text(`${equipo.asignado_a || '________________'}`, { continued: false });
-    doc.font('Helvetica').fontSize(11).text(
-      `:\n\nPor medio de la presente, nos dirigimos a usted para formalizar la entrega del siguiente equipo que recibió de Healthy People S. de R.L. de C.V. El equipo que se menciona a continuación:`,
-      55, 135, { width: 490 }
+    // Título
+    doc.fontSize(18).fillColor('#FF0000').text(
+      equipo.tipo === 'INVENTARIO' ? 'RESPONSIVA DE EQUIPO DE INVENTARIO' : 'RESPONSIVA DE PRÉSTAMO DE EQUIPO',
+      { align: 'center' }
     );
+    doc.moveDown(1);
 
-    // --- Tabla de datos del equipo ---
-    const tablaY = 180;
-    const colX = [45, 120, 220, 320, 400, 470, 540];
-    const headers = ['ETIQUETA', 'EQUIPO', 'MODELO', 'N. SERIE', 'DEPARTAMENTO', 'LOCALIZACIÓN'];
-    // Encabezados
-    doc.font('Helvetica-Bold').fontSize(10);
-    for (let i = 0; i < headers.length; i++) {
-      doc.text(headers[i], colX[i] + 2, tablaY + 2, { width: colX[i + 1] - colX[i] - 4, align: 'center' });
-      doc.rect(colX[i], tablaY, (colX[i + 1] || 540) - colX[i], 20).stroke();
+    doc.fontSize(12).fillColor('#000').text(`Fecha: ${moment().format('DD/MM/YYYY')}`, { align: 'right' });
+    doc.moveDown(1);
+
+    // Datos generales
+    doc.fontSize(13).font('Helvetica-Bold').text('Datos del equipo:', { underline: true });
+    doc.font('Helvetica').fontSize(12);
+    doc.text(`Tipo: ${equipo.tipo}`);
+    doc.text(`ID Inventario: ${equipo.idinventario}`);
+    doc.text(`Etiqueta: ${equipo.etiqueta}`);
+    doc.text(`Equipo: ${equipo.equipo}`);
+    doc.text(`Marca: ${equipo.marca}`);
+    doc.text(`Modelo: ${equipo.modelo}`);
+    doc.text(`N. Serie: ${equipo.n_serie}`);
+    doc.text(`Categoría: ${equipo.categoria}`);
+    doc.text(`Asignado a: ${equipo.asignado_a}`);
+    doc.text(`Departamento: ${equipo.departamento}`);
+    doc.text(`Localización: ${equipo.localizacion}`);
+    doc.moveDown(1);
+
+    // Texto de responsiva según tipo
+    if (equipo.tipo === 'INVENTARIO') {
+      doc.font('Helvetica-Bold').text('RESPONSIVA DE INVENTARIO', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.font('Helvetica').text(
+        `Por medio de la presente, el(la) C. ${equipo.asignado_a} recibe en calidad de resguardo el equipo descrito anteriormente, comprometiéndose a hacer buen uso del mismo y devolverlo en las mismas condiciones en caso de requerirse.`
+      );
+    } else {
+      doc.font('Helvetica-Bold').text('RESPONSIVA DE PRÉSTAMO', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.font('Helvetica').text(
+        `Por medio de la presente, el(la) C. ${equipo.asignado_a} recibe en calidad de préstamo temporal el equipo descrito anteriormente, debiendo devolverlo en la fecha y condiciones acordadas.`
+      );
     }
-    // Datos
-    doc.font('Helvetica').fontSize(10);
-    const datos = [
-      equipo.etiqueta || '',
-      equipo.equipo || '',
-      equipo.modelo || '',
-      equipo.n_serie || '',
-      equipo.departamento || '',
-      equipo.localizacion || ''
-    ];
-    for (let i = 0; i < datos.length; i++) {
-      doc.text(datos[i], colX[i] + 2, tablaY + 22, { width: colX[i + 1] - colX[i] - 4, align: 'center' });
-      doc.rect(colX[i], tablaY + 20, (colX[i + 1] || 540) - colX[i], 20).stroke();
-    }
+    doc.moveDown(2);
 
-    // --- Texto formal de responsiva ---
-    let textoResponsiva = `
-Acepto plenamente la responsabilidad por el equipo mencionado anteriormente y me comprometo a cuidarlo, mantenerlo en buen estado y utilizarlo únicamente para los fines laborales correspondientes. Asimismo, me comprometo a devolver el equipo en las mismas condiciones en las que lo he recibido, salvo el desgaste normal por su uso adecuado.
-
-Declaro también que he revisado el equipo y confirmo que se encuentra en buen estado de funcionamiento al momento de la entrega y, en caso de cualquier eventualidad que afecte su funcionamiento, me comprometo a informar de inmediato al `;
-
-    doc.font('Helvetica').fontSize(10).text(textoResponsiva, 50, tablaY + 50, { width: 490, align: 'justify' });
-    doc.font('Helvetica-Bold').text('Encargado del Área de Sistemas.', { continued: false });
-    doc.font('Helvetica').text(`
-Entiendo que este equipo es propiedad de Healthy People S. de R.L. de C.V., y en caso de pérdida, daño o robo debido a negligencia o mal uso de mi parte, asumo la responsabilidad de reemplazarlo o repararlo según lo indique la empresa.
-
-Por lo tanto firmo la presente carta responsiva como constancia de la entrega y recepción del equipo mencionado anteriormente.
-`, { width: 490, align: 'justify' });
-
-    // --- Firmas ---
-    const firmasY = 600;
-    doc.font('Helvetica').fontSize(10);
-    doc.text('AUTORIZA', 100, firmasY, { align: 'center', width: 180 });
-    doc.text('RESGUARDANTE', 340, firmasY, { align: 'center', width: 180 });
-
-    doc.moveTo(80, firmasY + 40).lineTo(250, firmasY + 40).stroke();
-    doc.moveTo(320, firmasY + 40).lineTo(490, firmasY + 40).stroke();
-
-    doc.font('Helvetica-Bold').fontSize(10);
-    doc.text('ENCARGADO DEL ÁREA DE SISTEMAS', 80, firmasY + 45, { align: 'center', width: 170 });
-    doc.text((equipo.asignado_a || '').toUpperCase(), 320, firmasY + 45, { align: 'center', width: 170 });
+    // Firma
+    doc.text('_____________________________', { align: 'center' });
+    doc.text(`${equipo.asignado_a}`, { align: 'center' });
+    doc.text('Firma de recibido', { align: 'center' });
 
     doc.end();
   });
