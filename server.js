@@ -685,8 +685,6 @@ async function generarPDFTicket(ticket, history) {
   });
 }
 
-const stream = require('stream');
-
 async function generarResponsivaPDF(equipo) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50 });
