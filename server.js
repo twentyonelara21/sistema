@@ -685,6 +685,9 @@ async function generarPDFTicket(ticket, history) {
   });
 }
 
+// Cambia la ruta por la de tu logo real o usa una URL pública
+const LOGO_URL = 'https://res.cloudinary.com/dohptxcff/image/upload/v1749773761/inventario/y5xldnkzijx773q9uqbx.png';
+
 async function generarResponsivaPDF(equipo) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 40, size: 'A4' });
