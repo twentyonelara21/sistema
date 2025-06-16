@@ -562,6 +562,7 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
 });
 
 const PDFDocument = require('pdfkit');
+const stream = require('stream');
 
 async function generarPDFTicket(ticket, history) {
   return new Promise((resolve, reject) => {
@@ -679,6 +680,77 @@ async function generarPDFTicket(ticket, history) {
         770,
         { align: 'center' }
       );
+
+    doc.end();
+  });
+}
+
+const stream = require('stream');
+
+async function generarResponsivaPDF(equipo) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50 });
+    const bufs = [];
+    doc.on('data', bufs.push.bind(bufs));
+    doc.on('end', async () => {
+      const pdfBuffer = Buffer.concat(bufs);
+      // Subir a Cloudinary
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { resource_type: 'raw', folder: 'responsivas', public_id: `responsiva_${equipo.tipo}_${equipo.id || Date.now()}` },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result.secure_url);
+        }
+      );
+      stream.Readable.from(pdfBuffer).pipe(uploadStream);
+    });
+
+    // Título
+    doc.fontSize(18).fillColor('#FF0000').text(
+      equipo.tipo === 'INVENTARIO' ? 'RESPONSIVA DE EQUIPO DE INVENTARIO' : 'RESPONSIVA DE PRÉSTAMO DE EQUIPO',
+      { align: 'center' }
+    );
+    doc.moveDown(1);
+
+    doc.fontSize(12).fillColor('#000').text(`Fecha: ${moment().format('DD/MM/YYYY')}`, { align: 'right' });
+    doc.moveDown(1);
+
+    // Datos generales
+    doc.fontSize(13).font('Helvetica-Bold').text('Datos del equipo:', { underline: true });
+    doc.font('Helvetica').fontSize(12);
+    doc.text(`Tipo: ${equipo.tipo}`);
+    doc.text(`ID Inventario: ${equipo.idinventario}`);
+    doc.text(`Etiqueta: ${equipo.etiqueta}`);
+    doc.text(`Equipo: ${equipo.equipo}`);
+    doc.text(`Marca: ${equipo.marca}`);
+    doc.text(`Modelo: ${equipo.modelo}`);
+    doc.text(`N. Serie: ${equipo.n_serie}`);
+    doc.text(`Categoría: ${equipo.categoria}`);
+    doc.text(`Asignado a: ${equipo.asignado_a}`);
+    doc.text(`Departamento: ${equipo.departamento}`);
+    doc.text(`Localización: ${equipo.localizacion}`);
+    doc.moveDown(1);
+
+    // Texto de responsiva según tipo
+    if (equipo.tipo === 'INVENTARIO') {
+      doc.font('Helvetica-Bold').text('RESPONSIVA DE INVENTARIO', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.font('Helvetica').text(
+        `Por medio de la presente, el(la) C. ${equipo.asignado_a} recibe en calidad de resguardo el equipo descrito anteriormente, comprometiéndose a hacer buen uso del mismo y devolverlo en las mismas condiciones en caso de requerirse.`
+      );
+    } else {
+      doc.font('Helvetica-Bold').text('RESPONSIVA DE PRÉSTAMO', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.font('Helvetica').text(
+        `Por medio de la presente, el(la) C. ${equipo.asignado_a} recibe en calidad de préstamo temporal el equipo descrito anteriormente, debiendo devolverlo en la fecha y condiciones acordadas.`
+      );
+    }
+    doc.moveDown(2);
+
+    // Firma
+    doc.text('_____________________________', { align: 'center' });
+    doc.text(`${equipo.asignado_a}`, { align: 'center' });
+    doc.text('Firma de recibido', { align: 'center' });
 
     doc.end();
   });
@@ -1194,51 +1266,59 @@ app.get('/api/inventario', async (req, res) => {
 });
 
 // Agregar equipo
-app.post('/api/inventario', uploadInventario.single('equipo_imagen'), async (req, res) => {
-  try {
-    const {
-      tipo, idinventario, etiqueta, complemento, marca, n_serie, modelo, categoria, asignado_a,
-      localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd,
-      tarjeta_grafica, windows, licenciamiento, estatus, observaciones
-    } = req.body;
-    const equipo_imagen = req.file ? req.file.path : null;
+  app.post('/api/inventario', uploadInventario.single('equipo_imagen'), async (req, res) => {
+    try {
+      const {
+        tipo, idinventario, etiqueta, equipo, complemento, marca, n_serie, modelo, categoria, asignado_a,
+        localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd,
+        tarjeta_grafica, windows, licenciamiento, estatus, observaciones
+      } = req.body;
+      const equipo_imagen = req.file ? req.file.path : null;
 
-    await pool.query(
-      `INSERT INTO inventario (
-        tipo, idinventario, etiqueta, equipo_imagen, complemento, marca, n_serie, modelo, categoria, asignado_a,
-        localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd, tarjeta_grafica, windows,
-        licenciamiento, estatus, observaciones
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        tipo, idinventario, etiqueta, equipo_imagen, complemento, marca, n_serie, modelo, categoria, asignado_a,
-        localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd, tarjeta_grafica, windows,
-        licenciamiento, estatus, observaciones
-      ]
-    );
-    res.json({ message: 'Equipo agregado correctamente' });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al agregar equipo' });
-  }
-});
+      // Insertar equipo
+      const [result] = await pool.query(
+        `INSERT INTO inventario (
+          tipo, idinventario, etiqueta, equipo, equipo_imagen, complemento, marca, n_serie, modelo, categoria, asignado_a,
+          localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd, tarjeta_grafica, windows,
+          licenciamiento, estatus, observaciones
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          tipo, idinventario, etiqueta, equipo, equipo_imagen, complemento, marca, n_serie, modelo, categoria, asignado_a,
+          localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd, tarjeta_grafica, windows,
+          licenciamiento, estatus, observaciones
+        ]
+      );
+      const nuevoId = result.insertId;
+      // Obtener el equipo recién insertado
+      const [rows] = await pool.query('SELECT * FROM inventario WHERE id = ?', [nuevoId]);
+      const equipoObj = rows[0];
+      // Generar responsiva y guardar URL
+      const urlResponsiva = await generarResponsivaPDF(equipoObj);
+      await pool.query('UPDATE inventario SET responsiva_pdf = ? WHERE id = ?', [urlResponsiva, nuevoId]);
+      res.json({ message: 'Equipo agregado correctamente' });
+    } catch (error) {
+      res.status(500).json({ error: 'Error al agregar equipo' });
+    }
+  });
 
 // Editar equipo
 app.put('/api/inventario/:id', uploadInventario.single('equipo_imagen'), async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      tipo, idinventario, etiqueta, complemento, marca, n_serie, modelo, categoria, asignado_a,
+      tipo, idinventario, etiqueta, equipo, complemento, marca, n_serie, modelo, categoria, asignado_a,
       localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd,
       tarjeta_grafica, windows, licenciamiento, estatus, observaciones
     } = req.body;
     let equipo_imagen = req.file ? req.file.path : null;
 
-    // Si no se subió nueva imagen, no actualices ese campo
+    // Actualizar equipo
     let query = `UPDATE inventario SET
-      tipo=?, idinventario=?, etiqueta=?, complemento=?, marca=?, n_serie=?, modelo=?, categoria=?, asignado_a=?,
+      tipo=?, idinventario=?, etiqueta=?, equipo=?, complemento=?, marca=?, n_serie=?, modelo=?, categoria=?, asignado_a=?,
       localizacion=?, precio_compra=?, color=?, departamento=?, procesador=?, ram_gb=?, hdd=?, ssd=?, tarjeta_grafica=?, windows=?,
       licenciamiento=?, estatus=?, observaciones=?`;
     const params = [
-      tipo, idinventario, etiqueta, complemento, marca, n_serie, modelo, categoria, asignado_a,
+      tipo, idinventario, etiqueta, equipo, complemento, marca, n_serie, modelo, categoria, asignado_a,
       localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd, tarjeta_grafica, windows,
       licenciamiento, estatus, observaciones
     ];
@@ -1250,6 +1330,13 @@ app.put('/api/inventario/:id', uploadInventario.single('equipo_imagen'), async (
     params.push(id);
 
     await pool.query(query, params);
+
+    // Obtener el equipo actualizado
+    const [rows] = await pool.query('SELECT * FROM inventario WHERE id = ?', [id]);
+    const equipoObj = rows[0];
+    // Generar responsiva y guardar URL
+    const urlResponsiva = await generarResponsivaPDF(equipoObj);
+    await pool.query('UPDATE inventario SET responsiva_pdf = ? WHERE id = ?', [urlResponsiva, id]);
     res.json({ message: 'Equipo actualizado correctamente' });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar equipo' });
