@@ -409,11 +409,11 @@
           <td>${eq.licenciamiento}</td>
           <td>${eq.estatus}</td>
           <td>${eq.observaciones}</td>
-          <td>${eq.responsiva_pdf ? `<a href="${eq.responsiva_pdf}" target="_blank">Ver Responsiva</a>` : ''}</td>
           <td>
             <button class="btn" onclick='editarEquipo(${JSON.stringify(eq)})'>Editar</button>
             <button class="btn" onclick='eliminarEquipo(${eq.id})'>Eliminar</button>
           </td>
+          <td>${eq.responsiva_pdf ? `<a href="${eq.responsiva_pdf}" target="_blank">Ver Responsiva</a>` : ''}</td>
         `;
         tbody.appendChild(tr);
       });
