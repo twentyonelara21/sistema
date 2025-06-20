@@ -8,101 +8,13 @@
 </head>
 <body>
   <div class="container">
-    <!-- Pantalla de Login -->
-    <div id="loginSection" class="section">
-      <h1>Sistema de Tickets</h1>
-      <h2>Iniciar Sesión</h2>
-      <div class="form-group">
-        <label for="loginUsername">Usuario</label>
-        <input type="text" id="loginUsername" placeholder="Nombre de usuario" required>
-      </div>
-      <div class="form-group">
-        <label for="loginPassword">Contraseña</label>
-        <input type="password" id="loginPassword" placeholder="Contraseña" required>
-      </div>
-      <button onclick="login()">Iniciar Sesión</button>
-      <p class="error" id="loginError"></p>
-      <a class="link" onclick="showForgotPassword()">¿Olvidaste tu contraseña?</a>
-    </div>
-
-        <!-- Modal Olvidé mi contraseña -->
-    <div id="forgotPasswordSection" class="section" style="display: none;">
-      <h2>Recuperar Contraseña</h2>
-      <div class="form-group">
-        <label for="forgotEmail">Correo Electrónico</label>
-        <input type="email" id="forgotEmail" placeholder="correo@ejemplo.com" required>
-      </div>
-      <button onclick="forgotPassword()">Enviar</button>
-      <button class="back" onclick="hideForgotPassword()">Volver</button>
-      <p class="error" id="forgotPasswordError"></p>
-      <p class="success" id="forgotPasswordSuccess"></p>
-    </div>
-
-        <!-- Menú Principal -->
-    <div id="mainMenu" class="section" style="display: none;">
-      <h1>Menú Principal</h1>
-      <p>Bienvenido, <span id="menuUser"></span> (<span id="menuDepartment"></span>)</p>
-      <button class="logout" onclick="logout()">Cerrar Sesión</button>
-      <div class="menu-buttons">
-        <button onclick="window.location.href='tickets.html'">Tickets</button>
-        <button onclick="window.location.href='permiso.html'">Permisos</button>
-        <button onclick="window.location.href='inventario.html'">Inventario</button>
-      </div>
-    </div>
-
-    <!-- Pantalla de Gestión de Usuarios (Admin) -->
-    <div id="adminSection" class="section" style="display: none;">
-      <h1>Gestión de Usuarios</h1>
-      <p>Bienvenido, <span id="adminUser"></span> (Administrador)</p>
-      <button class="logout" onclick="logout()">Cerrar Sesión</button>
-      <button onclick="showTicketSystem()">Ir a Tickets</button>
-
-      <div class="form-section">
-        <h2>Crear Usuario</h2>
-        <div class="form-group">
-          <label for="registerUsername">Usuario *</label>
-          <input type="text" id="registerUsername" placeholder="Nombre de usuario" required>
-        </div>
-        <div class="form-group">
-          <label for="registerPassword">Contraseña *</label>
-          <input type="password" id="registerPassword" placeholder="Contraseña" required>
-        </div>
-        <div class="form-group">
-          <label for="registerEmail">Correo Electrónico *</label>
-          <input type="email" id="registerEmail" placeholder="correo@ejemplo.com" required>
-        </div>
-        <div class="form-group">
-          <label for="registerDepartment">Departamento *</label>
-          <select id="registerDepartment" required>
-            <option value="Mantenimiento">Mantenimiento</option>
-            <option value="Sistemas">Sistemas</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="registerRole">Rol *</label>
-          <select id="registerRole" required>
-            <option value="user">Usuario</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="admin">Administrador</option>
-          </select>
-        </div>
-        <button onclick="register()">Crear Usuario</button>
-        <p class="error" id="registerError"></p>
-      </div>
-
-      <div class="users-section">
-        <h2>Lista de Usuarios</h2>
-        <div id="userList"></div>
-      </div>
-    </div>
+    <button class="logout" onclick="window.location.href='index.html'" style="margin-bottom: 1rem;">Volver al menú principal</button>
 
     <!-- Sistema de Tickets -->
     <div id="ticketSystem" class="section" style="display: none;">
       <h1>Sistema de Tickets</h1>
       <p>Bienvenido, <span id="currentUser"></span> (<span id="currentDepartment"></span>)</p>
       <button class="logout" onclick="logout()">Cerrar Sesión</button>
-      <button onclick="showAdminSection()" id="adminButton" style="display: none;">Volver a Gestión de Usuarios</button>
-      <button onclick="showChangePassword()">Cambiar Contraseña</button>
 
       <div class="ticket-nav">
         <button onclick="showCreateTicket()">Crear Solicitud</button>
@@ -320,8 +232,19 @@
   </div>
 
   <script>
-    let currentUser = null;
+    let currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser) {
+      window.location.href = 'index.html';
+    }
     let availableUsers = [];
+
+    document.getElementById('currentUser').textContent = currentUser.username;
+    document.getElementById('currentDepartment').textContent = currentUser.department;
+
+    function logout() {
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+    }
 
     async function loadAvailableUsers() {
       try {
@@ -332,49 +255,8 @@
       }
     }
 
-    function showLogin() {
-      document.getElementById('loginSection').style.display = 'block';
-      document.getElementById('adminSection').style.display = 'none';
-      document.getElementById('ticketSystem').style.display = 'none';
-      document.getElementById('loginError').textContent = '';
-    }
-
-    function showAdminSection() {
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('adminSection').style.display = 'block';
-      document.getElementById('ticketSystem').style.display = 'none';
-      listUsers();
-    }
-
-    function showMainMenu() {
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('adminSection').style.display = 'none';
-      document.getElementById('ticketSystem').style.display = 'none';
-      document.getElementById('mainMenu').style.display = 'block';
-      document.getElementById('permisosSection').style.display = 'none';
-      document.getElementById('inventarioSection').style.display = 'none';
-      document.getElementById('menuUser').textContent = currentUser.username;
-      document.getElementById('menuDepartment').textContent = currentUser.department;
-    }
-
-    function goToSection(sectionId) {
-      document.getElementById('mainMenu').style.display = 'none';
-      document.getElementById('ticketSystem').style.display = 'none';
-      document.getElementById('permisosSection').style.display = 'none';
-      document.getElementById('inventarioSection').style.display = 'none';
-      document.getElementById(sectionId).style.display = 'block';
-    }
-
-    function backToMenu() {
-      document.getElementById('mainMenu').style.display = 'block';
-      document.getElementById('ticketSystem').style.display = 'none';
-      document.getElementById('permisosSection').style.display = 'none';
-      document.getElementById('inventarioSection').style.display = 'none';
-    }
 
     function showTicketSystem() {
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('adminSection').style.display = 'none';
       document.getElementById('ticketSystem').style.display = 'block';
       document.getElementById('ticketDepartment').textContent = currentUser.role === 'admin' ? 'Todos' : currentUser.department;
       loadAvailableUsers();
@@ -415,101 +297,6 @@
       document.getElementById('changePasswordError').textContent = '';
     }
 
-    async function login() {
-      const username = document.getElementById('loginUsername').value;
-      const password = document.getElementById('loginPassword').value;
-      const error = document.getElementById('loginError');
-
-      try {
-        const response = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await response.json();
-        if (data.error) {
-          error.textContent = data.error;
-          return;
-        }
-        currentUser = data;
-        localStorage.setItem('user', JSON.stringify(currentUser));
-        console.log('Usuario logueado:', currentUser);
-        document.getElementById('currentUser').textContent = data.username;
-        document.getElementById('currentDepartment').textContent = data.department;
-        document.getElementById('adminUser').textContent = data.username;
-        document.getElementById('adminButton').style.display = data.role === 'admin' ? 'block' : 'none';
-        if (data.role === 'admin') {
-          showAdminSection();
-        } else if (data.department === 'Sistemas') {
-          showMainMenu();
-        } else {
-          showTicketSystem();
-        }
-      } catch (err) {
-        error.textContent = 'Error en el servidor';
-      }
-    }
-
-    async function register() {
-      const username = document.getElementById('registerUsername').value;
-      const password = document.getElementById('registerPassword').value;
-      const email = document.getElementById('registerEmail').value;
-      const department = document.getElementById('registerDepartment').value;
-      const role = document.getElementById('registerRole').value;
-      const error = document.getElementById('registerError');
-
-      if (!email || !email.includes('@')) {
-        error.textContent = 'Por favor, ingresa un correo electrónico válido';
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, email, department, role, adminId: currentUser.id })
-        });
-        const data = await response.json();
-        if (data.error) {
-          error.textContent = data.error;
-          return;
-        }
-        alert('Usuario creado');
-        document.getElementById('registerUsername').value = '';
-        document.getElementById('registerPassword').value = '';
-        document.getElementById('registerEmail').value = '';
-        listUsers();
-      } catch (err) {
-        error.textContent = 'Error en el servidor';
-      }
-    }
-
-    async function listUsers() {
-      const userList = document.getElementById('userList');
-      try {
-        const response = await fetch(`/api/users?adminId=${currentUser.id}`);
-        const users = await response.json();
-        userList.innerHTML = '';
-        if (users.length === 0) {
-          userList.innerHTML = '<p>No hay usuarios registrados.</p>';
-          return;
-        }
-        users.forEach(user => {
-          const userDiv = document.createElement('div');
-          userDiv.className = 'ticket';
-          userDiv.innerHTML = `
-            <p><strong>ID:</strong> ${user.id}</p>
-            <p><strong>Usuario:</strong> ${user.username}</p>
-            <p><strong>Correo:</strong> ${user.email}</p>
-            <p><strong>Departamento:</strong> ${user.department}</p>
-            <p><strong>Rol:</strong> ${user.role}</p>
-          `;
-          userList.appendChild(userDiv);
-        });
-      } catch (err) {
-        userList.innerHTML = '<p>Error al cargar usuarios.</p>';
-      }
-    }
 
     async function changePassword() {
       const currentPassword = document.getElementById('currentPassword').value;
@@ -1022,12 +809,6 @@ async function showTicketDetails(ticket, editMode = false) {
       }
     }
 
-    function logout() {
-      currentUser = null;
-      availableUsers = [];
-      showLogin();
-    }
-
     const subcategorias = {
   "Mantenimiento": {
     "Plomería": ["Tuberías", "Llaves", "Tarjas"],
@@ -1118,44 +899,8 @@ async function showTicketDetails(ticket, editMode = false) {
       }
     }
 
-    function showForgotPassword() {
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('forgotPasswordSection').style.display = 'block';
-      document.getElementById('forgotPasswordError').textContent = '';
-      document.getElementById('forgotPasswordSuccess').textContent = '';
-      document.getElementById('forgotEmail').value = '';
-    }
-    function hideForgotPassword() {
-      document.getElementById('forgotPasswordSection').style.display = 'none';
-      document.getElementById('loginSection').style.display = 'block';
-    }
-    async function forgotPassword() {
-      const email = document.getElementById('forgotEmail').value;
-      const error = document.getElementById('forgotPasswordError');
-      const success = document.getElementById('forgotPasswordSuccess');
-      error.textContent = '';
-      success.textContent = '';
-      if (!email || !email.includes('@')) {
-        error.textContent = 'Por favor, ingresa un correo electrónico válido';
-        return;
-      }
-      try {
-        const response = await fetch('/api/forgot-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        const data = await response.json();
-        if (data.error) {
-          error.textContent = data.error;
-        } else {
-          success.textContent = 'Se ha enviado un correo con tu nueva contraseña.';
-        }
-      } catch (err) {
-        error.textContent = 'Error en el servidor';
-      }
-    }
-    
+  showTicketSystem();
+
   </script>
 </body>
 </html>
