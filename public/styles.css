@@ -65,6 +65,29 @@ h3 {
   font-weight: 500;
 }
 
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+  margin-top: 2rem;
+}
+.menu-buttons button {
+  width: 220px;
+  font-size: 1.2rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #FF0000;
+  color: #fff;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.menu-buttons button:hover {
+  background: #00877A;
+}
+
 /* Secciones */
 .section {
   background: white;

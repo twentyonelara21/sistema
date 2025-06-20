@@ -335,6 +335,10 @@
   </div>
 </div>
   <script>
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser) {
+    window.location.href = 'index.html'; // Redirige si no hay sesión
+    }
     let editando = false;
     let editId = null;
 

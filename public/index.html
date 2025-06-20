@@ -38,6 +38,18 @@
       <p class="success" id="forgotPasswordSuccess"></p>
     </div>
 
+        <!-- Menú Principal -->
+    <div id="mainMenu" class="section" style="display: none;">
+      <h1>Menú Principal</h1>
+      <p>Bienvenido, <span id="menuUser"></span> (<span id="menuDepartment"></span>)</p>
+      <button class="logout" onclick="logout()">Cerrar Sesión</button>
+      <div class="menu-buttons">
+        <button onclick="goToSection('ticketSystem')">Tickets</button>
+        <button onclick="window.location.href='permiso.html'">Permisos</button>
+        <button onclick="window.location.href='inventario.html'">Inventario</button>
+      </div>
+    </div>
+
     <!-- Pantalla de Gestión de Usuarios (Admin) -->
     <div id="adminSection" class="section" style="display: none;">
       <h1>Gestión de Usuarios</h1>
@@ -334,6 +346,32 @@
       listUsers();
     }
 
+    function showMainMenu() {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('adminSection').style.display = 'none';
+      document.getElementById('ticketSystem').style.display = 'none';
+      document.getElementById('mainMenu').style.display = 'block';
+      document.getElementById('permisosSection').style.display = 'none';
+      document.getElementById('inventarioSection').style.display = 'none';
+      document.getElementById('menuUser').textContent = currentUser.username;
+      document.getElementById('menuDepartment').textContent = currentUser.department;
+    }
+
+    function goToSection(sectionId) {
+      document.getElementById('mainMenu').style.display = 'none';
+      document.getElementById('ticketSystem').style.display = 'none';
+      document.getElementById('permisosSection').style.display = 'none';
+      document.getElementById('inventarioSection').style.display = 'none';
+      document.getElementById(sectionId).style.display = 'block';
+    }
+
+    function backToMenu() {
+      document.getElementById('mainMenu').style.display = 'block';
+      document.getElementById('ticketSystem').style.display = 'none';
+      document.getElementById('permisosSection').style.display = 'none';
+      document.getElementById('inventarioSection').style.display = 'none';
+    }
+
     function showTicketSystem() {
       document.getElementById('loginSection').style.display = 'none';
       document.getElementById('adminSection').style.display = 'none';
@@ -394,6 +432,7 @@
           return;
         }
         currentUser = data;
+        localStorage.setItem('user', JSON.stringify(currentUser));
         console.log('Usuario logueado:', currentUser);
         document.getElementById('currentUser').textContent = data.username;
         document.getElementById('currentDepartment').textContent = data.department;
@@ -401,6 +440,8 @@
         document.getElementById('adminButton').style.display = data.role === 'admin' ? 'block' : 'none';
         if (data.role === 'admin') {
           showAdminSection();
+        } else if (data.department === 'Sistemas') {
+          showMainMenu();
         } else {
           showTicketSystem();
         }
