@@ -1,0 +1,125 @@
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
+h2 { color: #FF0000; text-align: center; }
+form, table { background: #fff; border-radius: 8px; padding: 1rem; margin: 1rem auto; max-width: 600px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
+label { display: block; margin-top: 1rem; font-weight: bold; }
+input, select, textarea { width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc; margin-top: 0.3rem; }
+button { background: #FF0000; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem;}
+button:hover { background: #00877A; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+th { background: #FF0000; color: #fff; }
+@media (max-width: 700px) {
+  form, table { max-width: 99vw; }
+  th, td { font-size: 0.9em; }
+}
+</style>
+<h2>Solicitar Permiso</h2>
+<form id="formPermiso">
+  <label>Tipo de permiso:</label>
+  <select name="tipo" required>
+    <option value="Vacaciones">Vacaciones</option>
+    <option value="Ajuste de sueldo">Ajuste de sueldo</option>
+    <option value="Permiso especial">Permiso especial</option>
+    <option value="Otro">Otro</option>
+  </select>
+  <label>Motivo:</label>
+  <textarea name="motivo" required></textarea>
+  <label>Fecha inicio:</label>
+  <input type="date" name="fecha_inicio">
+  <label>Fecha fin:</label>
+  <input type="date" name="fecha_fin">
+  <button type="submit">Enviar solicitud</button>
+</form>
+<script>
+document.getElementById('formPermiso').onsubmit = async function(e) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(this));
+  data.user_id = localStorage.getItem('user_id');
+  if (!data.user_id) return alert('Debes iniciar sesión');
+  if (data.fecha_inicio && data.fecha_fin && data.fecha_fin < data.fecha_inicio) {
+    return alert('La fecha de fin no puede ser menor que la de inicio');
+  }
+  const res = await fetch('/api/permisos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  const json = await res.json();
+  alert(json.message || json.error);
+  if (json.message) {
+    this.reset();
+    cargarSolicitudes();
+  }
+};
+</script>
+
+<h2>Mis Solicitudes</h2>
+<table id="tablaSolicitudes">
+  <thead>
+    <tr>
+      <th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<script>
+async function cargarSolicitudes() {
+  const user_id = localStorage.getItem('user_id');
+  const res = await fetch('/api/permisos?user_id=' + user_id);
+  const solicitudes = await res.json();
+  const tbody = document.querySelector('#tablaSolicitudes tbody');
+  tbody.innerHTML = '';
+  solicitudes.forEach(s => {
+    tbody.innerHTML += `<tr>
+      <td>${s.tipo}</td>
+      <td>${s.motivo}</td>
+      <td>${s.fecha_inicio || ''} - ${s.fecha_fin || ''}</td>
+      <td>${s.estado}</td>
+      <td>${s.fecha_solicitud}</td>
+    </tr>`;
+  });
+}
+cargarSolicitudes();
+</script>
+<h2>Solicitudes de mi equipo</h2>
+<table id="tablaAprobar">
+  <thead>
+    <tr>
+      <th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Acción</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<script>
+async function cargarAprobar() {
+  const departamento = localStorage.getItem('department');
+  const res = await fetch('/api/permisos?role=jefe&departamento=' + departamento);
+  const solicitudes = await res.json();
+  const tbody = document.querySelector('#tablaAprobar tbody');
+  tbody.innerHTML = '';
+  solicitudes.forEach(s => {
+    tbody.innerHTML += `<tr>
+      <td>${s.username}</td>
+      <td>${s.tipo}</td>
+      <td>${s.motivo}</td>
+      <td>${s.fecha_inicio || ''} - ${s.fecha_fin || ''}</td>
+      <td>
+        <button onclick="aprobar(${s.id},'Aprobado')">Aprobar</button>
+        <button onclick="aprobar(${s.id},'Rechazado')">Rechazar</button>
+      </td>
+    </tr>`;
+  });
+}
+async function aprobar(id, estado) {
+  const aprobador_id = localStorage.getItem('user_id');
+  const observaciones = prompt('Observaciones:');
+  await fetch('/api/permisos/' + id + '/aprobar', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ aprobador_id, rol_aprobador: 'jefe', estado, observaciones })
+  });
+  cargarAprobar();
+}
+cargarAprobar();
+</script>

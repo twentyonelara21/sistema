@@ -1231,7 +1231,6 @@ app.get('/api/checador/registros', async (req, res) => {
   res.json(rows);
 });
 
-// En tu server.js
 app.post('/api/checador', async (req, res) => {
   const { user_id, tipo, foto } = req.body;
   if (!user_id || !tipo || !foto) return res.status(400).json({ error: 'Faltan datos' });
@@ -1485,6 +1484,78 @@ app.get('/api/dashboard/inventario/estatus', async (req, res) => {
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener datos por estatus' });
+  }
+});
+
+//Permisos
+app.post('/api/permisos', async (req, res) => {
+  const { user_id, tipo, motivo, fecha_inicio, fecha_fin, archivo_adjunto } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO permisos (user_id, tipo, motivo, fecha_inicio, fecha_fin, archivo_adjunto)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [user_id, tipo, motivo, fecha_inicio, fecha_fin, archivo_adjunto]
+    );
+    res.json({ message: 'Solicitud creada' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear solicitud', details: error.message });
+  }
+});
+
+app.get('/api/permisos', async (req, res) => {
+  const { user_id, role, departamento } = req.query;
+  let query = 'SELECT p.*, u.username FROM permisos p JOIN users u ON p.user_id = u.id';
+  let params = [];
+  if (user_id) {
+    query += ' WHERE p.user_id = ?';
+    params.push(user_id);
+  } else if (role === 'jefe' && departamento) {
+    query += ' WHERE u.department = ? AND p.estado = "Pendiente"';
+    params.push(departamento);
+  } else if (role === 'rh') {
+    query += ' WHERE p.estado = "Aprobado Jefe"';
+  }
+  query += ' ORDER BY p.fecha_solicitud DESC';
+  try {
+    const [rows] = await pool.query(query, params);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al listar solicitudes' });
+  }
+});
+
+app.put('/api/permisos/:id/aprobar', async (req, res) => {
+  const { id } = req.params;
+  const { aprobador_id, rol_aprobador, estado, observaciones } = req.body;
+  let nuevoEstado = '';
+  if (rol_aprobador === 'jefe') {
+    nuevoEstado = estado === 'Aprobado' ? 'Aprobado Jefe' : 'Rechazado Jefe';
+  } else if (rol_aprobador === 'rh') {
+    nuevoEstado = estado === 'Aprobado' ? 'Finalizado' : 'Rechazado RH';
+  }
+  try {
+    await pool.query('UPDATE permisos SET estado = ? WHERE id = ?', [nuevoEstado, id]);
+    await pool.query(
+      `INSERT INTO permisos_historial (permiso_id, aprobador_id, rol_aprobador, estado, observaciones)
+       VALUES (?, ?, ?, ?, ?)`,
+      [id, aprobador_id, rol_aprobador, estado, observaciones]
+    );
+    res.json({ message: 'Solicitud actualizada' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar solicitud' });
+  }
+});
+
+app.get('/api/permisos/:id/historial', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await pool.query(
+      `SELECT h.*, u.username FROM permisos_historial h JOIN users u ON h.aprobador_id = u.id WHERE h.permiso_id = ? ORDER BY h.fecha ASC`,
+      [id]
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener historial' });
   }
 });
 
