@@ -30,21 +30,70 @@ th { background: #FF0000; color: #fff; }
   <input type="date" name="fecha_inicio">
   <label>Fecha fin:</label>
   <input type="date" name="fecha_fin">
+  <label>Jefe inmediato:</label>
+  <select name="jefe_id" id="jefeSelect" required>
+    <option value="">Selecciona un jefe</option>
+  </select>
   <button type="submit">Enviar solicitud</button>
 </form>
+
+<h2>Mis Solicitudes</h2>
+<table id="tablaSolicitudes">
+  <thead>
+    <tr>
+      <th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<h2>Solicitudes de mi equipo</h2>
+<table id="tablaAprobar">
+  <thead>
+    <tr>
+      <th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Acción</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
 <script>
 const currentUser = JSON.parse(localStorage.getItem('user'));
-    if (!currentUser) {
-    window.location.href = 'index.html'; // Redirige si no hay sesión
-    }
+if (!currentUser) window.location.href = 'index.html';
+
+// Llenar select de jefes
+async function cargarJefes() {
+  const res = await fetch('/api/users?role=jefe&department=' + currentUser.department);
+  const jefes = await res.json();
+  const select = document.getElementById('jefeSelect');
+  select.innerHTML = '<option value="">Selecciona un jefe</option>';
+  jefes.forEach(jefe => {
+    select.innerHTML += `<option value="${jefe.id}">${jefe.username}</option>`;
+  });
+}
+cargarJefes();
+
 document.getElementById('formPermiso').onsubmit = async function(e) {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(this));
-  data.user_id = localStorage.getItem('user_id');
-  if (!data.user_id) return alert('Debes iniciar sesión');
+  data.user_id = currentUser.id;
+  data.jefe_id = document.getElementById('jefeSelect').value;
+
+  // Validar fechas
   if (data.fecha_inicio && data.fecha_fin && data.fecha_fin < data.fecha_inicio) {
     return alert('La fecha de fin no puede ser menor que la de inicio');
   }
+
+  // Validar días de vacaciones
+  if (data.tipo === 'Vacaciones') {
+    const diasSolicitados = (new Date(data.fecha_fin) - new Date(data.fecha_inicio)) / (1000*60*60*24) + 1;
+    // Suponiendo que tienes el campo vacaciones_disponibles en currentUser
+    if (diasSolicitados > currentUser.vacaciones_disponibles) {
+      return alert('No tienes suficientes días de vacaciones disponibles');
+    }
+    data.dias_solicitados = diasSolicitados;
+  }
+
   const res = await fetch('/api/permisos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -57,74 +106,5 @@ document.getElementById('formPermiso').onsubmit = async function(e) {
     cargarSolicitudes();
   }
 };
-</script>
 
-<h2>Mis Solicitudes</h2>
-<table id="tablaSolicitudes">
-  <thead>
-    <tr>
-      <th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-<script>
-async function cargarSolicitudes() {
-  const user_id = localStorage.getItem('user_id');
-  const res = await fetch('/api/permisos?user_id=' + user_id);
-  const solicitudes = await res.json();
-  const tbody = document.querySelector('#tablaSolicitudes tbody');
-  tbody.innerHTML = '';
-  solicitudes.forEach(s => {
-    tbody.innerHTML += `<tr>
-      <td>${s.tipo}</td>
-      <td>${s.motivo}</td>
-      <td>${s.fecha_inicio || ''} - ${s.fecha_fin || ''}</td>
-      <td>${s.estado}</td>
-      <td>${s.fecha_solicitud}</td>
-    </tr>`;
-  });
-}
-cargarSolicitudes();
-</script>
-<h2>Solicitudes de mi equipo</h2>
-<table id="tablaAprobar">
-  <thead>
-    <tr>
-      <th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Acción</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-<script>
-async function cargarAprobar() {
-  const departamento = localStorage.getItem('department');
-  const res = await fetch('/api/permisos?role=jefe&departamento=' + departamento);
-  const solicitudes = await res.json();
-  const tbody = document.querySelector('#tablaAprobar tbody');
-  tbody.innerHTML = '';
-  solicitudes.forEach(s => {
-    tbody.innerHTML += `<tr>
-      <td>${s.username}</td>
-      <td>${s.tipo}</td>
-      <td>${s.motivo}</td>
-      <td>${s.fecha_inicio || ''} - ${s.fecha_fin || ''}</td>
-      <td>
-        <button onclick="aprobar(${s.id},'Aprobado')">Aprobar</button>
-        <button onclick="aprobar(${s.id},'Rechazado')">Rechazar</button>
-      </td>
-    </tr>`;
-  });
-}
-async function aprobar(id, estado) {
-  const aprobador_id = localStorage.getItem('user_id');
-  const observaciones = prompt('Observaciones:');
-  await fetch('/api/permisos/' + id + '/aprobar', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ aprobador_id, rol_aprobador: 'jefe', estado, observaciones })
-  });
-  cargarAprobar();
-}
-cargarAprobar();
 </script>
