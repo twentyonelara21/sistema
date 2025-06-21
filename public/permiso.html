@@ -1,110 +1,279 @@
-<style>
-body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
-h2 { color: #FF0000; text-align: center; }
-form, table { background: #fff; border-radius: 8px; padding: 1rem; margin: 1rem auto; max-width: 600px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
-label { display: block; margin-top: 1rem; font-weight: bold; }
-input, select, textarea { width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc; margin-top: 0.3rem; }
-button { background: #FF0000; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem;}
-button:hover { background: #00877A; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-th { background: #FF0000; color: #fff; }
-@media (max-width: 700px) {
-  form, table { max-width: 99vw; }
-  th, td { font-size: 0.9em; }
-}
-</style>
-<h2>Solicitar Permiso</h2>
-<button class="logout" onclick="window.location.href='index.html'" style="margin-bottom: 1rem;">Volver al menú principal</button>
-<form id="formPermiso">
-  <label>Tipo de permiso:</label>
-  <select name="tipo" required>
-    <option value="Vacaciones">Vacaciones</option>
-    <option value="Ajuste de sueldo">Ajuste de sueldo</option>
-    <option value="Permiso especial">Permiso especial</option>
-    <option value="Otro">Otro</option>
-  </select>
-  <label>Motivo:</label>
-  <textarea name="motivo" required></textarea>
-  <label>Fecha inicio:</label>
-  <input type="date" name="fecha_inicio">
-  <label>Fecha fin:</label>
-  <input type="date" name="fecha_fin">
-  <label>Jefe inmediato:</label>
-  <select name="jefe_id" id="jefeSelect" required>
-    <option value="">Selecciona un jefe</option>
-  </select>
-  <button type="submit">Enviar solicitud</button>
-</form>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Permisos - Sistema</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
+    h1, h2 { color: #FF0000; text-align: center; }
+    .btn, .menu-btn {
+      background: #FF0000; color: #fff; border: none; border-radius: 6px;
+      padding: 0.5rem 1.2rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 0.5rem;
+      transition: background 0.2s;
+    }
+    .btn:hover, .menu-btn:hover { background: #00877A; }
+    .menu-nav { text-align: center; margin-bottom: 1.5rem; }
+    .form-section, .table-section { background: #fff; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 900px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);}
+    .form-group { margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;}
+    .form-group label { min-width: 120px; font-weight: 600; }
+    .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid #ccc; }
+    .form-group input[type='file'] { padding: 0; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
+    th { background: #FF0000; color: #fff; }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.35); align-items: center; justify-content: center;}
+    .modal-content { background: #fff; border-radius: 12px; padding: 2rem 1.5rem; max-width: 600px; width: 98vw; box-shadow: 0 4px 24px rgba(0,0,0,0.13); position: relative; margin: 2rem auto;}
+    .close { position: absolute; right: 18px; top: 10px; font-size: 2rem; color: #FF0000; cursor: pointer; }
+    @media (max-width: 900px) {
+      .form-group { flex-direction: column; }
+      th, td { font-size: 0.9em; }
+      .modal-content { padding: 1rem 0.2rem; }
+    }
+    @media (max-width: 600px) {
+      .modal-content { max-width: 99vw; }
+      table { font-size: 0.9em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="btn" onclick="window.location.href='index.html'" style="margin-bottom: 1rem;">Volver al menú principal</button>
+    <h1>Sistema de Permisos</h1>
+    <div class="menu-nav">
+      <button class="menu-btn" onclick="showPermisoSection('crear')">Crear Solicitud</button>
+      <button class="menu-btn" onclick="showPermisoSection('mis')">Ver Mis Solicitudes</button>
+      <button class="menu-btn" id="btnJefe" style="display:none;" onclick="showPermisoSection('jefe')">Aprobar como Jefe</button>
+      <button class="menu-btn" id="btnRH" style="display:none;" onclick="showPermisoSection('rh')">Aprobar como RH</button>
+    </div>
 
-<h2>Mis Solicitudes</h2>
-<table id="tablaSolicitudes">
-  <thead>
-    <tr>
-      <th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+    <!-- Crear Solicitud -->
+    <div id="crearPermisoSection" class="form-section" style="display:none;">
+      <h2>Crear Solicitud de Permiso</h2>
+      <form id="formPermiso">
+        <div class="form-group">
+          <label>Tipo de permiso:</label>
+          <select name="tipo" required>
+            <option value="Vacaciones">Vacaciones</option>
+            <option value="Ajuste de sueldo">Ajuste de sueldo</option>
+            <option value="Permiso especial">Permiso especial</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Motivo:</label>
+          <textarea name="motivo" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Fecha inicio:</label>
+          <input type="date" name="fecha_inicio">
+        </div>
+        <div class="form-group">
+          <label>Fecha fin:</label>
+          <input type="date" name="fecha_fin">
+        </div>
+        <div class="form-group">
+          <label>Adjuntar archivo:</label>
+          <input type="file" name="archivo_adjunto">
+        </div>
+        <button class="btn" type="submit">Enviar solicitud</button>
+      </form>
+    </div>
 
-<h2>Solicitudes de mi equipo</h2>
-<table id="tablaAprobar">
-  <thead>
-    <tr>
-      <th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Acción</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+    <!-- Mis Solicitudes -->
+    <div id="misPermisosSection" class="table-section" style="display:none;">
+      <h2>Mis Solicitudes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th><th>Historial</th>
+          </tr>
+        </thead>
+        <tbody id="tablaSolicitudes"></tbody>
+      </table>
+    </div>
 
+    <!-- Jefe: Aprobar -->
+    <div id="jefePermisosSection" class="table-section" style="display:none;">
+      <h2>Solicitudes de mi equipo</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Archivo</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tablaAprobarJefe"></tbody>
+      </table>
+    </div>
+
+    <!-- RH: Aprobar -->
+    <div id="rhPermisosSection" class="table-section" style="display:none;">
+      <h2>Solicitudes para Recursos Humanos</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Archivo</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tablaAprobarRH"></tbody>
+      </table>
+    </div>
+
+    <!-- Modal para historial -->
+    <div id="modalHistorial" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="cerrarModalHistorial()">&times;</span>
+        <h2>Historial de Aprobaciones</h2>
+        <div id="historialContenido"></div>
+      </div>
+    </div>
+  </div>
 <script>
-const currentUser = JSON.parse(localStorage.getItem('user'));
+let currentUser = JSON.parse(localStorage.getItem('user'));
 if (!currentUser) window.location.href = 'index.html';
 
-// Llenar select de jefes
-async function cargarJefes() {
-  const res = await fetch('/api/users?role=jefe&department=' + currentUser.department);
-  const jefes = await res.json();
-  const select = document.getElementById('jefeSelect');
-  select.innerHTML = '<option value="">Selecciona un jefe</option>';
-  jefes.forEach(jefe => {
-    select.innerHTML += `<option value="${jefe.id}">${jefe.username}</option>`;
-  });
+// Mostrar botones según rol
+if (currentUser.role === 'supervisor') document.getElementById('btnJefe').style.display = 'inline-block';
+if (currentUser.role === 'rh' || currentUser.department === 'Recursos Humanos') document.getElementById('btnRH').style.display = 'inline-block';
+
+// Mostrar sección por default
+showPermisoSection('crear');
+
+// Navegación entre módulos
+function showPermisoSection(seccion) {
+  document.getElementById('crearPermisoSection').style.display = seccion === 'crear' ? 'block' : 'none';
+  document.getElementById('misPermisosSection').style.display = seccion === 'mis' ? 'block' : 'none';
+  document.getElementById('jefePermisosSection').style.display = seccion === 'jefe' ? 'block' : 'none';
+  document.getElementById('rhPermisosSection').style.display = seccion === 'rh' ? 'block' : 'none';
+  if (seccion === 'mis') cargarSolicitudes();
+  if (seccion === 'jefe') cargarSolicitudesJefe();
+  if (seccion === 'rh') cargarSolicitudesRH();
 }
-cargarJefes();
 
-document.getElementById('formPermiso').onsubmit = async function(e) {
+// --- Empleado: Solicitar permiso ---
+document.getElementById('formPermiso').addEventListener('submit', async function(e) {
   e.preventDefault();
-  const data = Object.fromEntries(new FormData(this));
-  data.user_id = currentUser.id;
-  data.jefe_id = document.getElementById('jefeSelect').value;
-
-  // Validar fechas
-  if (data.fecha_inicio && data.fecha_fin && data.fecha_fin < data.fecha_inicio) {
-    return alert('La fecha de fin no puede ser menor que la de inicio');
-  }
-
-  // Validar días de vacaciones
-  if (data.tipo === 'Vacaciones') {
-    const diasSolicitados = (new Date(data.fecha_fin) - new Date(data.fecha_inicio)) / (1000*60*60*24) + 1;
-    // Suponiendo que tienes el campo vacaciones_disponibles en currentUser
-    if (diasSolicitados > currentUser.vacaciones_disponibles) {
-      return alert('No tienes suficientes días de vacaciones disponibles');
-    }
-    data.dias_solicitados = diasSolicitados;
-  }
-
-  const res = await fetch('/api/permisos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
+  const form = e.target;
+  const data = new FormData(form);
+  data.append('user_id', currentUser.id);
+  const res = await fetch('/api/permisos', { method: 'POST', body: data });
   const json = await res.json();
   alert(json.message || json.error);
   if (json.message) {
-    this.reset();
-    cargarSolicitudes();
+    form.reset();
+    showPermisoSection('mis');
   }
-};
+});
 
+// --- Empleado: Ver mis solicitudes ---
+async function cargarSolicitudes() {
+  const res = await fetch('/api/permisos?user_id=' + currentUser.id);
+  const solicitudes = await res.json();
+  const tbody = document.getElementById('tablaSolicitudes');
+  tbody.innerHTML = '';
+  solicitudes.forEach(s => {
+    tbody.innerHTML += `<tr>
+      <td>${s.tipo}</td>
+      <td>${s.motivo}</td>
+      <td>${(s.fecha_inicio || '') + (s.fecha_fin ? ' - ' + s.fecha_fin : '')}</td>
+      <td>${s.estado}</td>
+      <td>${s.fecha_solicitud ? s.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
+      <td><button class="btn" onclick="verHistorial(${s.id})">Ver</button></td>
+    </tr>`;
+  });
+}
+
+// --- Jefe: Ver y aprobar/rechazar solicitudes de su equipo ---
+async function cargarSolicitudesJefe() {
+  const res = await fetch('/api/permisos?jefe_id=' + currentUser.id);
+  const solicitudes = await res.json();
+  const tbody = document.getElementById('tablaAprobarJefe');
+  tbody.innerHTML = '';
+  solicitudes.forEach(s => {
+    tbody.innerHTML += `<tr>
+      <td>${s.username}</td>
+      <td>${s.tipo}</td>
+      <td>${s.motivo}</td>
+      <td>${(s.fecha_inicio || '') + (s.fecha_fin ? ' - ' + s.fecha_fin : '')}</td>
+      <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
+      <td>
+        <button class="btn" onclick="aprobarJefe(${s.id},'Aprobado')">Aprobar</button>
+        <button class="btn" onclick="aprobarJefe(${s.id},'Rechazado')">Rechazar</button>
+      </td>
+    </tr>`;
+  });
+}
+async function aprobarJefe(id, estado) {
+  const observaciones = prompt('Observaciones:');
+  if (observaciones === null) return;
+  await fetch(`/api/permisos/${id}/aprobar-jefe`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ aprobador_id: currentUser.id, estado, observaciones })
+  });
+  cargarSolicitudesJefe();
+}
+
+// --- RH: Ver y aprobar/rechazar solicitudes ---
+async function cargarSolicitudesRH() {
+  const res = await fetch('/api/permisos?rh=1');
+  const solicitudes = await res.json();
+  const tbody = document.getElementById('tablaAprobarRH');
+  tbody.innerHTML = '';
+  solicitudes.forEach(s => {
+    tbody.innerHTML += `<tr>
+      <td>${s.username}</td>
+      <td>${s.tipo}</td>
+      <td>${s.motivo}</td>
+      <td>${(s.fecha_inicio || '') + (s.fecha_fin ? ' - ' + s.fecha_fin : '')}</td>
+      <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
+      <td>
+        <button class="btn" onclick="aprobarRH(${s.id},'Aprobado')">Aprobar</button>
+        <button class="btn" onclick="aprobarRH(${s.id},'Rechazado')">Rechazar</button>
+      </td>
+    </tr>`;
+  });
+}
+async function aprobarRH(id, estado) {
+  const observaciones = prompt('Observaciones:');
+  if (observaciones === null) return;
+  await fetch(`/api/permisos/${id}/aprobar-rh`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ aprobador_id: currentUser.id, estado, observaciones })
+  });
+  cargarSolicitudesRH();
+}
+
+// --- Modal de historial ---
+async function verHistorial(permiso_id) {
+  const res = await fetch(`/api/permisos/${permiso_id}/historial`);
+  const historial = await res.json();
+  let html = '';
+  if (historial.length === 0) {
+    html = '<p>No hay historial de aprobaciones.</p>';
+  } else {
+    html = '<ul>';
+    historial.forEach(h => {
+      html += `<li>
+        <b>${h.rol_aprobador.toUpperCase()}</b> - ${h.username} - <b>${h.estado}</b>
+        <br>Observaciones: ${h.observaciones || 'Ninguna'}
+        <br>Fecha: ${h.fecha ? h.fecha.substring(0,16).replace('T',' ') : ''}
+      </li>`;
+    });
+    html += '</ul>';
+  }
+  document.getElementById('historialContenido').innerHTML = html;
+  document.getElementById('modalHistorial').style.display = 'flex';
+}
+function cerrarModalHistorial() {
+  document.getElementById('modalHistorial').style.display = 'none';
+}
+window.onclick = function(event) {
+  const modal = document.getElementById('modalHistorial');
+  if (event.target === modal) modal.style.display = 'none';
+}
 </script>
+</body>
+</html>
