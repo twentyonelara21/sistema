@@ -328,19 +328,86 @@
       }
     }
 
-    async function editarUsuario(id) {
-      const adminId = currentUser.id;
-      const res = await fetch(`/api/users/${id}?adminId=${adminId}`);
-      const user = await res.json();
-      usuarioEditandoId = id;
-      document.getElementById('registerUsername').value = user.username;
-      document.getElementById('registerPassword').value = ''; // No mostrar la contraseña
-      document.getElementById('registerEmail').value = user.email;
-      document.getElementById('registerDepartment').value = user.department;
-      document.getElementById('registerRole').value = user.role;
-      document.getElementById('registerJefe').value = user.jefe_inmediato_id || '';
-      document.getElementById('registerVacaciones').value = user.dias_vacaciones || 0;
-      document.getElementById('formSection').style.display = 'block';
+   async function editarUsuario(id) {
+     const adminId = currentUser.id;
+     const res = await fetch(`/api/users/${id}?adminId=${adminId}`);
+     const user = await res.json();
+     usuarioEditandoId = id;
+     document.getElementById('registerUsername').value = user.username;
+     document.getElementById('registerPassword').value = '';
+     document.getElementById('registerEmail').value = user.email;
+     document.getElementById('registerDepartment').value = user.department;
+     document.getElementById('registerRole').value = user.role;
+     document.getElementById('registerJefe').value = user.jefe_inmediato_id || '';
+     document.getElementById('registerVacaciones').value = user.dias_vacaciones || 0;
+     document.getElementById('formSection').style.display = 'block';
+     document.querySelector('#formSection button[onclick="register()"]').textContent = 'Actualizar Usuario';
+   }
+
+    async function register() {
+      const username = document.getElementById('registerUsername').value;
+      const password = document.getElementById('registerPassword').value;
+      const email = document.getElementById('registerEmail').value;
+      const department = document.getElementById('registerDepartment').value;
+      const role = document.getElementById('registerRole').value;
+      const jefe = document.getElementById('registerJefe').value;
+      const vacaciones = document.getElementById('registerVacaciones').value;
+      const error = document.getElementById('registerError');
+      error.textContent = '';
+
+      // Validaciones básicas
+      if (!username || !email || !department || !role) {
+        error.textContent = 'Completa todos los campos obligatorios';
+        return;
+      }
+
+      let url = '/api/users';
+      let method = 'POST';
+      let body = {
+        username,
+        password,
+        email,
+        department,
+        role,
+        jefe_inmediato_id: jefe,
+        dias_vacaciones: vacaciones,
+        adminId: currentUser.id // importante para autorización
+      };
+
+      if (usuarioEditandoId) {
+        url = `/api/users/${usuarioEditandoId}`;
+        method = 'PUT';
+        if (!password) delete body.password; // No actualizar si está vacío
+      }
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.error) {
+          error.textContent = data.error;
+        } else {
+          alert(usuarioEditandoId ? 'Usuario actualizado' : 'Usuario creado');
+          usuarioEditandoId = null;
+          cargarUsuarios();
+          // Limpia el formulario si quieres
+          document.getElementById('registerUsername').value = '';
+          document.getElementById('registerPassword').value = '';
+          document.getElementById('registerEmail').value = '';
+          document.getElementById('registerDepartment').value = '';
+          document.getElementById('registerRole').value = '';
+          document.getElementById('registerJefe').value = '';
+          document.getElementById('registerVacaciones').value = 0;
+          error.textContent = '';
+          // Devuelve el texto del botón a "Crear Usuario"
+          document.querySelector('#formSection button[onclick="register()"]').textContent = 'Crear Usuario';
+        }
+      } catch (err) {
+        error.textContent = 'Error en el servidor';
+      }
     }
 
     async function cargarTodosTickets() {
