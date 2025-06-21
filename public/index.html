@@ -329,7 +329,8 @@
     }
 
     async function editarUsuario(id) {
-      const res = await fetch(`/api/users/${id}`);
+      const adminId = currentUser.id;
+      const res = await fetch(`/api/users/${id}?adminId=${adminId}`);
       const user = await res.json();
       usuarioEditandoId = id;
       document.getElementById('registerUsername').value = user.username;
@@ -390,7 +391,7 @@
         console.error(permisos);
       }
     }
-    
+
   </script>
 </body>
 </html>
