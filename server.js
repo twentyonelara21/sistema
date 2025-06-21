@@ -352,24 +352,35 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// Endpoint: Obtener un usuario por ID (admin only)
-app.get('/api/users/:id', async (req, res) => {
+// Actualizar usuario (admin only)
+app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { adminId } = req.query;
+  const { username, password, email, department, role, jefe_inmediato_id, dias_vacaciones, adminId } = req.body;
   try {
     // Verifica que el adminId sea un admin válido
     const [admins] = await pool.query('SELECT * FROM users WHERE id = ? AND role = "admin"', [adminId]);
     if (admins.length === 0) {
       return res.status(403).json({ error: 'No autorizado' });
     }
-    // Busca el usuario
-    const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-    if (users.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    // Si hay contraseña, actualiza también la contraseña
+    let query = `UPDATE users SET username=?, email=?, department=?, role=?, jefe_inmediato_id=?, dias_vacaciones=?`;
+    let params = [username, email, department, role, jefe_inmediato_id || null, dias_vacaciones || 0];
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      query += `, password=?`;
+      params.push(hashedPassword);
     }
-    res.json(users[0]);
+
+    query += ` WHERE id=?`;
+    params.push(id);
+
+    await pool.query(query, params);
+
+    res.json({ message: 'Usuario actualizado correctamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener usuario' });
+    res.status(500).json({ error: 'Error al actualizar usuario' });
   }
 });
 
