@@ -232,13 +232,19 @@
 
 
     async function fillJefesSelect() {
-      const res = await fetch('/api/users'); // O el endpoint que tengas para listar usuarios
+      const adminId = currentUser.id;
+      const res = await fetch(`/api/users?adminId=${adminId}`);
       const users = await res.json();
       const select = document.getElementById('registerJefe');
       select.innerHTML = '<option value="">Sin jefe</option>';
-      users.forEach(u => {
-        select.innerHTML += `<option value="${u.id}">${u.username} (${u.department})</option>`;
-      });
+      if (Array.isArray(users)) {
+        users.forEach(u => {
+          select.innerHTML += `<option value="${u.id}">${u.username} (${u.department})</option>`;
+        });
+      } else {
+        select.innerHTML += `<option value="">Error al cargar usuarios</option>`;
+        console.error(users);
+      }
     }
 
     function showAdminTickets() {
@@ -282,26 +288,32 @@
     }
 
     async function cargarUsuarios() {
-      const res = await fetch('/api/users');
+      const adminId = currentUser.id;
+      const res = await fetch(`/api/users?adminId=${adminId}`);
       const users = await res.json();
       const tbody = document.getElementById('usersTableBody');
       tbody.innerHTML = '';
-      users.forEach(u => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${u.username}</td>
-            <td>${u.email}</td>
-            <td>${u.department}</td>
-            <td>${u.role}</td>
-            <td>${u.jefe_nombre || ''}</td>
-            <td>${u.dias_vacaciones || 0}</td>
-            <td>
-              <button onclick="editarUsuario('${u.id}')">Editar</button>
-              <button onclick="eliminarUsuario('${u.id}')">Eliminar</button>
-            </td>
-          </tr>
-        `;
-      });
+      if (Array.isArray(users)) {
+        users.forEach(u => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${u.username}</td>
+              <td>${u.email}</td>
+              <td>${u.department}</td>
+              <td>${u.role}</td>
+              <td>${u.jefe_nombre || ''}</td>
+              <td>${u.dias_vacaciones || 0}</td>
+              <td>
+                <button onclick="editarUsuario('${u.id}')">Editar</button>
+                <button onclick="eliminarUsuario('${u.id}')">Eliminar</button>
+              </td>
+            </tr>
+          `;
+        });
+      } else {
+        tbody.innerHTML = `<tr><td colspan="7">No autorizado o error en la petición</td></tr>`;
+        console.error(users);
+      }
     }
 
     async function eliminarUsuario(id) {
@@ -331,41 +343,54 @@
     }
 
     async function cargarTodosTickets() {
-      const res = await fetch('/api/tickets?all=1'); // Endpoint para todos los tickets
+      const userId = currentUser.id;
+      const res = await fetch(`/api/tickets?all=1&userId=${userId}`);
       const tickets = await res.json();
       const tbody = document.getElementById('adminTicketList');
       tbody.innerHTML = '';
-      tickets.forEach(t => {
-        tbody.innerHTML += `<tr>
-          <td>${t.id}</td>
-          <td>${t.requester}</td>
-          <td>${t.department}</td>
-          <td>${t.created_at}</td>
-          <td>${t.priority}</td>
-          <td>${t.category}</td>
-          <td>${t.status}</td>
-          <td>${t.assigned_username || 'No asignado'}</td>
-        </tr>`;
-      });
+      if (Array.isArray(tickets)) {
+        tickets.forEach(t => {
+          tbody.innerHTML += `<tr>
+            <td>${t.id}</td>
+            <td>${t.requester}</td>
+            <td>${t.department}</td>
+            <td>${t.created_at}</td>
+            <td>${t.priority}</td>
+            <td>${t.category}</td>
+            <td>${t.status}</td>
+            <td>${t.assigned_username || 'No asignado'}</td>
+          </tr>`;
+        });
+      } else {
+        tbody.innerHTML = `<tr><td colspan="8">No autorizado o error en la petición</td></tr>`;
+        console.error(tickets);
+      }
     }
 
     async function cargarTodosPermisos() {
-      const res = await fetch('/api/permisos?all=1'); // Endpoint para todos los permisos
+      const userId = currentUser.id;
+      const res = await fetch(`/api/permisos?all=1&user_id=${userId}`);
       const permisos = await res.json();
       const tbody = document.getElementById('adminPermisoList');
       tbody.innerHTML = '';
-      permisos.forEach(p => {
-        tbody.innerHTML += `<tr>
-          <td>${p.id}</td>
-          <td>${p.username}</td>
-          <td>${p.tipo}</td>
-          <td>${p.motivo}</td>
-          <td>${(p.fecha_inicio || '') + (p.fecha_fin ? ' - ' + p.fecha_fin : '')}</td>
-          <td>${p.estado}</td>
-          <td>${p.fecha_solicitud ? p.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
-        </tr>`;
-      });
+      if (Array.isArray(permisos)) {
+        permisos.forEach(p => {
+          tbody.innerHTML += `<tr>
+            <td>${p.id}</td>
+            <td>${p.username}</td>
+            <td>${p.tipo}</td>
+            <td>${p.motivo}</td>
+            <td>${(p.fecha_inicio || '') + (p.fecha_fin ? ' - ' + p.fecha_fin : '')}</td>
+            <td>${p.estado}</td>
+            <td>${p.fecha_solicitud ? p.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
+          </tr>`;
+        });
+      } else {
+        tbody.innerHTML = `<tr><td colspan="7">No autorizado o error en la petición</td></tr>`;
+        console.error(permisos);
+      }
     }
+    
   </script>
 </body>
 </html>
