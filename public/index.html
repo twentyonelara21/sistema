@@ -39,20 +39,116 @@
     </div>
 
     <!-- Menú Principal -->
-    <div id="mainMenu" class="section" style="display: none;">
-      <h1>Menú Principal</h1>
-      <p>Bienvenido, <span id="menuUser"></span> (<span id="menuDepartment"></span>)</p>
-      <button class="logout" onclick="logout()">Cerrar Sesión</button>
-      <div class="menu-buttons">
-        <button onclick="window.location.href='tickets.html'">Tickets</button>
-        <button onclick="window.location.href='permiso.html'">Permisos</button>
-        <button onclick="window.location.href='inventario.html'">Inventario</button>
-      </div>
+  <div id="mainMenu" class="section" style="display: none;">
+    <h1>Menú Principal</h1>
+    <p>Bienvenido, <span id="menuUser"></span> (<span id="menuDepartment"></span>)</p>
+    <button class="logout" onclick="logout()">Cerrar Sesión</button>
+    <div class="menu-buttons">
+      <button onclick="window.location.href='tickets.html'">Tickets</button>
+      <button onclick="window.location.href='permiso.html'">Permisos</button>
+      <button onclick="window.location.href='inventario.html'">Inventario</button>
+      <button id="btnAdminUsers" style="display:none;" onclick="showAdminSection()">Gestión de Usuarios</button>
+      <button id="btnAdminTickets" style="display:none;" onclick="showAdminTickets()">Todos los Tickets</button>
+      <button id="btnAdminPermisos" style="display:none;" onclick="showAdminPermisos()">Todos los Permisos</button>
     </div>
   </div>
 
+  <div id="formSection" class="section" style="display: none;">
+    <div class="form-section">
+      <h2>Crear Usuario</h2>
+      <div class="form-group">
+        <label for="registerUsername">Usuario *</label>
+        <input type="text" id="registerUsername" placeholder="Nombre de usuario" required>
+      </div>
+      <div class="form-group">
+        <label for="registerPassword">Contraseña *</label>
+        <input type="password" id="registerPassword" placeholder="Contraseña" required>
+      </div>
+      <div class="form-group">
+        <label for="registerEmail">Correo Electrónico *</label>
+        <input type="email" id="registerEmail" placeholder="correo@ejemplo.com" required>
+      </div>
+      <div class="form-group">
+        <label for="registerDepartment">Departamento *</label>
+        <select id="registerDepartment" required>
+          <option value="Mantenimiento">Mantenimiento</option>
+          <option value="Sistemas">Sistemas</option>
+          <option value="Recursos Humanos">Recursos Humanos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="registerRole">Rol *</label>
+        <select id="registerRole" required>
+          <option value="user">Usuario</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="rh">RH</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="registerJefe">Jefe inmediato</label>
+        <select id="registerJefe">
+          <option value="">Sin jefe</option>
+          <!-- Opciones llenadas dinámicamente -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="registerVacaciones">Días de vacaciones</label>
+        <input type="number" id="registerVacaciones" min="0" value="0">
+      </div>
+      <button onclick="register()">Crear Usuario</button>
+      <p class="error" id="registerError"></p>
+    </div>
+  </div>
+
+  <div id="adminUsersSection" class="section" style="display: none;">
+    <h2>Gestión de Usuarios</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Correo</th>
+          <th>Departamento</th>
+          <th>Rol</th>
+          <th>Jefe</th>
+          <th>Días Vacaciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Todos los Tickets (solo admin) -->
+  <div id="adminTicketsSection" class="section" style="display: none;">
+    <h2>Todos los Tickets</h2>
+    <button onclick="backToMenu()">Volver al Menú</button>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Solicitante</th><th>Departamento</th><th>Fecha</th><th>Prioridad</th><th>Categoría</th><th>Estado</th><th>Asignado a</th>
+        </tr>
+      </thead>
+      <tbody id="adminTicketList"></tbody>
+    </table>
+  </div>
+
+  <!-- Todos los Permisos (solo admin) -->
+  <div id="adminPermisosSection" class="section" style="display: none;">
+    <h2>Todos los Permisos</h2>
+    <button onclick="backToMenu()">Volver al Menú</button>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th>
+        </tr>
+      </thead>
+      <tbody id="adminPermisoList"></tbody>
+    </table>
+  </div>
+
   <script>
-    let currentUser = null;
+    let usuarioEditandoId = null;
 
     function showForgotPassword() {
       document.getElementById('loginSection').style.display = 'none';
@@ -110,12 +206,18 @@
         }
         currentUser = data;
         localStorage.setItem('user', JSON.stringify(currentUser));
-        document.getElementById('menuUser').textContent = data.username;
-        document.getElementById('menuDepartment').textContent = data.department;
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('mainMenu').style.display = 'block';
+        mostrarMenuPrincipal();
       } catch (err) {
         error.textContent = 'Error en el servidor';
+      }
+    }
+
+    // Si ya hay usuario logueado, muestra el menú principal directamente
+    window.onload = function() {
+      const user = localStorage.getItem('user');
+      if (user) {
+        currentUser = JSON.parse(user);
+        mostrarMenuPrincipal();
       }
     }
 
@@ -128,16 +230,141 @@
       document.getElementById('loginPassword').value = '';
     }
 
-    // Si ya hay usuario logueado, muestra el menú principal directamente
-    window.onload = function() {
-      const user = localStorage.getItem('user');
-      if (user) {
-        currentUser = JSON.parse(user);
-        document.getElementById('menuUser').textContent = currentUser.username;
-        document.getElementById('menuDepartment').textContent = currentUser.department;
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('mainMenu').style.display = 'block';
+
+    async function fillJefesSelect() {
+      const res = await fetch('/api/users'); // O el endpoint que tengas para listar usuarios
+      const users = await res.json();
+      const select = document.getElementById('registerJefe');
+      select.innerHTML = '<option value="">Sin jefe</option>';
+      users.forEach(u => {
+        select.innerHTML += `<option value="${u.id}">${u.username} (${u.department})</option>`;
+      });
+    }
+
+    function showAdminTickets() {
+      document.getElementById('mainMenu').style.display = 'none';
+      document.getElementById('adminTicketsSection').style.display = 'block';
+      cargarTodosTickets();
+    }
+    function showAdminPermisos() {
+      document.getElementById('mainMenu').style.display = 'none';
+      document.getElementById('adminPermisosSection').style.display = 'block';
+      cargarTodosPermisos();
+    }
+
+    function showAdminSection() {
+      document.getElementById('mainMenu').style.display = 'none';
+      document.getElementById('formSection').style.display = 'block';
+      document.getElementById('adminUsersSection').style.display = 'block';
+      fillJefesSelect();
+      cargarUsuarios();
+    }
+
+    function backToMenu() {
+      document.getElementById('adminTicketsSection').style.display = 'none';
+      document.getElementById('adminPermisosSection').style.display = 'none';
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('adminUsersSection').style.display = 'none';
+      document.getElementById('mainMenu').style.display = 'block';
+    }
+
+    // Al mostrar el menú principal, muestra los botones de admin si corresponde
+    function mostrarMenuPrincipal() {
+      document.getElementById('menuUser').textContent = currentUser.username;
+      document.getElementById('menuDepartment').textContent = currentUser.department;
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('mainMenu').style.display = 'block';
+      if (currentUser.role === 'admin') {
+        document.getElementById('btnAdminUsers').style.display = 'inline-block';
+        document.getElementById('btnAdminTickets').style.display = 'inline-block';
+        document.getElementById('btnAdminPermisos').style.display = 'inline-block';
       }
+    }
+
+    async function cargarUsuarios() {
+      const res = await fetch('/api/users');
+      const users = await res.json();
+      const tbody = document.getElementById('usersTableBody');
+      tbody.innerHTML = '';
+      users.forEach(u => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${u.username}</td>
+            <td>${u.email}</td>
+            <td>${u.department}</td>
+            <td>${u.role}</td>
+            <td>${u.jefe_nombre || ''}</td>
+            <td>${u.dias_vacaciones || 0}</td>
+            <td>
+              <button onclick="editarUsuario('${u.id}')">Editar</button>
+              <button onclick="eliminarUsuario('${u.id}')">Eliminar</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function eliminarUsuario(id) {
+      if (!confirm('¿Seguro que deseas eliminar este usuario?')) return;
+      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        alert('Usuario eliminado correctamente');
+        cargarUsuarios();
+      } else {
+        alert('Error al eliminar usuario');
+      }
+    }
+
+    async function editarUsuario(id) {
+      const res = await fetch(`/api/users/${id}`);
+      const user = await res.json();
+      usuarioEditandoId = id;
+      document.getElementById('registerUsername').value = user.username;
+      document.getElementById('registerPassword').value = ''; // No mostrar la contraseña
+      document.getElementById('registerEmail').value = user.email;
+      document.getElementById('registerDepartment').value = user.department;
+      document.getElementById('registerRole').value = user.role;
+      document.getElementById('registerJefe').value = user.jefe_inmediato_id || '';
+      document.getElementById('registerVacaciones').value = user.dias_vacaciones || 0;
+      document.getElementById('formSection').style.display = 'block';
+    }
+
+    async function cargarTodosTickets() {
+      const res = await fetch('/api/tickets?all=1'); // Endpoint para todos los tickets
+      const tickets = await res.json();
+      const tbody = document.getElementById('adminTicketList');
+      tbody.innerHTML = '';
+      tickets.forEach(t => {
+        tbody.innerHTML += `<tr>
+          <td>${t.id}</td>
+          <td>${t.requester}</td>
+          <td>${t.department}</td>
+          <td>${t.created_at}</td>
+          <td>${t.priority}</td>
+          <td>${t.category}</td>
+          <td>${t.status}</td>
+          <td>${t.assigned_username || 'No asignado'}</td>
+        </tr>`;
+      });
+    }
+
+    async function cargarTodosPermisos() {
+      const res = await fetch('/api/permisos?all=1'); // Endpoint para todos los permisos
+      const permisos = await res.json();
+      const tbody = document.getElementById('adminPermisoList');
+      tbody.innerHTML = '';
+      permisos.forEach(p => {
+        tbody.innerHTML += `<tr>
+          <td>${p.id}</td>
+          <td>${p.username}</td>
+          <td>${p.tipo}</td>
+          <td>${p.motivo}</td>
+          <td>${(p.fecha_inicio || '') + (p.fecha_fin ? ' - ' + p.fecha_fin : '')}</td>
+          <td>${p.estado}</td>
+          <td>${p.fecha_solicitud ? p.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
+        </tr>`;
+      });
     }
   </script>
 </body>
