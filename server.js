@@ -352,6 +352,27 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// Obtener un usuario por ID (admin only)
+app.get('/api/users/:id', async (req, res) => {
+  const { id } = req.params;
+  const { adminId } = req.query;
+  try {
+    // Verifica que el adminId sea un admin válido
+    const [admins] = await pool.query('SELECT * FROM users WHERE id = ? AND role = "admin"', [adminId]);
+    if (admins.length === 0) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    // Busca el usuario
+    const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    res.json(users[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener usuario' });
+  }
+});
+
 // Actualizar usuario (admin only)
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
