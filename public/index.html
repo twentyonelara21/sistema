@@ -151,6 +151,12 @@
   <script>
     let usuarioEditandoId = null;
 
+    function formatearFecha(fecha) {
+      if (!fecha) return '';
+      const d = new Date(fecha);
+      return d.toLocaleString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
     function showForgotPassword() {
       document.getElementById('loginSection').style.display = 'none';
       document.getElementById('forgotPasswordSection').style.display = 'block';
