@@ -1572,18 +1572,19 @@ app.post('/api/permisos', uploadPermiso.single('archivo_adjunto'), async (req, r
 
 // Para el solicitante
 app.get('/api/permisos', async (req, res) => {
-  const { user_id, jefe_id, rh } = req.query;
+  const { user_id, jefe_id, rh, permiso_id } = req.query;
   let sql = `SELECT p.*, u.username FROM permisos p JOIN users u ON p.user_id = u.id`;
   let params = [];
-  if (user_id) {
+  if (permiso_id) {
+    sql += ` WHERE p.id = ?`;
+    params.push(permiso_id);
+  } else if (user_id) {
     sql += ` WHERE p.user_id = ?`;
     params.push(user_id);
   } else if (jefe_id) {
-    // Solicitudes de empleados cuyo jefe_inmediato_id = jefe_id
     sql += ` WHERE u.jefe_inmediato_id = ? AND p.estado = 'Pendiente'`;
     params.push(jefe_id);
   } else if (rh) {
-    // Solicitudes ya aprobadas por jefe, pendientes de RH
     sql += ` WHERE p.estado = 'Aprobado Jefe'`;
   }
   sql += ` ORDER BY p.fecha_solicitud DESC`;
