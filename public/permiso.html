@@ -177,7 +177,7 @@ async function cargarSolicitudes() {
       <td>${s.username}</td>
       <td>${s.tipo}</td>
       <td>${s.motivo}</td>
-      <td>${(s.fecha_inicio || '') + (s.fecha_fin ? ' - ' + s.fecha_fin : '')}</td>
+      <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
       <td>${s.estado}</td>
       <td>${s.fecha_solicitud ? s.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
       <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
@@ -197,7 +197,7 @@ async function cargarSolicitudesJefe() {
       <td>${s.username}</td>
       <td>${s.tipo}</td>
       <td>${s.motivo}</td>
-      <td>${(s.fecha_inicio || '') + (s.fecha_fin ? ' - ' + s.fecha_fin : '')}</td>
+      <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
       <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
       <td>
         <button class="btn" onclick="aprobarJefe(${s.id},'Aprobado')">Aprobar</button>
