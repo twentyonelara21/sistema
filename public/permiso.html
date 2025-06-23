@@ -276,7 +276,7 @@ async function aprobarRH(id, estado) {
             <li><b>Motivo:</b> ${solicitud.motivo}</li>
             <li><b>Fechas:</b> ${formatearFecha(solicitud.fecha_inicio)}${solicitud.fecha_fin ? ' - ' + formatearFecha(solicitud.fecha_fin) : ''}</li>
             <li><b>Estado actual:</b> ${solicitud.estado}</li>
-            <li><b>Fecha de solicitud:</b> ${formatearFecha(solicitud.fecha_solicitud)}</li>
+            <li><b>Fecha de solicitud:</b> ${formatearFecha(solicitud.fecha_solicitud_ajustada)}</li>
             ${solicitud.archivo_adjunto ? `<li><b>Archivo:</b> <a href="${solicitud.archivo_adjunto}" target="_blank">Ver</a></li>` : ''}
         </ul>
         <hr>
