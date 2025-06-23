@@ -336,18 +336,22 @@ app.post('/api/users', async (req, res) => {
 // Endpoint: List users (admin only)
 app.get('/api/users', async (req, res) => {
   const { adminId } = req.query;
-  console.log('Listando usuarios, adminId:', adminId);
   try {
     const [admins] = await pool.query('SELECT * FROM users WHERE id = ? AND role = "admin"', [adminId]);
     if (admins.length === 0) {
-      console.log('No autorizado para listar usuarios, adminId:', adminId);
       return res.status(403).json({ error: 'No autorizado' });
     }
-    const [users] = await pool.query('SELECT id, username, email, department, role FROM users');
-    console.log('Usuarios listados:', users.length);
+    // Trae también jefe_inmediato_id y dias_vacaciones
+    const [users] = await pool.query(`
+      SELECT 
+        u.id, u.username, u.email, u.department, u.role, 
+        u.jefe_inmediato_id, u.dias_vacaciones,
+        j.username AS jefe_nombre
+      FROM users u
+      LEFT JOIN users j ON u.jefe_inmediato_id = j.id
+    `);
     res.json(users);
   } catch (error) {
-    console.error('Error en /api/users:', error);
     res.status(500).json({ error: 'Error al listar usuarios' });
   }
 });
