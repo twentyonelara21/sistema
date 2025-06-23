@@ -449,9 +449,9 @@
             <td>${p.username}</td>
             <td>${p.tipo}</td>
             <td>${p.motivo}</td>
-            <td>${(p.fecha_inicio || '') + (p.fecha_fin ? ' - ' + p.fecha_fin : '')}</td>
+            <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
             <td>${p.estado}</td>
-            <td>${p.fecha_solicitud ? p.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
+            <td>${p.fecha_solicitud_ajustada || ''}</td>
           </tr>`;
         });
       } else {

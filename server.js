@@ -1572,12 +1572,14 @@ app.post('/api/permisos', uploadPermiso.single('archivo_adjunto'), async (req, r
 
 // Para el solicitante
 app.get('/api/permisos', async (req, res) => {
-  const { user_id, jefe_id, rh, permiso_id } = req.query;
+  const { user_id, jefe_id, rh, permiso_id, all } = req.query;
   let sql = `SELECT p.*, u.username, DATE_FORMAT(DATE_SUB(p.fecha_solicitud, INTERVAL 1 HOUR), '%Y-%m-%d %H:%i:%s') AS fecha_solicitud_ajustada 
   FROM permisos p 
   JOIN users u ON p.user_id = u.id`;
   let params = [];
-  if (permiso_id) {
+  if (all) {
+    // No agregues ningún WHERE, trae todos los permisos
+  } else if (permiso_id) {
     sql += ` WHERE p.id = ?`;
     params.push(permiso_id);
   } else if (user_id) {
