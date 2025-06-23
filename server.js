@@ -27,6 +27,15 @@ const storage = new CloudinaryStorage({
   }
 });
 
+const permisoStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'permisos',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf']
+  }
+});
+const uploadPermiso = multer({ storage: permisoStorage });
+
 // Multer para inventario (usa Cloudinary)
 const inventarioStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -1546,8 +1555,9 @@ app.get('/api/dashboard/inventario/estatus', async (req, res) => {
 
 //Permisos
 //Crear solicitud de permiso
-app.post('/api/permisos', async (req, res) => {
-  const { user_id, tipo, motivo, fecha_inicio, fecha_fin, archivo_adjunto } = req.body;
+app.post('/api/permisos', uploadPermiso.single('archivo_adjunto'), async (req, res) => {
+  const { user_id, tipo, motivo, fecha_inicio, fecha_fin } = req.body;
+  const archivo_adjunto = req.file ? req.file.path : null;
   try {
     await pool.query(
       `INSERT INTO permisos (user_id, tipo, motivo, fecha_inicio, fecha_fin, archivo_adjunto)
