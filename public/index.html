@@ -455,7 +455,7 @@
             <td>${p.username}</td>
             <td>${p.tipo}</td>
             <td>${p.motivo}</td>
-            <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
+            <td>${(p.fecha_inicio || '') + (p.fecha_fin ? ' - ' + p.fecha_fin : '')}</td>
             <td>${p.estado}</td>
             <td>${p.fecha_solicitud_ajustada || ''}</td>
           </tr>`;
