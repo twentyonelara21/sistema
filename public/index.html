@@ -51,6 +51,7 @@
       <button id="btnAdminTickets" style="display:none;" onclick="showAdminTickets()">Todos los Tickets</button>
       <button id="btnAdminPermisos" style="display:none;" onclick="showAdminPermisos()">Todos los Permisos</button>
       <button id="btnRHChecador" style="display:none;" onclick="window.location.href='dashboard_checador.html'">Ver Dashboard de checadas</button>
+      <button id="btnDashboard" style="display:none;" onclick="window.location.href='dashboard.html'">Dashboard General</button>
     </div>
   </div>
 
@@ -288,22 +289,27 @@
       document.getElementById('menuDepartment').textContent = currentUser.department;
       document.getElementById('loginSection').style.display = 'none';
       document.getElementById('mainMenu').style.display = 'block';
-      if (currentUser.role === 'admin') {
-        document.getElementById('btnAdminUsers').style.display = 'inline-block';
-        document.getElementById('btnAdminTickets').style.display = 'inline-block';
-        document.getElementById('btnAdminPermisos').style.display = 'inline-block';
-      }
-      // Mostrar botón de checador solo para RH
+
+      // Inventario solo para Sistemas
       if (currentUser.department === 'Sistemas') {
         document.getElementById('btnInventario').style.display = 'inline-block';
       } else {
         document.getElementById('btnInventario').style.display = 'none';
       }
-      // Mostrar botón de checador solo para RH
-      if (currentUser.role === 'RH') {
-        document.getElementById('btnRHChecador').style.display = 'inline-block';
+
+      // Mostrar secciones administrativas y dashboards para admin y RH
+      if (currentUser.role === 'admin' || currentUser.role === 'RH') {
+        document.getElementById('btnAdminUsers').style.display = 'inline-block';      // Gestión de usuarios
+        document.getElementById('btnAdminTickets').style.display = 'inline-block';    // Todos los tickets
+        document.getElementById('btnAdminPermisos').style.display = 'inline-block';   // Todos los permisos
+        document.getElementById('btnRHChecador').style.display = 'inline-block';      // Dashboard de checadas
+        document.getElementById('btnDashboard').style.display = 'inline-block';       // Dashboard general
       } else {
+        document.getElementById('btnAdminUsers').style.display = 'none';
+        document.getElementById('btnAdminTickets').style.display = 'none';
+        document.getElementById('btnAdminPermisos').style.display = 'none';
         document.getElementById('btnRHChecador').style.display = 'none';
+        document.getElementById('btnDashboard').style.display = 'none';
       }
     }
 
