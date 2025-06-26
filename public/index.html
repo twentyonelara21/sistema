@@ -155,7 +155,7 @@
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th><th>Ver</th>
+          <th>ID</th><th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th><th>Ver</th><th>PDF</th>
         </tr>
       </thead>
       <tbody id="adminPermisoList"></tbody>
@@ -555,6 +555,9 @@
             <td>${p.estado}</td>
             <td>${p.fecha_solicitud_ajustada || ''}</td>
             <td><button class="btn" onclick="verHistorial(${p.id})">Ver</button></td>
+            <td>
+              ${p.pdf_url ? `<a class="btn" href="${p.pdf_url}" target="_blank" download>Descargar PDF</a>` : ''}
+            </td>
           </tr>`;
         });
       } else {

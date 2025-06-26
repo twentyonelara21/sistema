@@ -751,6 +751,97 @@ async function generarPDFTicket(ticket, history) {
   });
 }
 
+async function generarPDFPermiso(permiso, historial) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 60 });
+    const buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', () => {
+      const pdfData = Buffer.concat(buffers);
+      resolve(pdfData);
+    });
+
+    // Título
+    doc
+      .fontSize(22)
+      .fillColor('#FF0000')
+      .text('Permiso Aprobado', { align: 'center' });
+    doc.moveDown(1);
+
+    // Datos principales
+    doc
+      .fontSize(13)
+      .fillColor('#222')
+      .font('Helvetica-Bold')
+      .text('Datos del Permiso', { align: 'center', underline: true });
+    doc.moveDown(1);
+
+    const datos = [
+      `ID: ${permiso.id}`,
+      `Empleado: ${permiso.username}`,
+      `Tipo: ${permiso.tipo}`,
+      `Motivo: ${permiso.motivo}`,
+      `Fechas: ${moment(permiso.fecha_inicio).format('DD/MM/YYYY')} - ${moment(permiso.fecha_fin).format('DD/MM/YYYY')}`,
+      `Estado final: ${permiso.estado}`,
+      `Fecha de solicitud: ${moment(permiso.fecha_solicitud).format('DD/MM/YYYY HH:mm')}`
+    ];
+    datos.forEach(linea => {
+      doc.font('Helvetica').fontSize(12).fillColor('#222').text(linea, { align: 'center' });
+      doc.moveDown(0.5);
+    });
+
+    doc.moveDown(1);
+
+    // Historial de aprobaciones
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(14)
+      .fillColor('#FF0000')
+      .text('Historial de Aprobaciones', { align: 'center', underline: true });
+    doc.moveDown(1);
+
+    if (!historial || historial.length === 0) {
+      doc.font('Helvetica').fontSize(12).fillColor('#222').text('No hay historial.', { align: 'center' });
+    } else {
+      historial.forEach(h => {
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(12)
+          .fillColor('#222')
+          .text(
+            `- ${h.rol_aprobador.toUpperCase()} | ${h.username} | ${h.estado}`,
+            { align: 'center' }
+          );
+        doc
+          .font('Helvetica')
+          .fontSize(11)
+          .fillColor('#444')
+          .text(`Obs: ${h.observaciones || 'Ninguna'}`, { align: 'center' });
+        doc
+          .font('Helvetica')
+          .fontSize(10)
+          .fillColor('#888')
+          .text(`Fecha: ${moment(h.fecha).format('DD/MM/YYYY HH:mm')}`, { align: 'center' });
+        doc.moveDown(1);
+      });
+    }
+
+    // Pie de página
+    doc.moveDown(2);
+    doc
+      .fontSize(9)
+      .fillColor('#888')
+      .text(
+        'Reporte generado automáticamente por el Sistema de Permisos',
+        60,
+        770,
+        { align: 'center' }
+      );
+
+    doc.end();
+  });
+}
+
 async function generarResponsivaPDF(equipo) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50 });
@@ -1655,10 +1746,49 @@ app.put('/api/permisos/:id/aprobar-rh', async (req, res) => {
        VALUES (?, ?, 'rh', ?, ?)`,
       [id, aprobador_id, estado, observaciones]
     );
+
+    // --- GENERAR PDF SI ES APROBADO POR RH ---
+    if (estado === 'Aprobado') {
+      // 1. Obtener datos completos del permiso y usuario
+      const [permisoRows] = await pool.query(
+        `SELECT p.*, u.username FROM permisos p JOIN users u ON p.user_id = u.id WHERE p.id = ?`, [id]
+      );
+      const permisoCompleto = permisoRows[0];
+
+      // 2. Obtener historial
+      const [historial] = await pool.query(
+        `SELECT h.*, u.username FROM permisos_historial h JOIN users u ON h.aprobador_id = u.id WHERE h.permiso_id = ? ORDER BY h.fecha ASC`, [id]
+      );
+
+      // 3. Generar PDF
+      const pdfBuffer = await generarPDFPermiso(permisoCompleto, historial);
+
+      // 4. Subir a Cloudinary
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { resource_type: 'raw', folder: 'permisos', public_id: `permiso_${id}_aprobado` },
+        async (error, result) => {
+          if (!error && result && result.secure_url) {
+            // 5. Guardar la URL en la tabla permisos
+            await pool.query('UPDATE permisos SET pdf_url = ? WHERE id = ?', [result.secure_url, id]);
+          }
+        }
+      );
+      stream.Readable.from(pdfBuffer).pipe(uploadStream);
+    }
+
     res.json({ message: 'Respuesta registrada' });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar solicitud' });
   }
+});
+
+app.get('/api/permisos/:id/pdf', async (req, res) => {
+  const { id } = req.params;
+  const [rows] = await pool.query('SELECT pdf_url FROM permisos WHERE id = ?', [id]);
+  if (!rows.length || !rows[0].pdf_url) {
+    return res.status(404).json({ error: 'PDF no generado aún' });
+  }
+  res.redirect(rows[0].pdf_url);
 });
 
 // historial

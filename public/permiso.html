@@ -87,7 +87,7 @@
       <table>
         <thead>
           <tr>
-            <th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th><th>Archivo</th><th>Historial</th>
+            <th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th><th>Archivo</th><th>Historial</th><th>PDF</th>
           </tr>
         </thead>
         <tbody id="tablaSolicitudes"></tbody>
@@ -182,6 +182,9 @@ async function cargarSolicitudes() {
       <td>${s.fecha_solicitud ? s.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
       <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
       <td><button class="btn" onclick="verHistorial(${s.id})">Ver</button></td>
+      <td>
+        ${s.pdf_url ? `<a class="btn" href="${s.pdf_url}" target="_blank" download>Descargar PDF</a>` : ''}
+      </td>
     </tr>`;
   });
 }
