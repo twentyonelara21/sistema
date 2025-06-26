@@ -154,6 +154,14 @@
     </table>
   </div>
 
+  <div id="modalHistorial" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span class="close" onclick="cerrarModalHistorial()">&times;</span>
+      <h2>Historial de Aprobaciones</h2>
+      <div id="historialContenido"></div>
+    </div>
+  </div>
+
   <script>
     let usuarioEditandoId = null;
 
@@ -490,6 +498,57 @@
         tbody.innerHTML = `<tr><td colspan="7">No autorizado o error en la petición</td></tr>`;
         console.error(permisos);
       }
+    }
+
+    async function verHistorial(permiso_id) {
+      // 1. Trae los datos de la solicitud
+      const resSolicitud = await fetch('/api/permisos?permiso_id=' + permiso_id);
+      const solicitud = (await resSolicitud.json())[0];
+
+      // 2. Trae el historial
+      const res = await fetch(`/api/permisos/${permiso_id}/historial`);
+      const historial = await res.json();
+
+      // 3. Construye el HTML
+      let html = '';
+      if (solicitud) {
+          html += `
+          <h3>Detalle de la Solicitud</h3>
+          <ul>
+              <li><b>Tipo:</b> ${solicitud.tipo}</li>
+              <li><b>Motivo:</b> ${solicitud.motivo}</li>
+              <li><b>Fechas:</b> ${formatearFecha(solicitud.fecha_inicio)}${solicitud.fecha_fin ? ' - ' + formatearFecha(solicitud.fecha_fin) : ''}</li>
+              <li><b>Estado actual:</b> ${solicitud.estado}</li>
+              <li><b>Fecha de solicitud:</b> ${formatearFecha(solicitud.fecha_solicitud_ajustada)}</li>
+              ${solicitud.archivo_adjunto ? `<li><b>Archivo:</b> <a href="${solicitud.archivo_adjunto}" target="_blank">Ver</a></li>` : ''}
+          </ul>
+          <hr>
+          `;
+      }
+      html += '<h3>Historial de Aprobaciones</h3>';
+      if (historial.length === 0) {
+          html += '<p>No hay historial de aprobaciones.</p>';
+      } else {
+          html += '<ul>';
+          historial.forEach(h => {
+          html += `<li>
+              <b>${h.rol_aprobador.toUpperCase()}</b> - ${h.username} - <b>${h.estado}</b>
+              <br>Observaciones: ${h.observaciones || 'Ninguna'}
+              <br>Fecha: ${formatearFecha(h.fecha)}
+          </li>`;
+          });
+          html += '</ul>';
+      }
+      document.getElementById('historialContenido').innerHTML = html;
+      document.getElementById('modalHistorial').style.display = 'flex';
+    }
+
+    function cerrarModalHistorial() {
+      document.getElementById('modalHistorial').style.display = 'none';
+    }
+    window.onclick = function(event) {
+      const modal = document.getElementById('modalHistorial');
+      if (event.target === modal) modal.style.display = 'none';
     }
 
   </script>
