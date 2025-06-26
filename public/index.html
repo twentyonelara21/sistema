@@ -140,6 +140,14 @@
     </table>
   </div>
 
+  <div id="modalTicketHistorial" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span class="close" onclick="cerrarModalTicketHistorial()">&times;</span>
+      <h2>Historial del Ticket</h2>
+      <div id="ticketHistorialContenido"></div>
+    </div>
+  </div>
+
   <!-- Todos los Permisos (solo admin) -->
   <div id="adminPermisosSection" class="section" style="display: none;">
     <h2>Todos los Permisos</h2>
@@ -467,12 +475,67 @@
             <td>${t.category}</td>
             <td>${t.status}</td>
             <td>${t.assigned_username || 'No asignado'}</td>
+            <td><button class="btn" onclick="editarTicket(${t.id})">Editar</button></td>
+            <td><button class="btn" onclick="verHistorialTicket(${t.id})">Ver</button></td>
           </tr>`;
         });
       } else {
-        tbody.innerHTML = `<tr><td colspan="8">No autorizado o error en la petición</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10">No autorizado o error en la petición</td></tr>`;
         console.error(tickets);
       }
+    }
+
+    async function verHistorialTicket(ticket_id) {
+      // 1. Trae los datos del ticket
+      const resTicket = await fetch(`/api/tickets?ticketId=${ticket_id}&userId=${currentUser.id}`);
+      const ticket = (await resTicket.json())[0];
+
+      // 2. Trae el historial
+      const res = await fetch(`/api/tickets/${ticket_id}/history?userId=${currentUser.id}`);
+      const historial = await res.json();
+
+      // 3. Construye el HTML
+      let html = '';
+      if (ticket) {
+          html += `
+          <h3>Detalle del Ticket</h3>
+          <ul>
+              <li><b>ID:</b> ${ticket.id}</li>
+              <li><b>Solicitante:</b> ${ticket.requester}</li>
+              <li><b>Departamento:</b> ${ticket.department}</li>
+              <li><b>Fecha:</b> ${ticket.created_at}</li>
+              <li><b>Prioridad:</b> ${ticket.priority}</li>
+              <li><b>Categoría:</b> ${ticket.category}</li>
+              <li><b>Estado:</b> ${ticket.status}</li>
+              <li><b>Asignado a:</b> ${ticket.assigned_username || 'No asignado'}</li>
+          </ul>
+          <hr>
+          `;
+      }
+      html += '<h3>Historial de Estados</h3>';
+      if (!historial || historial.length === 0) {
+          html += '<p>No hay historial de estados.</p>';
+      } else {
+          html += '<ul>';
+          historial.forEach(h => {
+          html += `<li>
+              <b>${h.status}</b> - ${h.username || 'Desconocido'}
+              <br>Observaciones: ${h.observations || 'Ninguna'}
+              <br>Fecha: ${h.changed_at}
+          </li>`;
+          });
+          html += '</ul>';
+      }
+      document.getElementById('ticketHistorialContenido').innerHTML = html;
+      document.getElementById('modalTicketHistorial').style.display = 'flex';
+    }
+
+    function cerrarModalTicketHistorial() {
+      document.getElementById('modalTicketHistorial').style.display = 'none';
+    }
+    window.onclick = function(event) {
+      const modal = document.getElementById('modalTicketHistorial');
+      if (event.target === modal) modal.style.display = 'none';
     }
 
     async function cargarTodosPermisos() {
