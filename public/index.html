@@ -77,6 +77,10 @@
           <option value="Mantenimiento">Mantenimiento</option>
           <option value="Sistemas">Sistemas</option>
           <option value="Recursos Humanos">Recursos Humanos</option>
+          <option value="Contabilidad">Contabilidad</option>
+          <option value="Diseño">Diseño</option>
+          <option value="Juridico">Juridico</option>
+          <option value="Compras">Compras</option>
         </select>
       </div>
       <div class="form-group">
@@ -298,13 +302,19 @@
       }
 
       // Mostrar secciones administrativas y dashboards para admin y RH
-      if (currentUser.role === 'admin' || currentUser.role === 'RH') {
+      if (currentUser.role === 'admin') {
         document.getElementById('btnAdminUsers').style.display = 'inline-block';      // Gestión de usuarios
         document.getElementById('btnAdminTickets').style.display = 'inline-block';    // Todos los tickets
         document.getElementById('btnAdminPermisos').style.display = 'inline-block';   // Todos los permisos
         document.getElementById('btnRHChecador').style.display = 'inline-block';      // Dashboard de checadas
         document.getElementById('btnDashboard').style.display = 'inline-block';       // Dashboard general
-      } else {
+      } 
+      if (currentUser.role === 'RH') {
+        document.getElementById('btnAdminTickets').style.display = 'inline-block';    // Todos los tickets
+        document.getElementById('btnAdminPermisos').style.display = 'inline-block';   // Todos los permisos
+        document.getElementById('btnRHChecador').style.display = 'inline-block';      // Dashboard de checadas
+        document.getElementById('btnDashboard').style.display = 'inline-block';       // Dashboard general
+      }else {
         document.getElementById('btnAdminUsers').style.display = 'none';
         document.getElementById('btnAdminTickets').style.display = 'none';
         document.getElementById('btnAdminPermisos').style.display = 'none';
