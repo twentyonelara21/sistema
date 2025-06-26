@@ -438,6 +438,7 @@
             <td class="${statusClass}">${ticket.status}</td>
             <td>${ticket.assigned_username || 'No asignado'}</td>
             <td><button ${editDisabled} onclick="editTicket(${ticket.id}); event.stopPropagation()">Editar</button></td>
+            <td><button onclick="showTicketDetails(JSON.parse(JSON.stringify(${JSON.stringify(ticket)})), false); event.stopPropagation()">Ver</button></td>
           `;
           row.querySelector('button').dataset.ticket = JSON.stringify(ticket);
           ticketList.appendChild(row);
