@@ -80,7 +80,7 @@
           <option value="Contabilidad">Contabilidad</option>
           <option value="Diseño">Diseño</option>
           <option value="Juridico">Juridico</option>
-          <option value="Compras">Compras</option>
+          <option value="Compras">Contabilidad</option>
         </select>
       </div>
       <div class="form-group">
@@ -147,7 +147,7 @@
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th>
+          <th>ID</th><th>Empleado</th><th>Tipo</th><th>Motivo</th><th>Fechas</th><th>Estado</th><th>Fecha Solicitud</th><th>Ver</th>
         </tr>
       </thead>
       <tbody id="adminPermisoList"></tbody>
@@ -301,21 +301,17 @@
         document.getElementById('btnInventario').style.display = 'none';
       }
 
-      // Mostrar secciones administrativas y dashboards para admin y RH
       if (currentUser.role === 'admin') {
         document.getElementById('btnAdminUsers').style.display = 'inline-block';      // Gestión de usuarios
-        document.getElementById('btnAdminTickets').style.display = 'inline-block';    // Todos los tickets
-        document.getElementById('btnAdminPermisos').style.display = 'inline-block';   // Todos los permisos
-        document.getElementById('btnRHChecador').style.display = 'inline-block';      // Dashboard de checadas
-        document.getElementById('btnDashboard').style.display = 'inline-block';       // Dashboard general
-      } 
-      if (currentUser.role === 'RH') {
-        document.getElementById('btnAdminTickets').style.display = 'inline-block';    // Todos los tickets
-        document.getElementById('btnAdminPermisos').style.display = 'inline-block';   // Todos los permisos
-        document.getElementById('btnRHChecador').style.display = 'inline-block';      // Dashboard de checadas
-        document.getElementById('btnDashboard').style.display = 'inline-block';       // Dashboard general
-      }else {
+      } else {
         document.getElementById('btnAdminUsers').style.display = 'none';
+      }
+      if (currentUser.role === 'admin' || currentUser.role === 'RH' || currentUser.role === 'rh') {
+        document.getElementById('btnAdminTickets').style.display = 'inline-block';    // Todos los tickets
+        document.getElementById('btnAdminPermisos').style.display = 'inline-block';   // Todos los permisos
+        document.getElementById('btnRHChecador').style.display = 'inline-block';      // Dashboard de checadas
+        document.getElementById('btnDashboard').style.display = 'inline-block';       // Dashboard general
+      } else {
         document.getElementById('btnAdminTickets').style.display = 'none';
         document.getElementById('btnAdminPermisos').style.display = 'none';
         document.getElementById('btnRHChecador').style.display = 'none';
@@ -487,6 +483,7 @@
             <td>${formatearFecha(p.fecha_inicio)}${p.fecha_fin ? ' - ' + formatearFecha(p.fecha_fin) : ''}</td>
             <td>${p.estado}</td>
             <td>${p.fecha_solicitud_ajustada || ''}</td>
+            <td><button class="btn" onclick="verHistorial(${p.id})">Ver</button></td>
           </tr>`;
         });
       } else {
