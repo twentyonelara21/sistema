@@ -1624,6 +1624,31 @@ app.put('/api/permisos/:id/aprobar-rh', async (req, res) => {
   const { aprobador_id, estado, observaciones } = req.body; // estado: 'Aprobado' o 'Rechazado'
   const nuevoEstado = estado === 'Aprobado' ? 'Aprobado RH' : 'Rechazado RH';
   try {
+    // Obtener la solicitud de permiso
+    const [permisos] = await pool.query('SELECT * FROM permisos WHERE id = ?', [id]);
+    if (permisos.length === 0) {
+      return res.status(404).json({ error: 'Permiso no encontrado' });
+    }
+    const permiso = permisos[0];
+    // Si es vacaciones y se va a aprobar por RH
+    if (permiso.tipo === 'Vacaciones' && estado === 'Aprobado') {
+      // Calcular días solicitados (ambos inclusive)
+      const fechaInicio = new Date(permiso.fecha_inicio);
+      const fechaFin = new Date(permiso.fecha_fin);
+      const diffTime = fechaFin.getTime() - fechaInicio.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      // Obtener usuario
+      const [usuarios] = await pool.query('SELECT dias_vacaciones FROM users WHERE id = ?', [permiso.user_id]);
+      if (usuarios.length === 0) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+      const diasDisponibles = usuarios[0].dias_vacaciones;
+      if (diasDisponibles < diffDays) {
+        return res.status(400).json({ error: `El usuario solo tiene ${diasDisponibles} días de vacaciones disponibles y está solicitando ${diffDays}` });
+      }
+      // Restar días
+      await pool.query('UPDATE users SET dias_vacaciones = dias_vacaciones - ? WHERE id = ?', [diffDays, permiso.user_id]);
+    }
     await pool.query(`UPDATE permisos SET estado = ? WHERE id = ?`, [nuevoEstado, id]);
     await pool.query(
       `INSERT INTO permisos_historial (permiso_id, aprobador_id, rol_aprobador, estado, observaciones)
