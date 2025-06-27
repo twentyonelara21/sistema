@@ -376,7 +376,7 @@ app.get('/api/users', async (req, res) => {
     const [users] = await pool.query(`
       SELECT 
         u.id, u.username, u.email, u.department, u.role, 
-        u.jefe_inmediato_id, u.dias_vacaciones,
+        u.jefe_inmediato_id, u.fecha_ingreso, u.dias_vacaciones,
         j.username AS jefe_nombre
       FROM users u
       LEFT JOIN users j ON u.jefe_inmediato_id = j.id
