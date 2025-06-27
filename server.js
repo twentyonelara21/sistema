@@ -270,30 +270,33 @@ async function sendStatusUpdateEmail(ticketId, requester, newStatus, observation
 // Endpoint: Login
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
-  console.log('Intento de login:', username);
   try {
     const [users] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
     if (users.length === 0) {
-      console.log('Usuario no encontrado:', username);
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
     const user = users[0];
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
-      console.log('Contraseña incorrecta para:', username);
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
-    console.log('Login exitoso:', username);
+
+    // --- ACTUALIZA LOS DÍAS DE VACACIONES AUTOMÁTICAMENTE ---
+    const diasVacaciones = calcularDiasVacaciones(user.fecha_ingreso);
+    if (user.dias_vacaciones !== diasVacaciones) {
+      await pool.query('UPDATE users SET dias_vacaciones = ? WHERE id = ?', [diasVacaciones, user.id]);
+    }
+    // --- FIN ACTUALIZACIÓN AUTOMÁTICA ---
+
     res.json({ id: user.id, username: user.username, department: user.department, role: user.role });
   } catch (error) {
-    console.error('Error en /api/login:', error);
     res.status(500).json({ error: 'Error en el servidor' });
   }
 });
 
 // Endpoint: Create user (admin only)
-app.post('/api/users', async (req, res) => {
-  const { username, password, email, department, role, adminId } = req.body;
+app.post('/api/users', async (req, res) => {  
+  const { username, password, email, department, role, adminId, fecha_ingreso } = req.body;
   console.log('Creando usuario:', username);
   try {
     const [admins] = await pool.query('SELECT * FROM users WHERE id = ? AND role = "admin"', [adminId]);
@@ -317,8 +320,8 @@ app.post('/api/users', async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
-      'INSERT INTO users (username, password, email, department, role) VALUES (?, ?, ?, ?, ?)',
-      [username, hashedPassword, email, department, role]
+      'INSERT INTO users (username, password, email, department, role, fecha_ingreso) VALUES (?, ?, ?, ?, ?, ?)',
+      [username, hashedPassword, email, department, role, fecha_ingreso || null]
     );
     try {
       await sendWelcomeEmail(email, username, password);
@@ -341,6 +344,25 @@ app.post('/api/users', async (req, res) => {
     res.status(500).json({ error: 'Error al crear usuario' });
   }
 });
+
+function calcularDiasVacaciones(fechaIngreso) {
+  if (!fechaIngreso) return 0;
+  const hoy = new Date();
+  const ingreso = new Date(fechaIngreso);
+  let anios = hoy.getFullYear() - ingreso.getFullYear();
+  if (
+    hoy.getMonth() < ingreso.getMonth() ||
+    (hoy.getMonth() === ingreso.getMonth() && hoy.getDate() < ingreso.getDate())
+  ) {
+    anios--;
+  }
+  if (anios < 1) return 0;
+  if (anios === 1) return 12;
+  if (anios === 2) return 14;
+  if (anios === 3) return 16;
+  if (anios === 4) return 18;
+  return 20;
+}
 
 // Endpoint: List users (admin only)
 app.get('/api/users', async (req, res) => {
@@ -389,7 +411,7 @@ app.get('/api/users/:id', async (req, res) => {
 // Actualizar usuario (admin only)
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { username, password, email, department, role, jefe_inmediato_id, dias_vacaciones, adminId } = req.body;
+  const { username, password, email, department, role, jefe_inmediato_id, dias_vacaciones, adminId, fecha_ingreso } = req.body;
   try {
     // Verifica que el adminId sea un admin válido
     const [admins] = await pool.query('SELECT * FROM users WHERE id = ? AND role = "admin"', [adminId]);
@@ -398,8 +420,8 @@ app.put('/api/users/:id', async (req, res) => {
     }
 
     // Si hay contraseña, actualiza también la contraseña
-    let query = `UPDATE users SET username=?, email=?, department=?, role=?, jefe_inmediato_id=?, dias_vacaciones=?`;
-    let params = [username, email, department, role, jefe_inmediato_id || null, dias_vacaciones || 0];
+    let query = `UPDATE users SET username=?, email=?, department=?, role=?, jefe_inmediato_id=?, dias_vacaciones=?, fecha_ingreso=?`;
+    let params = [username, email, department, role, jefe_inmediato_id || null, dias_vacaciones || 0, fecha_ingreso || null];
 
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -1684,6 +1706,17 @@ app.get('/api/permisos', async (req, res) => {
   }
   sql += ` ORDER BY p.fecha_solicitud DESC`;
   try {
+    // --- ACTUALIZA LOS DÍAS DE VACACIONES AUTOMÁTICAMENTE ---
+    if (user_id) {
+      const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [user_id]);
+      if (users.length > 0) {
+        const user = users[0];
+        const diasVacaciones = calcularDiasVacaciones(user.fecha_ingreso);
+        if (user.dias_vacaciones !== diasVacaciones) {
+          await pool.query('UPDATE users SET dias_vacaciones = ? WHERE id = ?', [diasVacaciones, user_id]);
+        }
+      }
+    }
     const [rows] = await pool.query(sql, params);
     res.json(rows);
   } catch (error) {

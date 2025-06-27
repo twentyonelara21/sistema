@@ -100,6 +100,10 @@
         </select>
       </div>
       <div class="form-group">
+        <label for="registerFechaIngreso">Fecha de ingreso *</label>
+        <input type="date" id="registerFechaIngreso" required>
+      </div>
+      <div class="form-group">
         <label for="registerVacaciones">Días de vacaciones</label>
         <input type="number" id="registerVacaciones" min="0" value="0">
       </div>
@@ -118,6 +122,7 @@
           <th>Departamento</th>
           <th>Rol</th>
           <th>Jefe</th>
+          <th>Fecha Ingreso</th>
           <th>Días Vacaciones</th>
           <th>Acciones</th>
         </tr>
@@ -350,6 +355,7 @@
               <td>${u.department}</td>
               <td>${u.role}</td>
               <td>${u.jefe_nombre || ''}</td>
+              <td>${u.fecha_ingreso ? u.fecha_ingreso.substring(0,10) : ''}</td>
               <td>${u.dias_vacaciones || 0}</td>
               <td>
                 <button onclick="editarUsuario('${u.id}')">Editar</button>
@@ -387,6 +393,7 @@
      document.getElementById('registerDepartment').value = user.department;
      document.getElementById('registerRole').value = user.role;
      document.getElementById('registerJefe').value = user.jefe_inmediato_id || '';
+     document.getElementById('registerFechaIngreso').value = user.fecha_ingreso ? user.fecha_ingreso.substring(0,10) : '';
      document.getElementById('registerVacaciones').value = user.dias_vacaciones || 0;
      document.getElementById('formSection').style.display = 'block';
      document.querySelector('#formSection button[onclick="register()"]').textContent = 'Actualizar Usuario';
@@ -399,6 +406,7 @@
       const department = document.getElementById('registerDepartment').value;
       const role = document.getElementById('registerRole').value;
       const jefe = document.getElementById('registerJefe').value;
+      const fecha_ingreso = document.getElementById('registerFechaIngreso').value;
       const vacaciones = document.getElementById('registerVacaciones').value;
       const error = document.getElementById('registerError');
       error.textContent = '';
@@ -419,7 +427,8 @@
         role,
         jefe_inmediato_id: jefe,
         dias_vacaciones: vacaciones,
-        adminId: currentUser.id // importante para autorización
+        adminId: currentUser.id, // importante para autorización
+        fecha_ingreso
       };
 
       if (usuarioEditandoId) {
@@ -448,6 +457,7 @@
           document.getElementById('registerDepartment').value = '';
           document.getElementById('registerRole').value = '';
           document.getElementById('registerJefe').value = '';
+          document.getElementById('registerFechaIngreso').value = '';
           document.getElementById('registerVacaciones').value = 0;
           error.textContent = '';
           // Devuelve el texto del botón a "Crear Usuario"
