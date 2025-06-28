@@ -269,12 +269,21 @@ async function sendStatusUpdateEmail(ticketId, requester, newStatus, observation
 
 async function registrarAuditoria(usuario_id, username, accion, descripcion, req) {
   const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '';
+  let nombreUsuario = username;
+  if (!nombreUsuario && usuario_id) {
+    // Si no se pasó el username, búscalo por el id
+    const [users] = await pool.query('SELECT username FROM users WHERE id = ?', [usuario_id]);
+    if (users.length > 0) {
+      nombreUsuario = users[0].username;
+    }
+  }
   await pool.query(
     'INSERT INTO auditoria (usuario_id, username, accion, descripcion, ip) VALUES (?, ?, ?, ?, ?)',
-    [usuario_id, username, accion, descripcion, ip]
+    [usuario_id, nombreUsuario, accion, descripcion, ip]
   );
 }
 
+// Endpoint: Login
 // Endpoint: Login
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
@@ -295,6 +304,9 @@ app.post('/api/login', async (req, res) => {
       await pool.query('UPDATE users SET dias_vacaciones = ? WHERE id = ?', [diasVacaciones, user.id]);
     }
     // --- FIN ACTUALIZACIÓN AUTOMÁTICA ---
+
+    // REGISTRO DE AUDITORÍA DE LOGIN
+    await registrarAuditoria(user.id, user.username, 'Login', `Usuario ${user.username} inició sesión`, req);
 
     res.json({ id: user.id, username: user.username, department: user.department, role: user.role });
   } catch (error) {
@@ -1898,7 +1910,18 @@ app.get('/api/auditoria', async (req, res) => {
   if (admins.length === 0) {
     return res.status(403).json({ error: 'No autorizado' });
   }
-  const [rows] = await pool.query('SELECT * FROM auditoria ORDER BY fecha DESC LIMIT 200');
+  const [rows] = await pool.query(`
+    SELECT 
+      id, 
+      DATE_FORMAT(DATE_SUB(fecha, INTERVAL 1 HOUR), '%d/%m/%Y %H:%i:%s') AS fecha, 
+      username, 
+      accion, 
+      descripcion, 
+      ip 
+    FROM auditoria 
+    ORDER BY fecha DESC 
+    LIMIT 200
+  `);
   res.json(rows);
 });
 
