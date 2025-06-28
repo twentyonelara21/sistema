@@ -603,6 +603,7 @@ app.get('/api/tickets', async (req, res) => {
 });
 
 // Endpoint: Assign ticket
+// Endpoint: Assign ticket
 app.put('/api/tickets/:id/assign', async (req, res) => {
   const { id } = req.params;
   const { userId, assignedTo } = req.body;
@@ -629,8 +630,15 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
       console.log('No se puede asignar un ticket resuelto, ID:', id);
       return res.status(403).json({ error: 'No se puede asignar un ticket resuelto' });
     }
+
+    // --- CORRECCIÓN: Validar si ya está autoasignado ---
     if (parseInt(assignedTo) === parseInt(userId)) {
-      await registrarAuditoria(userId, '', 'Asignar ticket', `Ticket ${id} asignado a usuario ${assignedTo}`, req);
+      if (ticket.assigned_to === userId) {
+        // Ya está autoasignado, no repetir
+        return res.status(400).json({ error: 'El ticket ya está asignado a ti.' });
+      }
+      // Actualiza el campo assigned_to
+      await pool.query('UPDATE tickets SET assigned_to = ? WHERE id = ?', [userId, id]);
       await pool.query(
         'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
         [id, ticket.status, `Ticket autoasignado a usuario ID ${assignedTo}`, userId, null]
@@ -645,6 +653,8 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
       console.log('Ticket autoasignado, ID:', id);
       return res.json({ message: 'Ticket asignado' });
     }
+    // --- FIN CORRECCIÓN ---
+
     if (role !== 'admin' && role !== 'supervisor') {
       console.log('No autorizado para asignar a otros, userId:', userId);
       return res.status(403).json({ error: 'Solo admins o supervisores pueden asignar tickets a otros usuarios' });
@@ -658,6 +668,7 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [id, ticket.status, `Ticket asignado a usuario ID ${assignedTo}`, userId, null]
     );
+    await registrarAuditoria(userId, '', 'Asignar ticket', `Ticket ${id} asignado a usuario ${assignedTo}`, req);
     console.log('Ticket asignado, ID:', id);
     res.json({ message: 'Ticket asignado' });
   } catch (error) {
