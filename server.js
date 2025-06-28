@@ -1480,9 +1480,14 @@ app.get('/api/inventario', async (req, res) => {
       const {
         tipo, idinventario, etiqueta, equipo, complemento, marca, n_serie, modelo, categoria, asignado_a,
         localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd,
-        tarjeta_grafica, windows, licenciamiento, estatus, observaciones
+        tarjeta_grafica, windows, licenciamiento, estatus, observaciones, userId
       } = req.body;
       const equipo_imagen = req.file ? req.file.path : null;
+
+      // Validar campos obligatorios
+      if (!tipo || !idinventario || !equipo || !asignado_a || !localizacion || !departamento || !estatus) {
+        return res.status(400).json({ error: 'Faltan campos obligatorios' });
+      }
 
       // Insertar equipo
       const [result] = await pool.query(
@@ -1497,8 +1502,9 @@ app.get('/api/inventario', async (req, res) => {
           licenciamiento, estatus, observaciones
         ]
       );
-      await registrarAuditoria(userId, '', 'Agregar equipo', `Equipo agregado: ${nuevoId}`, req);
       const nuevoId = result.insertId;
+      await registrarAuditoria(userId, '', 'Agregar equipo', `Equipo agregado: ${nuevoId}`, req);
+
       // Obtener el equipo recién insertado
       const [rows] = await pool.query('SELECT * FROM inventario WHERE id = ?', [nuevoId]);
       const equipoObj = rows[0];
@@ -1507,6 +1513,7 @@ app.get('/api/inventario', async (req, res) => {
       await pool.query('UPDATE inventario SET responsiva_pdf = ? WHERE id = ?', [urlResponsiva, nuevoId]);
       res.json({ message: 'Equipo agregado correctamente' });
     } catch (error) {
+      console.error('Error al agregar equipo:', error);
       res.status(500).json({ error: 'Error al agregar equipo' });
     }
   });
@@ -1518,9 +1525,14 @@ app.put('/api/inventario/:id', uploadInventario.single('equipo_imagen'), async (
     const {
       tipo, idinventario, etiqueta, equipo, complemento, marca, n_serie, modelo, categoria, asignado_a,
       localizacion, precio_compra, color, departamento, procesador, ram_gb, hdd, ssd,
-      tarjeta_grafica, windows, licenciamiento, estatus, observaciones
+      tarjeta_grafica, windows, licenciamiento, estatus, observaciones, userId
     } = req.body;
     let equipo_imagen = req.file ? req.file.path : null;
+
+    // Validar campos obligatorios
+    if (!tipo || !idinventario || !equipo || !asignado_a || !localizacion || !departamento || !estatus) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    }
 
     // Actualizar equipo
     let query = `UPDATE inventario SET
@@ -1550,6 +1562,7 @@ app.put('/api/inventario/:id', uploadInventario.single('equipo_imagen'), async (
     await pool.query('UPDATE inventario SET responsiva_pdf = ? WHERE id = ?', [urlResponsiva, id]);
     res.json({ message: 'Equipo actualizado correctamente' });
   } catch (error) {
+    console.error('Error al actualizar equipo:', error);
     res.status(500).json({ error: 'Error al actualizar equipo' });
   }
 });
@@ -1558,6 +1571,7 @@ app.put('/api/inventario/:id', uploadInventario.single('equipo_imagen'), async (
 app.delete('/api/inventario/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const { userId } = req.body; // <-- AGREGA ESTO
     await pool.query('DELETE FROM inventario WHERE id=?', [id]);
     await registrarAuditoria(userId, '', 'Eliminar equipo', `Equipo eliminado: ${id}`, req);
     res.json({ message: 'Equipo eliminado correctamente' });
@@ -1817,6 +1831,7 @@ app.put('/api/permisos/:id/aprobar-rh', async (req, res) => {
        VALUES (?, ?, 'rh', ?, ?)`,
       [id, aprobador_id, estado, observaciones]
     );
+    await registrarAuditoria(aprobador_id, '', 'Aprobar/Rechazar RH', `Permiso ${id} - Estado: ${estado}`, req);
 
     // --- GENERAR PDF SI ES APROBADO POR RH ---
     if (estado === 'Aprobado') {

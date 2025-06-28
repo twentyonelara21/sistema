@@ -365,6 +365,7 @@
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
+      formData.append('userId', currentUser.id); // <-- AGREGA ESTA LÍNEA
       let url = '/api/inventario';
       let method = 'POST';
       if (editando && editId) {
@@ -441,7 +442,11 @@
 
     async function eliminarEquipo(id) {
       if (!confirm('¿Seguro que deseas eliminar este equipo?')) return;
-      const res = await fetch('/api/inventario/' + id, { method: 'DELETE' });
+      const res = await fetch('/api/inventario/' + id, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id }) // <-- AGREGA ESTO
+      });
       const data = await res.json();
       if (data.error) {
         alert(data.error);
