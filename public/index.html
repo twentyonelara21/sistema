@@ -266,6 +266,16 @@
 
     // Si ya hay usuario logueado, muestra el menú principal directamente
     window.onload = function() {
+      // Oculta todas las secciones menos el login al cargar
+      document.getElementById('mainMenu').style.display = 'none';
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('adminUsersSection').style.display = 'none';
+      document.getElementById('adminTicketsSection').style.display = 'none';
+      document.getElementById('adminPermisosSection').style.display = 'none';
+      document.getElementById('auditoriaSection').style.display = 'none';
+      document.getElementById('loginSection').style.display = 'block';
+      document.getElementById('forgotPasswordSection').style.display = 'none';
+
       const user = localStorage.getItem('user');
       if (user) {
         currentUser = JSON.parse(user);
@@ -277,6 +287,7 @@
       localStorage.removeItem('user');
       currentUser = null;
       document.getElementById('mainMenu').style.display = 'none';
+      document.getElementById('auditoriaSection').style.display = 'none'; // <-- Agrega esto
       document.getElementById('loginSection').style.display = 'block';
       document.getElementById('loginUsername').value = '';
       document.getElementById('loginPassword').value = '';
