@@ -267,6 +267,14 @@ async function sendStatusUpdateEmail(ticketId, requester, newStatus, observation
   }
 }
 
+async function registrarAuditoria(usuario_id, username, accion, descripcion, req) {
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '';
+  await pool.query(
+    'INSERT INTO auditoria (usuario_id, username, accion, descripcion, ip) VALUES (?, ?, ?, ?, ?)',
+    [usuario_id, username, accion, descripcion, ip]
+  );
+}
+
 // Endpoint: Login
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
@@ -323,6 +331,9 @@ app.post('/api/users', async (req, res) => {
       'INSERT INTO users (username, password, email, department, role, fecha_ingreso) VALUES (?, ?, ?, ?, ?, ?)',
       [username, hashedPassword, email, department, role, fecha_ingreso || null]
     );
+    // Auditoría
+    await registrarAuditoria(adminId, 'admin', 'Crear usuario', `Usuario creado: ${username}`, req);
+
     try {
       await sendWelcomeEmail(email, username, password);
     } catch (emailError) {
@@ -433,6 +444,9 @@ app.put('/api/users/:id', async (req, res) => {
     params.push(id);
 
     await pool.query(query, params);
+    // Auditoría
+    await registrarAuditoria(adminId, 'admin', 'Actualizar usuario', `Usuario actualizado: ${username}`, req);
+
 
     res.json({ message: 'Usuario actualizado correctamente' });
   } catch (error) {
@@ -488,6 +502,7 @@ app.put('/api/users/:id/password', async (req, res) => {
     }
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
     await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, id]);
+    await registrarAuditoria(userId, '', 'Cambiar contraseña', `Usuario ${id} cambió su contraseña`, req);
     console.log('Contraseña cambiada para usuario ID:', id);
     res.json({ message: 'Contraseña cambiada exitosamente' });
   } catch (error) {
@@ -516,6 +531,7 @@ try {
     'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
     [ticketId, 'Pendiente', 'Estado inicial', userId, null]
   );
+  await registrarAuditoria(userId, requester, 'Crear ticket', `Ticket creado: ${ticketId}`, req);
   await sendTicketCreationEmail(ticketId, department, requester, description);
   res.json({ message: 'Ticket creado', ticketId });
 } catch (error) {
@@ -614,11 +630,12 @@ app.put('/api/tickets/:id/assign', async (req, res) => {
       return res.status(403).json({ error: 'No se puede asignar un ticket resuelto' });
     }
     if (parseInt(assignedTo) === parseInt(userId)) {
-      await pool.query('UPDATE tickets SET assigned_to = ? WHERE id = ?', [assignedTo, id]);
+      await registrarAuditoria(userId, '', 'Asignar ticket', `Ticket ${id} asignado a usuario ${assignedTo}`, req);
       await pool.query(
         'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
         [id, ticket.status, `Ticket autoasignado a usuario ID ${assignedTo}`, userId, null]
       );
+      await registrarAuditoria(userId, '', 'Asignar ticket', `Ticket ${id} asignado a usuario ${assignedTo}`, req);
       // Enviar correo al usuario asignado
       const [assignedUsers] = await pool.query('SELECT username, email FROM users WHERE id = ?', [assignedTo]);
       const assignedUser = assignedUsers[0];
@@ -1005,6 +1022,7 @@ app.put('/api/tickets/:id/transfer', async (req, res) => {
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [id, ticket.status, `Ticket transferido a ${newDepartment}. Observaciones: ${observations}`, userId, null]
     );
+    await registrarAuditoria(userId, '', 'Transferir ticket', `Ticket ${id} transferido a ${newDepartment}`, req);
     console.log('Ticket transferido, ID:', id, 'a:', newDepartment);
     res.json({ message: 'Ticket transferido' });
   } catch (error) {
@@ -1030,6 +1048,7 @@ app.put('/api/tickets/:id', upload.single('file'), async (req, res) => {
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [id, status, observations || '', userId, file]
     );
+    await registrarAuditoria(userId, '', 'Actualizar estado ticket', `Ticket ${id} cambiado a ${status}`, req);
     res.json({ message: 'Estado actualizado' });
   } catch (error) {
     console.error('Error en /api/tickets/:id:', error);
@@ -1068,6 +1087,7 @@ app.put('/api/tickets/:id/reopen', async (req, res) => {
       'INSERT INTO ticket_status_history (ticket_id, status, changed_at, observations, user_id, attachment) VALUES (?, ?, NOW(), ?, ?, ?)',
       [id, 'Pendiente', observations || 'Ticket reabierto por admin', userId, null]
     );
+    await registrarAuditoria(userId, '', 'Reabrir ticket', `Ticket ${id} reabierto`, req);
     console.log('Ticket reabierto, ID:', id);
     res.json({ message: 'Ticket reabierto' });
   } catch (error) {
@@ -1414,6 +1434,7 @@ app.post('/api/checador', async (req, res) => {
   const { user_id, tipo, foto } = req.body;
   if (!user_id || !tipo || !foto) return res.status(400).json({ error: 'Faltan datos' });
 
+
   // Subir la foto a Cloudinary
   const uploadResponse = await cloudinary.uploader.upload(foto, {
     folder: 'checador',
@@ -1425,6 +1446,7 @@ app.post('/api/checador', async (req, res) => {
     'INSERT INTO checadas (user_id, tipo, fecha, foto) VALUES (?, ?, NOW(), ?)',
     [user_id, tipo, uploadResponse.secure_url]
   );
+  await registrarAuditoria(user_id, '', 'Registrar checada', `Checada tipo: ${tipo}`, req);
 
   res.json({ message: 'Registro guardado correctamente' });
 });
@@ -1464,6 +1486,7 @@ app.get('/api/inventario', async (req, res) => {
           licenciamiento, estatus, observaciones
         ]
       );
+      await registrarAuditoria(userId, '', 'Agregar equipo', `Equipo agregado: ${nuevoId}`, req);
       const nuevoId = result.insertId;
       // Obtener el equipo recién insertado
       const [rows] = await pool.query('SELECT * FROM inventario WHERE id = ?', [nuevoId]);
@@ -1506,6 +1529,7 @@ app.put('/api/inventario/:id', uploadInventario.single('equipo_imagen'), async (
     params.push(id);
 
     await pool.query(query, params);
+    await registrarAuditoria(userId, '', 'Editar equipo', `Equipo editado: ${id}`, req);
 
     // Obtener el equipo actualizado
     const [rows] = await pool.query('SELECT * FROM inventario WHERE id = ?', [id]);
@@ -1524,6 +1548,7 @@ app.delete('/api/inventario/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('DELETE FROM inventario WHERE id=?', [id]);
+    await registrarAuditoria(userId, '', 'Eliminar equipo', `Equipo eliminado: ${id}`, req);
     res.json({ message: 'Equipo eliminado correctamente' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar equipo' });
@@ -1677,6 +1702,7 @@ app.post('/api/permisos', uploadPermiso.single('archivo_adjunto'), async (req, r
        VALUES (?, ?, ?, ?, ?, ?)`,
       [user_id, tipo, motivo, fecha_inicio, fecha_fin, archivo_adjunto]
     );
+    await registrarAuditoria(user_id, '', 'Crear permiso', `Permiso creado para usuario: ${user_id}`, req);
     res.json({ message: 'Solicitud enviada' });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear solicitud' });
@@ -1736,6 +1762,7 @@ app.put('/api/permisos/:id/aprobar-jefe', async (req, res) => {
        VALUES (?, ?, 'jefe', ?, ?)`,
       [id, aprobador_id, estado, observaciones]
     );
+    await registrarAuditoria(aprobador_id, '', 'Aprobar/Rechazar permiso jefe', `Permiso ${id} - Estado: ${estado}`, req);
     res.json({ message: 'Respuesta registrada' });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar solicitud' });
@@ -1838,7 +1865,16 @@ app.get('/api/permisos/:id/historial', async (req, res) => {
   }
 });
 
-
+//Auditoria
+app.get('/api/auditoria', async (req, res) => {
+  const { adminId } = req.query;
+  const [admins] = await pool.query('SELECT * FROM users WHERE id = ? AND role = "admin"', [adminId]);
+  if (admins.length === 0) {
+    return res.status(403).json({ error: 'No autorizado' });
+  }
+  const [rows] = await pool.query('SELECT * FROM auditoria ORDER BY fecha DESC LIMIT 200');
+  res.json(rows);
+});
 
 // Error handling middleware
 app.use((error, req, res, next) => {

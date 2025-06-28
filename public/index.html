@@ -52,6 +52,7 @@
       <button id="btnAdminPermisos" style="display:none;" onclick="showAdminPermisos()">Todos los Permisos</button>
       <button id="btnRHChecador" style="display:none;" onclick="window.location.href='dashboard_checador.html'">Ver Dashboard de checadas</button>
       <button id="btnDashboard" style="display:none;" onclick="window.location.href='dashboard.html'">Dashboard General</button>
+      <button id="btnAuditoria" style="display:none;" onclick="mostrarAuditoria()">Ver Bitácora de Auditoría</button>
     </div>
   </div>
 
@@ -173,6 +174,23 @@
       <h2>Historial de Aprobaciones</h2>
       <div id="historialContenido"></div>
     </div>
+  </div>
+
+  <div id="auditoriaSection" class="section" style="display: none;">
+    <h2>Bitácora de Auditoría</h2>
+    <button onclick="backToMenu()">Volver al Menú</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Usuario</th>
+          <th>Acción</th>
+          <th>Descripción</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody id="auditoriaTableBody"></tbody>
+    </table>
   </div>
 
   <script>
@@ -323,9 +341,11 @@
       }
 
       if (currentUser.role === 'admin') {
-        document.getElementById('btnAdminUsers').style.display = 'inline-block';      // Gestión de usuarios
+        document.getElementById('btnAdminUsers').style.display = 'inline-block';
+        document.getElementById('btnAuditoria').style.display = 'inline-block';
       } else {
         document.getElementById('btnAdminUsers').style.display = 'none';
+        document.getElementById('btnAuditoria').style.display = 'none'; 
       }
       if (currentUser.role === 'admin' || currentUser.role === 'RH' || currentUser.role === 'rh') {
         document.getElementById('btnAdminTickets').style.display = 'inline-block';    // Todos los tickets
@@ -622,6 +642,32 @@
     function cerrarModalHistorial() {
       document.getElementById('modalHistorial').style.display = 'none';
     }
+
+    async function mostrarAuditoria() {
+  document.getElementById('mainMenu').style.display = 'none';
+  document.getElementById('auditoriaSection').style.display = 'block';
+  const adminId = currentUser.id;
+  const res = await fetch(`/api/auditoria?adminId=${adminId}`);
+  const auditoria = await res.json();
+  const tbody = document.getElementById('auditoriaTableBody');
+  tbody.innerHTML = '';
+  if (Array.isArray(auditoria)) {
+    auditoria.forEach(a => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${a.fecha}</td>
+          <td>${a.username}</td>
+          <td>${a.accion}</td>
+          <td>${a.descripcion}</td>
+          <td>${a.ip}</td>
+        </tr>
+      `;
+    });
+  } else {
+    tbody.innerHTML = `<tr><td colspan="5">No autorizado o error en la petición</td></tr>`;
+  }
+}
+
     window.onclick = function(event) {
       const modal = document.getElementById('modalHistorial');
       if (event.target === modal) modal.style.display = 'none';
