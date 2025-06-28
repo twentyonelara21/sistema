@@ -183,7 +183,12 @@
       <div class="filtros-auditoria">
         <label>Fecha: <input type="date" id="filtroFecha"></label>
         <label>Usuario: <input type="text" id="filtroUsuario" placeholder="Usuario"></label>
-        <label>Acción: <input type="text" id="filtroAccion" placeholder="Acción"></label>
+        <label>Acción: 
+          <select id="filtroAccion">
+            <option value="">Todas</option>
+            <!-- Opciones llenadas dinámicamente -->
+          </select>
+        </label>
         <button onclick="aplicarFiltrosAuditoria()">Filtrar</button>
         <button onclick="descargarAuditoriaExcel()">Descargar Excel</button>
       </div>
@@ -342,6 +347,7 @@
       document.getElementById('adminPermisosSection').style.display = 'none';
       document.getElementById('formSection').style.display = 'none';
       document.getElementById('adminUsersSection').style.display = 'none';
+      document.getElementById('auditoriaSection').style.display = 'none'; // <-- agrega esto
       document.getElementById('mainMenu').style.display = 'block';
     }
 
@@ -689,6 +695,7 @@
       const res = await fetch(`/api/auditoria?adminId=${adminId}`);
       const auditoria = await res.json();
       mostrarTablaAuditoria(auditoria);
+      await llenarSelectAcciones(); // <-- llena el select de acciones
     }
 
     function aplicarFiltrosAuditoria() {
@@ -704,6 +711,23 @@
       fetch('/api/auditoria?' + params.toString())
         .then(res => res.json())
         .then(data => mostrarTablaAuditoria(data));
+    }
+
+    async function llenarSelectAcciones() {
+      const adminId = currentUser.id;
+      const res = await fetch(`/api/auditoria?adminId=${adminId}`);
+      const auditoria = await res.json();
+      const acciones = new Set();
+      if (Array.isArray(auditoria)) {
+        auditoria.forEach(a => {
+          if (a.accion) acciones.add(a.accion);
+        });
+      }
+      const select = document.getElementById('filtroAccion');
+      select.innerHTML = '<option value="">Todas</option>';
+      Array.from(acciones).sort().forEach(accion => {
+        select.innerHTML += `<option value="${accion}">${accion}</option>`;
+      });
     }
 
     function descargarAuditoriaExcel() {
