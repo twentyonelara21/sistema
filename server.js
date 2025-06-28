@@ -1904,13 +1904,15 @@ app.get('/api/permisos/:id/historial', async (req, res) => {
 });
 
 //Auditoria
+// Auditoría con filtros
 app.get('/api/auditoria', async (req, res) => {
-  const { adminId } = req.query;
+  const { adminId, fecha, usuario, accion } = req.query;
   const [admins] = await pool.query('SELECT * FROM users WHERE id = ? AND role = "admin"', [adminId]);
   if (admins.length === 0) {
     return res.status(403).json({ error: 'No autorizado' });
   }
-  const [rows] = await pool.query(`
+
+  let sql = `
     SELECT 
       id, 
       DATE_FORMAT(DATE_SUB(fecha, INTERVAL 1 HOUR), '%d/%m/%Y %H:%i:%s') AS fecha, 
@@ -1918,10 +1920,27 @@ app.get('/api/auditoria', async (req, res) => {
       accion, 
       descripcion, 
       ip 
-    FROM auditoria 
-    ORDER BY fecha DESC 
-    LIMIT 200
-  `);
+    FROM auditoria
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (fecha) {
+    sql += " AND DATE(DATE_SUB(fecha, INTERVAL 1 HOUR)) = ?";
+    params.push(fecha); // formato: 'YYYY-MM-DD'
+  }
+  if (usuario) {
+    sql += " AND username LIKE ?";
+    params.push(`%${usuario}%`);
+  }
+  if (accion) {
+    sql += " AND accion LIKE ?";
+    params.push(`%${accion}%`);
+  }
+
+  sql += " ORDER BY fecha DESC LIMIT 200";
+
+  const [rows] = await pool.query(sql, params);
   res.json(rows);
 });
 

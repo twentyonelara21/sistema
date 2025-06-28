@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Gestión</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -179,7 +180,14 @@
   <div id="auditoriaSection" class="section" style="display: none;">
     <h2>Bitácora de Auditoría</h2>
     <button onclick="backToMenu()">Volver al Menú</button>
-    <table>
+      <div class="filtros-auditoria">
+        <label>Fecha: <input type="date" id="filtroFecha"></label>
+        <label>Usuario: <input type="text" id="filtroUsuario" placeholder="Usuario"></label>
+        <label>Acción: <input type="text" id="filtroAccion" placeholder="Acción"></label>
+        <button onclick="aplicarFiltrosAuditoria()">Filtrar</button>
+        <button onclick="descargarAuditoriaExcel()">Descargar Excel</button>
+      </div>
+    <table id="tablaAuditoria">
       <thead>
         <tr>
           <th>Fecha</th>
@@ -654,30 +662,55 @@
       document.getElementById('modalHistorial').style.display = 'none';
     }
 
+    function mostrarTablaAuditoria(auditoria) {
+      const tbody = document.getElementById('auditoriaTableBody');
+      tbody.innerHTML = '';
+      if (Array.isArray(auditoria)) {
+        auditoria.forEach(a => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${a.fecha}</td>
+              <td>${a.username}</td>
+              <td>${a.accion}</td>
+              <td>${a.descripcion}</td>
+              <td>${a.ip}</td>
+            </tr>
+          `;
+        });
+      } else {
+        tbody.innerHTML = `<tr><td colspan="5">No autorizado o error en la petición</td></tr>`;
+      }
+    }
+
     async function mostrarAuditoria() {
-  document.getElementById('mainMenu').style.display = 'none';
-  document.getElementById('auditoriaSection').style.display = 'block';
-  const adminId = currentUser.id;
-  const res = await fetch(`/api/auditoria?adminId=${adminId}`);
-  const auditoria = await res.json();
-  const tbody = document.getElementById('auditoriaTableBody');
-  tbody.innerHTML = '';
-  if (Array.isArray(auditoria)) {
-    auditoria.forEach(a => {
-      tbody.innerHTML += `
-        <tr>
-          <td>${a.fecha}</td>
-          <td>${a.username}</td>
-          <td>${a.accion}</td>
-          <td>${a.descripcion}</td>
-          <td>${a.ip}</td>
-        </tr>
-      `;
-    });
-  } else {
-    tbody.innerHTML = `<tr><td colspan="5">No autorizado o error en la petición</td></tr>`;
-  }
-}
+      document.getElementById('mainMenu').style.display = 'none';
+      document.getElementById('auditoriaSection').style.display = 'block';
+      const adminId = currentUser.id;
+      const res = await fetch(`/api/auditoria?adminId=${adminId}`);
+      const auditoria = await res.json();
+      mostrarTablaAuditoria(auditoria);
+    }
+
+    function aplicarFiltrosAuditoria() {
+      const fecha = document.getElementById('filtroFecha').value;
+      const usuario = document.getElementById('filtroUsuario').value;
+      const accion = document.getElementById('filtroAccion').value;
+      const params = new URLSearchParams();
+      params.append('adminId', currentUser.id);
+      if (fecha) params.append('fecha', fecha);
+      if (usuario) params.append('usuario', usuario);
+      if (accion) params.append('accion', accion);
+
+      fetch('/api/auditoria?' + params.toString())
+        .then(res => res.json())
+        .then(data => mostrarTablaAuditoria(data));
+    }
+
+    function descargarAuditoriaExcel() {
+      const tabla = document.getElementById('tablaAuditoria');
+      const wb = XLSX.utils.table_to_book(tabla, { sheet: "Auditoría" });
+      XLSX.writeFile(wb, "auditoria.xlsx");
+    }
 
     window.onclick = function(event) {
       const modal = document.getElementById('modalHistorial');
