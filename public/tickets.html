@@ -250,8 +250,15 @@
     async function loadAvailableUsers() {
       try {
         const response = await fetch(`/api/users/available?userId=${currentUser.id}`);
-        availableUsers = await response.json();
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          availableUsers = data;
+        } else {
+          availableUsers = [];
+          console.error('Error al cargar usuarios disponibles:', data.error || data);
+        }
       } catch (err) {
+        availableUsers = [];
         console.error('Error al cargar usuarios disponibles:', err);
       }
     }
@@ -868,9 +875,10 @@ async function showTicketDetails(ticket, editMode = false) {
 
     
 
-    function editTicket(id) {
+    async function editTicket(id) {
       const button = event.target;
       const ticket = JSON.parse(button.dataset.ticket);
+      await loadAvailableUsers();
       showTicketDetails(ticket, true);
     }
 
