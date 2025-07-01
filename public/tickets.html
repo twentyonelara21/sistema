@@ -675,8 +675,8 @@ async function showTicketDetails(ticket, editMode = false) {
 
     detailsHtml += `<h3>Editar Ticket</h3>`;
 
-    // Opción de autoasignarse (si no está asignado y el usuario no es supervisor)
-    if (!hasAssignedUser && currentUser.role !== 'supervisor') {
+    // Opción de autoasignarse (si no está asignado)
+    if (!hasAssignedUser) {
       detailsHtml += `
         <div class="form-group">
           <label>Autoasignarme</label>
