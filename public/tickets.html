@@ -257,6 +257,7 @@
           availableUsers = [];
           console.error('Error al cargar usuarios disponibles:', data.error || data);
         }
+        console.log('Usuarios disponibles:', availableUsers); // <-- Agrega este log
       } catch (err) {
         availableUsers = [];
         console.error('Error al cargar usuarios disponibles:', err);
@@ -878,7 +879,7 @@ async function showTicketDetails(ticket, editMode = false) {
     async function editTicket(id) {
       const button = event.target;
       const ticket = JSON.parse(button.dataset.ticket);
-      await loadAvailableUsers();
+      await loadAvailableUsers(); // Espera a que se carguen los usuarios
       showTicketDetails(ticket, true);
     }
 
