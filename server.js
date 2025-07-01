@@ -469,9 +469,10 @@ app.put('/api/users/:id', async (req, res) => {
 // Endpoint: List available users for assignment
 app.get('/api/users/available', async (req, res) => {
   const { userId } = req.query;
-  console.log('Listando usuarios disponibles, userId:', userId);
+  console.log('Recibido userId:', userId);
   try {
     const [users] = await pool.query('SELECT department, role FROM users WHERE id = ?', [userId]);
+    console.log('Resultado de búsqueda de usuario:', users);
     if (users.length === 0) {
       console.log('Usuario no encontrado:', userId);
       return res.status(403).json({ error: 'Usuario no encontrado' });
