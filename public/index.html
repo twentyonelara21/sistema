@@ -210,6 +210,12 @@
     let usuarioEditandoId = null;
     let auditoriaData = []; 
     let auditoriaPaginaActual = 1;
+    let ticketsData = [];
+    let ticketsPaginaActual = 1;
+    let permisosData = [];
+    let permisosPaginaActual = 1;
+    const permisosFilasPorPagina = 10;
+    const ticketsFilasPorPagina = 10;
     const auditoriaFilasPorPagina = 10;
 
     function formatearFecha(fecha) {
@@ -521,27 +527,7 @@
       const userId = currentUser.id;
       const res = await fetch(`/api/tickets?all=1&userId=${userId}`);
       const tickets = await res.json();
-      const tbody = document.getElementById('adminTicketList');
-      tbody.innerHTML = '';
-      if (Array.isArray(tickets)) {
-        tickets.forEach(t => {
-          tbody.innerHTML += `<tr>
-            <td>${t.id}</td>
-            <td>${t.requester}</td>
-            <td>${t.department}</td>
-            <td>${t.created_at}</td>
-            <td>${t.priority}</td>
-            <td>${t.category}</td>
-            <td>${t.status}</td>
-            <td>${t.assigned_username || 'No asignado'}</td>
-            <td><button class="btn" onclick="editarTicket(${t.id})">Editar</button></td>
-            <td><button class="btn" onclick="verHistorialTicket(${t.id})">Ver</button></td>
-          </tr>`;
-        });
-      } else {
-        tbody.innerHTML = `<tr><td colspan="10">No autorizado o error en la petición</td></tr>`;
-        console.error(tickets);
-      }
+      mostrarTablaTickets(tickets);
     }
 
     async function verHistorialTicket(ticket_id) {
@@ -601,28 +587,7 @@
       const userId = currentUser.id;
       const res = await fetch(`/api/permisos?all=1&user_id=${userId}`);
       const permisos = await res.json();
-      const tbody = document.getElementById('adminPermisoList');
-      tbody.innerHTML = '';
-      if (Array.isArray(permisos)) {
-        permisos.forEach(p => {
-          tbody.innerHTML += `<tr>
-            <td>${p.id}</td>
-            <td>${p.username}</td>
-            <td>${p.tipo}</td>
-            <td>${p.motivo}</td>
-            <td>${formatearFecha(p.fecha_inicio)}${p.fecha_fin ? ' - ' + formatearFecha(p.fecha_fin) : ''}</td>
-            <td>${p.estado}</td>
-            <td>${p.fecha_solicitud_ajustada || ''}</td>
-            <td><button class="btn" onclick="verHistorial(${p.id})">Ver</button></td>
-            <td>
-              ${p.pdf_url ? `<a class="btn" href="${p.pdf_url}" target="_blank" download>Descargar PDF</a>` : ''}
-            </td>
-          </tr>`;
-        });
-      } else {
-        tbody.innerHTML = `<tr><td colspan="7">No autorizado o error en la petición</td></tr>`;
-        console.error(permisos);
-      }
+      mostrarTablaPermisos(permisos);
     }
 
     async function verHistorial(permiso_id) {
@@ -792,6 +757,137 @@
     window.onclick = function(event) {
       const modal = document.getElementById('modalHistorial');
       if (event.target === modal) modal.style.display = 'none';
+    }
+
+    function mostrarTablaTickets(tickets) {
+      // Ordena por fecha descendente (asumiendo formato DD/MM/YYYY HH:mm:ss)
+      ticketsData = tickets.sort((a, b) => {
+        return parsearFechaAuditoria(b.created_at) - parsearFechaAuditoria(a.created_at);
+      });
+      ticketsPaginaActual = 1;
+      renderizarPaginaTickets();
+    }
+
+    function renderizarPaginaTickets() {
+      const tbody = document.getElementById('adminTicketList');
+      tbody.innerHTML = '';
+      const inicio = (ticketsPaginaActual - 1) * ticketsFilasPorPagina;
+      const fin = inicio + ticketsFilasPorPagina;
+      const pagina = ticketsData.slice(inicio, fin);
+
+      if (pagina.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10">No hay tickets</td></tr>`;
+        return;
+      }
+
+      pagina.forEach(t => {
+        tbody.innerHTML += `<tr>
+          <td>${t.id}</td>
+          <td>${t.requester}</td>
+          <td>${t.department}</td>
+          <td>${t.created_at}</td>
+          <td>${t.priority}</td>
+          <td>${t.category}</td>
+          <td>${t.status}</td>
+          <td>${t.assigned_username || 'No asignado'}</td>
+          <td><button class="btn" onclick="editarTicket(${t.id})">Editar</button></td>
+          <td><button class="btn" onclick="verHistorialTicket(${t.id})">Ver</button></td>
+        </tr>`;
+      });
+
+      renderizarControlesPaginacionTickets();
+    }
+
+    function renderizarControlesPaginacionTickets() {
+      let paginacionDiv = document.getElementById('ticketsPaginacion');
+      if (!paginacionDiv) {
+        paginacionDiv = document.createElement('div');
+        paginacionDiv.id = 'ticketsPaginacion';
+        paginacionDiv.style.marginTop = '10px';
+        document.getElementById('adminTicketsSection').appendChild(paginacionDiv);
+      }
+      const totalPaginas = Math.ceil(ticketsData.length / ticketsFilasPorPagina);
+      let html = '';
+      if (totalPaginas > 1) {
+        html += `<button onclick="cambiarPaginaTickets(-1)" ${ticketsPaginaActual === 1 ? 'disabled' : ''}>Anterior</button>`;
+        html += ` Página ${ticketsPaginaActual} de ${totalPaginas} `;
+        html += `<button onclick="cambiarPaginaTickets(1)" ${ticketsPaginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>`;
+      }
+      paginacionDiv.innerHTML = html;
+    }
+
+    function cambiarPaginaTickets(direccion) {
+      const totalPaginas = Math.ceil(ticketsData.length / ticketsFilasPorPagina);
+      ticketsPaginaActual += direccion;
+      if (ticketsPaginaActual < 1) ticketsPaginaActual = 1;
+      if (ticketsPaginaActual > totalPaginas) ticketsPaginaActual = totalPaginas;
+      renderizarPaginaTickets();
+    }
+
+    function mostrarTablaPermisos(permisos) {
+      // Ordena por fecha de solicitud descendente
+      permisosData = permisos.sort((a, b) => {
+        return parsearFechaAuditoria(b.fecha_solicitud_ajustada) - parsearFechaAuditoria(a.fecha_solicitud_ajustada);
+      });
+      permisosPaginaActual = 1;
+      renderizarPaginaPermisos();
+    }
+
+    function renderizarPaginaPermisos() {
+      const tbody = document.getElementById('adminPermisoList');
+      tbody.innerHTML = '';
+      const inicio = (permisosPaginaActual - 1) * permisosFilasPorPagina;
+      const fin = inicio + permisosFilasPorPagina;
+      const pagina = permisosData.slice(inicio, fin);
+
+      if (pagina.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9">No hay permisos</td></tr>`;
+        return;
+      }
+
+      pagina.forEach(p => {
+        tbody.innerHTML += `<tr>
+          <td>${p.id}</td>
+          <td>${p.username}</td>
+          <td>${p.tipo}</td>
+          <td>${p.motivo}</td>
+          <td>${formatearFecha(p.fecha_inicio)}${p.fecha_fin ? ' - ' + formatearFecha(p.fecha_fin) : ''}</td>
+          <td>${p.estado}</td>
+          <td>${p.fecha_solicitud_ajustada || ''}</td>
+          <td><button class="btn" onclick="verHistorial(${p.id})">Ver</button></td>
+          <td>
+            ${p.pdf_url ? `<a class="btn" href="${p.pdf_url}" target="_blank" download>Descargar PDF</a>` : ''}
+          </td>
+        </tr>`;
+      });
+
+      renderizarControlesPaginacionPermisos();
+    }
+
+    function renderizarControlesPaginacionPermisos() {
+      let paginacionDiv = document.getElementById('permisosPaginacion');
+      if (!paginacionDiv) {
+        paginacionDiv = document.createElement('div');
+        paginacionDiv.id = 'permisosPaginacion';
+        paginacionDiv.style.marginTop = '10px';
+        document.getElementById('adminPermisosSection').appendChild(paginacionDiv);
+      }
+      const totalPaginas = Math.ceil(permisosData.length / permisosFilasPorPagina);
+      let html = '';
+      if (totalPaginas > 1) {
+        html += `<button onclick="cambiarPaginaPermisos(-1)" ${permisosPaginaActual === 1 ? 'disabled' : ''}>Anterior</button>`;
+        html += ` Página ${permisosPaginaActual} de ${totalPaginas} `;
+        html += `<button onclick="cambiarPaginaPermisos(1)" ${permisosPaginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>`;
+      }
+      paginacionDiv.innerHTML = html;
+    }
+
+    function cambiarPaginaPermisos(direccion) {
+      const totalPaginas = Math.ceil(permisosData.length / permisosFilasPorPagina);
+      permisosPaginaActual += direccion;
+      if (permisosPaginaActual < 1) permisosPaginaActual = 1;
+      if (permisosPaginaActual > totalPaginas) permisosPaginaActual = totalPaginas;
+      renderizarPaginaPermisos();
     }
 
   </script>
