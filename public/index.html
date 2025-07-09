@@ -208,6 +208,9 @@
 
   <script>
     let usuarioEditandoId = null;
+    let auditoriaData = []; 
+    let auditoriaPaginaActual = 1;
+    const auditoriaFilasPorPagina = 10;
 
     function formatearFecha(fecha) {
       if (!fecha) return '';
@@ -691,6 +694,65 @@
       }
     }
 
+    function mostrarTablaAuditoria(auditoria) {
+      auditoriaData = auditoria.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      auditoriaPaginaActual = 1;
+      renderizarPaginaAuditoria();
+    }
+
+    function renderizarPaginaAuditoria() {
+      const tbody = document.getElementById('auditoriaTableBody');
+      tbody.innerHTML = '';
+      const inicio = (auditoriaPaginaActual - 1) * auditoriaFilasPorPagina;
+      const fin = inicio + auditoriaFilasPorPagina;
+      const pagina = auditoriaData.slice(inicio, fin);
+
+      if (pagina.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5">No hay registros</td></tr>`;
+        return;
+      }
+
+      pagina.forEach(a => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${a.fecha}</td>
+            <td>${a.username}</td>
+            <td>${a.accion}</td>
+            <td>${a.descripcion}</td>
+            <td>${a.ip}</td>
+          </tr>
+        `;
+      });
+
+      renderizarControlesPaginacion();
+    }
+
+    function renderizarControlesPaginacion() {
+      let paginacionDiv = document.getElementById('auditoriaPaginacion');
+      if (!paginacionDiv) {
+        paginacionDiv = document.createElement('div');
+        paginacionDiv.id = 'auditoriaPaginacion';
+        paginacionDiv.style.marginTop = '10px';
+        document.getElementById('auditoriaSection').appendChild(paginacionDiv);
+      }
+      const totalPaginas = Math.ceil(auditoriaData.length / auditoriaFilasPorPagina);
+      let html = '';
+      if (totalPaginas > 1) {
+        html += `<button onclick="cambiarPaginaAuditoria(-1)" ${auditoriaPaginaActual === 1 ? 'disabled' : ''}>Anterior</button>`;
+        html += ` Página ${auditoriaPaginaActual} de ${totalPaginas} `;
+        html += `<button onclick="cambiarPaginaAuditoria(1)" ${auditoriaPaginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>`;
+      }
+      paginacionDiv.innerHTML = html;
+    }
+
+    function cambiarPaginaAuditoria(direccion) {
+      const totalPaginas = Math.ceil(auditoriaData.length / auditoriaFilasPorPagina);
+      auditoriaPaginaActual += direccion;
+      if (auditoriaPaginaActual < 1) auditoriaPaginaActual = 1;
+      if (auditoriaPaginaActual > totalPaginas) auditoriaPaginaActual = totalPaginas;
+      renderizarPaginaAuditoria();
+    }
+
     async function mostrarAuditoria() {
       document.getElementById('mainMenu').style.display = 'none';
       document.getElementById('auditoriaSection').style.display = 'block';
@@ -698,7 +760,7 @@
       const res = await fetch(`/api/auditoria?adminId=${adminId}`);
       const auditoria = await res.json();
       mostrarTablaAuditoria(auditoria);
-      await llenarSelectAcciones(); // <-- llena el select de acciones
+      await llenarSelectAcciones(); 
     }
 
     function aplicarFiltrosAuditoria() {
