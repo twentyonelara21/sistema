@@ -687,34 +687,6 @@
       renderizarPaginaAuditoria();
     }
 
-    function mostrarTablaAuditoria(auditoria) {
-      const tbody = document.getElementById('auditoriaTableBody');
-      tbody.innerHTML = '';
-      if (Array.isArray(auditoria)) {
-        auditoria.sort((a, b) => {
-          return new Date(b.fecha) - new Date(a.fecha);
-        });
-        auditoria.forEach(a => {
-          tbody.innerHTML += `
-            <tr>
-              <td>${a.fecha}</td>
-              <td>${a.username}</td>
-              <td>${a.accion}</td>
-              <td>${a.descripcion}</td>
-              <td>${a.ip}</td>
-            </tr>
-          `;
-        });
-      } else {
-        tbody.innerHTML = `<tr><td colspan="5">No autorizado o error en la petición</td></tr>`;
-      }
-    }
-
-    function mostrarTablaAuditoria(auditoria) {
-      auditoriaData = auditoria.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-      auditoriaPaginaActual = 1;
-      renderizarPaginaAuditoria();
-    }
 
     function renderizarPaginaAuditoria() {
       const tbody = document.getElementById('auditoriaTableBody');
