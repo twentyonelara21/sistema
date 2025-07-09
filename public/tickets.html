@@ -233,10 +233,12 @@
   </div>
 
   <script>
+    
     let currentUser = JSON.parse(localStorage.getItem('user'));
-    if (!currentUser) {
+    if (!currentUser || !currentUser.id) {
       window.location.href = 'index.html';
     }
+
     let availableUsers = [];
 
     document.getElementById('currentUser').textContent = currentUser.username;
@@ -248,6 +250,11 @@
     }
 
     async function loadAvailableUsers() {
+      if (!currentUser || !currentUser.id) {
+        alert('Debes iniciar sesión nuevamente.');
+        window.location.href = 'index.html';
+        return;
+      }
       try {
         const response = await fetch(`/api/users/available?userId=${currentUser.id}`);
         const data = await response.json();
@@ -257,7 +264,7 @@
           availableUsers = [];
           console.error('Error al cargar usuarios disponibles:', data.error || data);
         }
-        console.log('Usuarios disponibles:', availableUsers); // <-- Agrega este log
+        console.log('Usuarios disponibles:', availableUsers);
       } catch (err) {
         availableUsers = [];
         console.error('Error al cargar usuarios disponibles:', err);
