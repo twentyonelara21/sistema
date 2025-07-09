@@ -672,6 +672,9 @@
       const tbody = document.getElementById('auditoriaTableBody');
       tbody.innerHTML = '';
       if (Array.isArray(auditoria)) {
+        auditoria.sort((a, b) => {
+          return new Date(b.fecha) - new Date(a.fecha);
+        });
         auditoria.forEach(a => {
           tbody.innerHTML += `
             <tr>
