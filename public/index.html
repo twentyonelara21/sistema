@@ -218,6 +218,7 @@
       return d.toLocaleString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     }
 
+
     function showForgotPassword() {
       document.getElementById('loginSection').style.display = 'none';
       document.getElementById('forgotPasswordSection').style.display = 'block';
@@ -669,6 +670,21 @@
 
     function cerrarModalHistorial() {
       document.getElementById('modalHistorial').style.display = 'none';
+    }
+
+    function parsearFechaAuditoria(fechaStr) {
+      // fechaStr: "30/06/2025 10:36:51"
+      const [fecha, hora] = fechaStr.split(' ');
+      const [dia, mes, anio] = fecha.split('/');
+      return new Date(`${anio}-${mes}-${dia}T${hora}`);
+    }
+
+    function mostrarTablaAuditoria(auditoria) {
+      auditoriaData = auditoria.sort((a, b) => {
+        return parsearFechaAuditoria(b.fecha) - parsearFechaAuditoria(a.fecha);
+      });
+      auditoriaPaginaActual = 1;
+      renderizarPaginaAuditoria();
     }
 
     function mostrarTablaAuditoria(auditoria) {
