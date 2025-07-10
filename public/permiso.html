@@ -130,185 +130,296 @@
     </div>
   </div>
 <script>
-let currentUser = JSON.parse(localStorage.getItem('user'));
-if (!currentUser) window.location.href = 'index.html';
+  let misPermisosData = [];
+  let misPermisosPaginaActual = 1;
+  const misPermisosFilasPorPagina = 10;
 
-// Mostrar botones según rol
-if (currentUser.role === 'supervisor') document.getElementById('btnJefe').style.display = 'inline-block';
-if (currentUser.role === 'rh' || currentUser.department === 'Recursos Humanos') document.getElementById('btnRH').style.display = 'inline-block';
+  let jefePermisosData = [];
+  let jefePermisosPaginaActual = 1;
+  const jefePermisosFilasPorPagina = 10;
 
-// Mostrar sección por default
-showPermisoSection('crear');
+  let rhPermisosData = [];
+  let rhPermisosPaginaActual = 1;
+  const rhPermisosFilasPorPagina = 10;
+  let currentUser = JSON.parse(localStorage.getItem('user'));
+  if (!currentUser) window.location.href = 'index.html';
 
-// Navegación entre módulos
-function showPermisoSection(seccion) {
-  document.getElementById('crearPermisoSection').style.display = seccion === 'crear' ? 'block' : 'none';
-  document.getElementById('misPermisosSection').style.display = seccion === 'mis' ? 'block' : 'none';
-  document.getElementById('jefePermisosSection').style.display = seccion === 'jefe' ? 'block' : 'none';
-  document.getElementById('rhPermisosSection').style.display = seccion === 'rh' ? 'block' : 'none';
-  if (seccion === 'mis') cargarSolicitudes();
-  if (seccion === 'jefe') cargarSolicitudesJefe();
-  if (seccion === 'rh') cargarSolicitudesRH();
-}
-
-// --- Empleado: Solicitar permiso ---
-document.getElementById('formPermiso').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const form = e.target;
-  const data = new FormData(form);
-  data.append('user_id', currentUser.id);
-  const res = await fetch('/api/permisos', { method: 'POST', body: data });
-  const json = await res.json();
-  alert(json.message || json.error);
-  if (json.message) {
-    form.reset();
-    showPermisoSection('mis');
+  function parsearFechaPermiso(fechaStr) {
+    if (!fechaStr) return new Date(0);
+    if (fechaStr.includes('/')) {
+      // Formato DD/MM/YYYY HH:mm:ss
+      const [fecha, hora] = fechaStr.split(' ');
+      const [dia, mes, anio] = fecha.split('/');
+      return new Date(`${anio}-${mes}-${dia}T${hora || '00:00:00'}`);
+    }
+    // ISO o similar
+    return new Date(fechaStr);
   }
-});
 
-// --- Empleado: Ver mis solicitudes ---
-async function cargarSolicitudes() {
-  const res = await fetch('/api/permisos?user_id=' + currentUser.id);
-  const solicitudes = await res.json();
-  const tbody = document.getElementById('tablaSolicitudes');
-  tbody.innerHTML = '';
-  solicitudes.forEach(s => {
-    tbody.innerHTML += `<tr>
-      <td>${s.username}</td>
-      <td>${s.tipo}</td>
-      <td>${s.motivo}</td>
-      <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
-      <td>${s.estado}</td>
-      <td>${s.fecha_solicitud ? s.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
-      <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
-      <td><button class="btn" onclick="verHistorial(${s.id})">Ver</button></td>
-      <td>
-        ${s.pdf_url ? `<a class="btn" href="${s.pdf_url}" target="_blank" download>Descargar PDF</a>` : ''}
-      </td>
-    </tr>`;
-  });
-}
+  // Mostrar botones según rol
+  if (currentUser.role === 'supervisor') document.getElementById('btnJefe').style.display = 'inline-block';
+  if (currentUser.role === 'rh' || currentUser.department === 'Recursos Humanos') document.getElementById('btnRH').style.display = 'inline-block';
 
-// --- Jefe: Ver y aprobar/rechazar solicitudes de su equipo ---
-async function cargarSolicitudesJefe() {
-  const res = await fetch('/api/permisos?jefe_id=' + currentUser.id);
-  const solicitudes = await res.json();
-  const tbody = document.getElementById('tablaAprobarJefe');
-  tbody.innerHTML = '';
-  solicitudes.forEach(s => {
-    tbody.innerHTML += `<tr>
-      <td>${s.username}</td>
-      <td>${s.tipo}</td>
-      <td>${s.motivo}</td>
-      <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
-      <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
-      <td>
-        <button class="btn" onclick="aprobarJefe(${s.id},'Aprobado')">Aprobar</button>
-        <button class="btn" onclick="aprobarJefe(${s.id},'Rechazado')">Rechazar</button>
-        <button class="btn" onclick="verHistorial(${s.id})">Ver</button>
-      </td>
-    </tr>`;
-  });
-}
-async function aprobarJefe(id, estado) {
-  const observaciones = prompt('Observaciones:');
-  if (observaciones === null) return;
-  await fetch(`/api/permisos/${id}/aprobar-jefe`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ aprobador_id: currentUser.id, estado, observaciones })
-  });
-  cargarSolicitudesJefe();
-}
+  // Mostrar sección por default
+  showPermisoSection('crear');
 
-function formatearFecha(fecha) {
-  if (!fecha) return '';
-  const d = new Date(fecha);
-  // Ajusta a tu zona horaria si es necesario
-  return d.toLocaleString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
+  // Navegación entre módulos
+  function showPermisoSection(seccion) {
+    document.getElementById('crearPermisoSection').style.display = seccion === 'crear' ? 'block' : 'none';
+    document.getElementById('misPermisosSection').style.display = seccion === 'mis' ? 'block' : 'none';
+    document.getElementById('jefePermisosSection').style.display = seccion === 'jefe' ? 'block' : 'none';
+    document.getElementById('rhPermisosSection').style.display = seccion === 'rh' ? 'block' : 'none';
+    if (seccion === 'mis') cargarSolicitudes();
+    if (seccion === 'jefe') cargarSolicitudesJefe();
+    if (seccion === 'rh') cargarSolicitudesRH();
+  }
 
-// --- RH: Ver y aprobar/rechazar solicitudes ---
-async function cargarSolicitudesRH() {
-  const res = await fetch('/api/permisos?rh=1');
-  const solicitudes = await res.json();
-  const tbody = document.getElementById('tablaAprobarRH');
-  tbody.innerHTML = '';
-  solicitudes.forEach(s => {
-    tbody.innerHTML += `<tr>
-      <td>${s.username}</td>
-      <td>${s.tipo}</td>
-      <td>${s.motivo}</td>
-      <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
-      <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
-      <td>
-        <button class="btn" onclick="aprobarRH(${s.id},'Aprobado')">Aprobar</button>
-        <button class="btn" onclick="aprobarRH(${s.id},'Rechazado')">Rechazar</button>
-        <button class="btn" onclick="verHistorial(${s.id})">Ver</button>
-      </td>
-    </tr>`;
-  });
-}
-async function aprobarRH(id, estado) {
-  const observaciones = prompt('Observaciones:');
-  if (observaciones === null) return;
-  await fetch(`/api/permisos/${id}/aprobar-rh`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ aprobador_id: currentUser.id, estado, observaciones })
-  });
-  cargarSolicitudesRH();
-}
-
-    async function verHistorial(permiso_id) {
-    // 1. Trae los datos de la solicitud
-    const resSolicitud = await fetch('/api/permisos?permiso_id=' + permiso_id);
-    const solicitud = (await resSolicitud.json())[0];
-
-    // 2. Trae el historial
-    const res = await fetch(`/api/permisos/${permiso_id}/historial`);
-    const historial = await res.json();
-
-    // 3. Construye el HTML
-    let html = '';
-    if (solicitud) {
-        html += `
-        <h3>Detalle de la Solicitud</h3>
-        <ul>
-            <li><b>Tipo:</b> ${solicitud.tipo}</li>
-            <li><b>Motivo:</b> ${solicitud.motivo}</li>
-            <li><b>Fechas:</b> ${formatearFecha(solicitud.fecha_inicio)}${solicitud.fecha_fin ? ' - ' + formatearFecha(solicitud.fecha_fin) : ''}</li>
-            <li><b>Estado actual:</b> ${solicitud.estado}</li>
-            <li><b>Fecha de solicitud:</b> ${formatearFecha(solicitud.fecha_solicitud_ajustada)}</li>
-            ${solicitud.archivo_adjunto ? `<li><b>Archivo:</b> <a href="${solicitud.archivo_adjunto}" target="_blank">Ver</a></li>` : ''}
-        </ul>
-        <hr>
-        `;
+  // --- Empleado: Solicitar permiso ---
+  document.getElementById('formPermiso').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = new FormData(form);
+    data.append('user_id', currentUser.id);
+    const res = await fetch('/api/permisos', { method: 'POST', body: data });
+    const json = await res.json();
+    alert(json.message || json.error);
+    if (json.message) {
+      form.reset();
+      showPermisoSection('mis');
     }
-    html += '<h3>Historial de Aprobaciones</h3>';
-    if (historial.length === 0) {
-        html += '<p>No hay historial de aprobaciones.</p>';
-    } else {
-        html += '<ul>';
-        historial.forEach(h => {
-        html += `<li>
-            <b>${h.rol_aprobador.toUpperCase()}</b> - ${h.username} - <b>${h.estado}</b>
-            <br>Observaciones: ${h.observaciones || 'Ninguna'}
-            <br>Fecha: ${formatearFecha(h.fecha)}
-        </li>`;
-        });
-        html += '</ul>';
+  });
+
+  // --- Empleado: Ver mis solicitudes ---
+  async function cargarSolicitudes() {
+    const res = await fetch('/api/permisos?user_id=' + currentUser.id);
+    misPermisosData = await res.json();
+    // Ordena por fecha_solicitud descendente
+    misPermisosData.sort((a, b) => parsearFechaPermiso(b.fecha_solicitud) - parsearFechaPermiso(a.fecha_solicitud));
+    misPermisosPaginaActual = 1;
+    renderizarPaginaMisPermisos();
+  }
+
+  function renderizarPaginaMisPermisos() {
+    const tbody = document.getElementById('tablaSolicitudes');
+    tbody.innerHTML = '';
+    const inicio = (misPermisosPaginaActual - 1) * misPermisosFilasPorPagina;
+    const fin = inicio + misPermisosFilasPorPagina;
+    const pagina = misPermisosData.slice(inicio, fin);
+    pagina.forEach(s => {
+      tbody.innerHTML += `<tr>
+        <td>${s.username}</td>
+        <td>${s.tipo}</td>
+        <td>${s.motivo}</td>
+        <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
+        <td>${s.estado}</td>
+        <td>${s.fecha_solicitud ? s.fecha_solicitud.substring(0,16).replace('T',' ') : ''}</td>
+        <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
+        <td><button class="btn" onclick="verHistorial(${s.id})">Ver</button></td>
+        <td>
+          ${s.pdf_url ? `<a class="btn" href="${s.pdf_url}" target="_blank" download>Descargar PDF</a>` : ''}
+        </td>
+      </tr>`;
+    });
+    renderizarPaginacionMisPermisos();
+  }
+
+  function renderizarPaginacionMisPermisos() {
+    let paginacion = document.getElementById('paginacionMisPermisos');
+    if (!paginacion) {
+      paginacion = document.createElement('div');
+      paginacion.id = 'paginacionMisPermisos';
+      document.getElementById('misPermisosSection').appendChild(paginacion);
     }
-    document.getElementById('historialContenido').innerHTML = html;
-    document.getElementById('modalHistorial').style.display = 'flex';
+    const totalPaginas = Math.ceil(misPermisosData.length / misPermisosFilasPorPagina);
+    paginacion.innerHTML = '';
+    for (let i = 1; i <= totalPaginas; i++) {
+      paginacion.innerHTML += `<button class="btn" onclick="cambiarPaginaMisPermisos(${i})" ${i === misPermisosPaginaActual ? 'disabled' : ''}>${i}</button>`;
     }
-function cerrarModalHistorial() {
-  document.getElementById('modalHistorial').style.display = 'none';
-}
-window.onclick = function(event) {
-  const modal = document.getElementById('modalHistorial');
-  if (event.target === modal) modal.style.display = 'none';
-}
+  }
+
+  function cambiarPaginaMisPermisos(pagina) {
+    misPermisosPaginaActual = pagina;
+    renderizarPaginaMisPermisos();
+  }
+
+  // --- Jefe: Ver y aprobar/rechazar solicitudes de su equipo ---
+  async function cargarSolicitudesJefe() {
+    const res = await fetch('/api/permisos?jefe_id=' + currentUser.id);
+    jefePermisosData = await res.json();
+    jefePermisosData.sort((a, b) => parsearFechaPermiso(b.fecha_solicitud) - parsearFechaPermiso(a.fecha_solicitud));
+    jefePermisosPaginaActual = 1;
+    renderizarPaginaJefePermisos();
+  }
+
+  function renderizarPaginaJefePermisos() {
+    const tbody = document.getElementById('tablaAprobarJefe');
+    tbody.innerHTML = '';
+    const inicio = (jefePermisosPaginaActual - 1) * jefePermisosFilasPorPagina;
+    const fin = inicio + jefePermisosFilasPorPagina;
+    const pagina = jefePermisosData.slice(inicio, fin);
+    pagina.forEach(s => {
+      tbody.innerHTML += `<tr>
+        <td>${s.username}</td>
+        <td>${s.tipo}</td>
+        <td>${s.motivo}</td>
+        <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
+        <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
+        <td>
+          <button class="btn" onclick="aprobarJefe(${s.id},'Aprobado')">Aprobar</button>
+          <button class="btn" onclick="aprobarJefe(${s.id},'Rechazado')">Rechazar</button>
+          <button class="btn" onclick="verHistorial(${s.id})">Ver</button>
+        </td>
+      </tr>`;
+    });
+    renderizarPaginacionJefePermisos();
+  }
+
+  function renderizarPaginacionJefePermisos() {
+    let paginacion = document.getElementById('paginacionJefePermisos');
+    if (!paginacion) {
+      paginacion = document.createElement('div');
+      paginacion.id = 'paginacionJefePermisos';
+      document.getElementById('jefePermisosSection').appendChild(paginacion);
+    }
+    const totalPaginas = Math.ceil(jefePermisosData.length / jefePermisosFilasPorPagina);
+    paginacion.innerHTML = '';
+    for (let i = 1; i <= totalPaginas; i++) {
+      paginacion.innerHTML += `<button class="btn" onclick="cambiarPaginaJefePermisos(${i})" ${i === jefePermisosPaginaActual ? 'disabled' : ''}>${i}</button>`;
+    }
+  }
+
+  function cambiarPaginaJefePermisos(pagina) {
+    jefePermisosPaginaActual = pagina;
+    renderizarPaginaJefePermisos();
+  }
+  async function aprobarJefe(id, estado) {
+    const observaciones = prompt('Observaciones:');
+    if (observaciones === null) return;
+    await fetch(`/api/permisos/${id}/aprobar-jefe`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aprobador_id: currentUser.id, estado, observaciones })
+    });
+    cargarSolicitudesJefe();
+  }
+
+  function formatearFecha(fecha) {
+    if (!fecha) return '';
+    const d = new Date(fecha);
+    // Ajusta a tu zona horaria si es necesario
+    return d.toLocaleString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  // --- RH: Ver y aprobar/rechazar solicitudes ---
+  async function cargarSolicitudesRH() {
+    const res = await fetch('/api/permisos?rh=1');
+    rhPermisosData = await res.json();
+    rhPermisosData.sort((a, b) => parsearFechaPermiso(b.fecha_solicitud) - parsearFechaPermiso(a.fecha_solicitud));
+    rhPermisosPaginaActual = 1;
+    renderizarPaginaRhPermisos();
+  }
+
+  function renderizarPaginaRhPermisos() {
+    const tbody = document.getElementById('tablaAprobarRH');
+    tbody.innerHTML = '';
+    const inicio = (rhPermisosPaginaActual - 1) * rhPermisosFilasPorPagina;
+    const fin = inicio + rhPermisosFilasPorPagina;
+    const pagina = rhPermisosData.slice(inicio, fin);
+    pagina.forEach(s => {
+      tbody.innerHTML += `<tr>
+        <td>${s.username}</td>
+        <td>${s.tipo}</td>
+        <td>${s.motivo}</td>
+        <td>${formatearFecha(s.fecha_inicio)}${s.fecha_fin ? ' - ' + formatearFecha(s.fecha_fin) : ''}</td>
+        <td>${s.archivo_adjunto ? `<a href="${s.archivo_adjunto}" target="_blank">Ver</a>` : ''}</td>
+        <td>
+          <button class="btn" onclick="aprobarRH(${s.id},'Aprobado')">Aprobar</button>
+          <button class="btn" onclick="aprobarRH(${s.id},'Rechazado')">Rechazar</button>
+          <button class="btn" onclick="verHistorial(${s.id})">Ver</button>
+        </td>
+      </tr>`;
+    });
+    renderizarPaginacionRhPermisos();
+  }
+
+  function renderizarPaginacionRhPermisos() {
+    let paginacion = document.getElementById('paginacionRhPermisos');
+    if (!paginacion) {
+      paginacion = document.createElement('div');
+      paginacion.id = 'paginacionRhPermisos';
+      document.getElementById('rhPermisosSection').appendChild(paginacion);
+    }
+    const totalPaginas = Math.ceil(rhPermisosData.length / rhPermisosFilasPorPagina);
+    paginacion.innerHTML = '';
+    for (let i = 1; i <= totalPaginas; i++) {
+      paginacion.innerHTML += `<button class="btn" onclick="cambiarPaginaRhPermisos(${i})" ${i === rhPermisosPaginaActual ? 'disabled' : ''}>${i}</button>`;
+    }
+  }
+
+  function cambiarPaginaRhPermisos(pagina) {
+    rhPermisosPaginaActual = pagina;
+    renderizarPaginaRhPermisos();
+  }
+  async function aprobarRH(id, estado) {
+    const observaciones = prompt('Observaciones:');
+    if (observaciones === null) return;
+    await fetch(`/api/permisos/${id}/aprobar-rh`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aprobador_id: currentUser.id, estado, observaciones })
+    });
+    cargarSolicitudesRH();
+  }
+
+      async function verHistorial(permiso_id) {
+      // 1. Trae los datos de la solicitud
+      const resSolicitud = await fetch('/api/permisos?permiso_id=' + permiso_id);
+      const solicitud = (await resSolicitud.json())[0];
+
+      // 2. Trae el historial
+      const res = await fetch(`/api/permisos/${permiso_id}/historial`);
+      const historial = await res.json();
+
+      // 3. Construye el HTML
+      let html = '';
+      if (solicitud) {
+          html += `
+          <h3>Detalle de la Solicitud</h3>
+          <ul>
+              <li><b>Tipo:</b> ${solicitud.tipo}</li>
+              <li><b>Motivo:</b> ${solicitud.motivo}</li>
+              <li><b>Fechas:</b> ${formatearFecha(solicitud.fecha_inicio)}${solicitud.fecha_fin ? ' - ' + formatearFecha(solicitud.fecha_fin) : ''}</li>
+              <li><b>Estado actual:</b> ${solicitud.estado}</li>
+              <li><b>Fecha de solicitud:</b> ${formatearFecha(solicitud.fecha_solicitud_ajustada)}</li>
+              ${solicitud.archivo_adjunto ? `<li><b>Archivo:</b> <a href="${solicitud.archivo_adjunto}" target="_blank">Ver</a></li>` : ''}
+          </ul>
+          <hr>
+          `;
+      }
+      html += '<h3>Historial de Aprobaciones</h3>';
+      if (historial.length === 0) {
+          html += '<p>No hay historial de aprobaciones.</p>';
+      } else {
+          html += '<ul>';
+          historial.forEach(h => {
+          html += `<li>
+              <b>${h.rol_aprobador.toUpperCase()}</b> - ${h.username} - <b>${h.estado}</b>
+              <br>Observaciones: ${h.observaciones || 'Ninguna'}
+              <br>Fecha: ${formatearFecha(h.fecha)}
+          </li>`;
+          });
+          html += '</ul>';
+      }
+      document.getElementById('historialContenido').innerHTML = html;
+      document.getElementById('modalHistorial').style.display = 'flex';
+      }
+  function cerrarModalHistorial() {
+    document.getElementById('modalHistorial').style.display = 'none';
+  }
+  window.onclick = function(event) {
+    const modal = document.getElementById('modalHistorial');
+    if (event.target === modal) modal.style.display = 'none';
+  }
 </script>
 </body>
 </html>
