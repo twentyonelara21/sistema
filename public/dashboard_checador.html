@@ -138,6 +138,8 @@
   <script>
     let datosRegistros = [];
     let puntualChart, retardoChart, mediaChart;
+    let checadasPaginaActual = 1;
+    const checadasFilasPorPagina = 10;
 
     function formatearFecha(fechaISO) {
       const fecha = new Date(fechaISO);
@@ -164,9 +166,19 @@
     }
 
     function actualizarTablaRegistros() {
+      // Ordena por fecha descendente
+      datosRegistros.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      checadasPaginaActual = 1;
+      renderizarPaginaChecadas();
+    }
+
+    function renderizarPaginaChecadas() {
       const tbody = document.querySelector('#tablaRegistros tbody');
       tbody.innerHTML = '';
-      datosRegistros.forEach(d => {
+      const inicio = (checadasPaginaActual - 1) * checadasFilasPorPagina;
+      const fin = inicio + checadasFilasPorPagina;
+      const pagina = datosRegistros.slice(inicio, fin);
+      pagina.forEach(d => {
         const { fecha, hora } = formatearFecha(d.fecha);
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -182,6 +194,26 @@
         `;
         tbody.appendChild(tr);
       });
+      renderizarPaginacionChecadas();
+    }
+
+    function renderizarPaginacionChecadas() {
+      let paginacion = document.getElementById('paginacionChecadas');
+      if (!paginacion) {
+        paginacion = document.createElement('div');
+        paginacion.id = 'paginacionChecadas';
+        document.querySelector('.table-responsive').appendChild(paginacion);
+      }
+      const totalPaginas = Math.ceil(datosRegistros.length / checadasFilasPorPagina);
+      paginacion.innerHTML = '';
+      for (let i = 1; i <= totalPaginas; i++) {
+        paginacion.innerHTML += `<button class="filtros" onclick="cambiarPaginaChecadas(${i})" ${i === checadasPaginaActual ? 'disabled' : ''}>${i}</button>`;
+      }
+    }
+
+    function cambiarPaginaChecadas(pagina) {
+      checadasPaginaActual = pagina;
+      renderizarPaginaChecadas();
     }
 
     function cargarGraficas() {
