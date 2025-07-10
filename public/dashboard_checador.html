@@ -89,6 +89,18 @@
       color: #fff;
       text-align: center;
     }
+    #paginacionChecadas {
+     text-align: center;
+     margin: 1rem 0;
+    }
+    #paginacionChecadas button {
+      margin: 0 2px;
+    }
+    .btn {
+      background: #FF0000; color: #fff; border: none; border-radius: 6px;
+      padding: 0.5rem 1rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 1rem auto; display: block;
+    }
+    .btn:hover { background: #00877A; }
     @media (max-width: 700px) {
       .dashboard-container { padding: 0 0.2rem; }
       .filtros { flex-direction: column; gap: 0.5rem; }
@@ -207,7 +219,7 @@
       const totalPaginas = Math.ceil(datosRegistros.length / checadasFilasPorPagina);
       paginacion.innerHTML = '';
       for (let i = 1; i <= totalPaginas; i++) {
-        paginacion.innerHTML += `<button class="filtros" onclick="cambiarPaginaChecadas(${i})" ${i === checadasPaginaActual ? 'disabled' : ''}>${i}</button>`;
+        paginacion.innerHTML += `<button class="btn" onclick="cambiarPaginaChecadas(${i})" ${i === checadasPaginaActual ? 'disabled' : ''}>${i}</button>`;
       }
     }
 
