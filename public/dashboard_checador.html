@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
   <title>Dashboard Checador</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -126,8 +127,10 @@
   </style>
 </head>
 <body>
+  <div class="menu-buttons">
+    <button onclick="window.location.href='index.html'">Volver al menú principal</button>
+  </div>
   <div class="dashboard-container">
-    <button class="btn" onclick="window.location.href='index.html'" style="margin-bottom: 1rem;">Volver al menú principal</button>
     <h1>Dashboard de Puntualidad</h1>
     <div class="filtros">
       <label>Desde: <input type="date" id="filtroDesde"></label>
