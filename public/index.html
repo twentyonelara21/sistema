@@ -7,6 +7,15 @@
   <title>Sistema de Gestión</title>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
+<style>
+     #usuariosPaginacion, #ticketsPaginacion, #permisosPaginacion, #auditoriaPaginacion {
+     text-align: center;
+     margin: 1rem 0;
+   }
+   #usuariosPaginacion button, #ticketsPaginacion button, #permisosPaginacion button, #auditoriaPaginacion button {
+     margin: 0 2px;
+   }
+</style>
 <body>
   <div class="container">
     <!-- Pantalla de Login -->
@@ -214,6 +223,9 @@
     let ticketsPaginaActual = 1;
     let permisosData = [];
     let permisosPaginaActual = 1;
+    let usuariosData = [];
+    let usuariosPaginaActual = 1;
+    const usuariosFilasPorPagina = 10;
     const permisosFilasPorPagina = 10;
     const ticketsFilasPorPagina = 10;
     const auditoriaFilasPorPagina = 10;
@@ -395,35 +407,72 @@
       }
     }
 
-    async function cargarUsuarios() {
-      const adminId = currentUser.id;
-      const res = await fetch(`/api/users?adminId=${adminId}`);
-      const users = await res.json();
-      const tbody = document.getElementById('usersTableBody');
-      tbody.innerHTML = '';
-      if (Array.isArray(users)) {
-        users.forEach(u => {
-          tbody.innerHTML += `
-            <tr>
-              <td>${u.username}</td>
-              <td>${u.email}</td>
-              <td>${u.department}</td>
-              <td>${u.role}</td>
-              <td>${u.jefe_nombre || ''}</td>
-              <td>${u.fecha_ingreso ? u.fecha_ingreso.substring(0,10) : ''}</td>
-              <td>${u.dias_vacaciones || 0}</td>
-              <td>
-                <button onclick="editarUsuario('${u.id}')">Editar</button>
-                <button onclick="eliminarUsuario('${u.id}')">Eliminar</button>
-              </td>
-            </tr>
-          `;
-        });
-      } else {
-        tbody.innerHTML = `<tr><td colspan="7">No autorizado o error en la petición</td></tr>`;
-        console.error(users);
-      }
-    }
+   async function cargarUsuarios() {
+     const adminId = currentUser.id;
+     const res = await fetch(`/api/users?adminId=${adminId}`);
+     usuariosData = await res.json();
+     usuariosPaginaActual = 1;
+     renderizarPaginaUsuarios();
+   }
+
+   function renderizarPaginaUsuarios() {
+     const tbody = document.getElementById('usersTableBody');
+     tbody.innerHTML = '';
+     const inicio = (usuariosPaginaActual - 1) * usuariosFilasPorPagina;
+     const fin = inicio + usuariosFilasPorPagina;
+     const pagina = usuariosData.slice(inicio, fin);
+
+     if (pagina.length === 0) {
+       tbody.innerHTML = `<tr><td colspan="8">No hay usuarios</td></tr>`;
+       return;
+     }
+
+     pagina.forEach(u => {
+       tbody.innerHTML += `
+         <tr>
+           <td>${u.username}</td>
+           <td>${u.email}</td>
+           <td>${u.department}</td>
+           <td>${u.role}</td>
+           <td>${u.jefe_nombre || ''}</td>
+           <td>${u.fecha_ingreso ? u.fecha_ingreso.substring(0,10) : ''}</td>
+           <td>${u.dias_vacaciones || 0}</td>
+           <td>
+             <button onclick="editarUsuario('${u.id}')">Editar</button>
+             <button onclick="eliminarUsuario('${u.id}')">Eliminar</button>
+           </td>
+         </tr>
+       `;
+     });
+
+     renderizarControlesPaginacionUsuarios();
+   }
+
+   function renderizarControlesPaginacionUsuarios() {
+     let paginacionDiv = document.getElementById('usuariosPaginacion');
+     if (!paginacionDiv) {
+       paginacionDiv = document.createElement('div');
+       paginacionDiv.id = 'usuariosPaginacion';
+       paginacionDiv.style.marginTop = '10px';
+       document.getElementById('adminUsersSection').appendChild(paginacionDiv);
+     }
+     const totalPaginas = Math.ceil(usuariosData.length / usuariosFilasPorPagina);
+     let html = '';
+     if (totalPaginas > 1) {
+       html += `<button onclick="cambiarPaginaUsuarios(-1)" ${usuariosPaginaActual === 1 ? 'disabled' : ''}>Anterior</button>`;
+       html += ` Página ${usuariosPaginaActual} de ${totalPaginas} `;
+       html += `<button onclick="cambiarPaginaUsuarios(1)" ${usuariosPaginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>`;
+     }
+     paginacionDiv.innerHTML = html;
+   }
+
+   function cambiarPaginaUsuarios(direccion) {
+     const totalPaginas = Math.ceil(usuariosData.length / usuariosFilasPorPagina);
+     usuariosPaginaActual += direccion;
+     if (usuariosPaginaActual < 1) usuariosPaginaActual = 1;
+     if (usuariosPaginaActual > totalPaginas) usuariosPaginaActual = totalPaginas;
+     renderizarPaginaUsuarios();
+   }
 
     async function eliminarUsuario(id) {
       if (!confirm('¿Seguro que deseas eliminar este usuario?')) return;
