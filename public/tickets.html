@@ -240,6 +240,21 @@
     }
 
     let availableUsers = [];
+    let ticketsData = [];
+    let ticketsPaginaActual = 1;
+    const ticketsFilasPorPagina = 10;
+
+    let myTicketsData = [];
+    let myTicketsPaginaActual = 1;
+    const myTicketsFilasPorPagina = 10;
+
+    function parsearFechaTicket(fechaStr) {
+    if (!fechaStr) return new Date(0);
+    const [fecha, hora] = fechaStr.split(' ');
+    if (!fecha || !hora) return new Date(fechaStr); // fallback
+    const [dia, mes, anio] = fecha.split('/');
+    return new Date(`${anio}-${mes}-${dia}T${hora}`);
+}
 
     document.getElementById('currentUser').textContent = currentUser.username;
     document.getElementById('currentDepartment').textContent = currentUser.department;
@@ -401,128 +416,194 @@
     }
 
     async function listTickets() {
-      const ticketList = document.getElementById('ticketList');
-      const status = document.getElementById('filterStatus').value;
-      const ticketId = document.getElementById('filterId').value;
-      const requester = document.getElementById('filterRequester').value;
-      const category = document.getElementById('filterCategory').value;
+    const status = document.getElementById('filterStatus').value;
+    const ticketId = document.getElementById('filterId').value;
+    const requester = document.getElementById('filterRequester').value;
+    const category = document.getElementById('filterCategory').value;
 
-      if (!currentUser || !currentUser.id) {
-        console.error('Usuario no autenticado:', currentUser);
-        ticketList.innerHTML = '<tr><td colspan="8">Debes iniciar sesión para ver los tickets.</td></tr>';
-        return;
-      }
-
-      const params = new URLSearchParams();
-      params.append('userId', currentUser.id);
-      if (status && status !== 'Todos') params.append('status', status);
-      if (ticketId && ticketId !== '') params.append('ticketId', ticketId);
-      if (requester && requester !== '') params.append('requester', requester);
-      if (category && category !== 'Todas') params.append('category', category);
-
-      const query = `/api/tickets?${params.toString()}`;
-      console.log('Fetching tickets with URL:', query);
-
-      try {
-        const response = await fetch(query);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const tickets = await response.json();
-        ticketList.innerHTML = '';
-        if (tickets.length === 0) {
-          ticketList.innerHTML = '<tr><td colspan="8">No hay tickets para este criterio.</td></tr>';
-          return;
-        }
-        tickets.forEach(ticket => {
-          const row = document.createElement('tr');
-          row.style.cursor = 'pointer';
-          row.onclick = () => showTicketDetails(ticket);
-          const statusClass = ticket.status === 'Pendiente' ? 'status-pending' :
-                            ticket.status === 'En Proceso' ? 'status-in-progress' :
-                            'status-resolved';
-          const isResolved = ticket.status === 'Resuelto';
-          const isAdmin = currentUser.role === 'admin';
-          const editDisabled = isResolved && !isAdmin ? 'disabled' : '';
-          row.innerHTML = `
-            <td>${ticket.id}</td>
-            <td>${ticket.requester}</td>
-            <td>${ticket.created_at}</td>
-            <td>${ticket.priority}</td>
-            <td>${ticket.category || 'No especificada'}</td>
-            <td>${ticket.subcategory || 'No especificada'}</td>
-            <td class="${statusClass}">${ticket.status}</td>
-            <td>${ticket.assigned_username || 'No asignado'}</td>
-            <td><button ${editDisabled} onclick="editTicket(${ticket.id}); event.stopPropagation()">Editar</button></td>
-            <td><button onclick="showTicketDetails(JSON.parse(JSON.stringify(${JSON.stringify(ticket)})), false); event.stopPropagation()">Ver</button></td>
-          `;
-          row.querySelector('button').dataset.ticket = JSON.stringify(ticket);
-          ticketList.appendChild(row);
-        });
-      } catch (err) {
-        console.error('Error fetching tickets:', err);
-        ticketList.innerHTML = '<tr><td colspan="8">Error al cargar tickets.</td></tr>';
-      }
+    if (!currentUser || !currentUser.id) {
+      document.getElementById('ticketList').innerHTML = '<tr><td colspan="8">Debes iniciar sesión para ver los tickets.</td></tr>';
+      return;
     }
 
-    async function listMyTickets() {
-      const ticketList = document.getElementById('myTicketList');
-      const status = document.getElementById('myFilterStatus').value;
-      const ticketId = document.getElementById('myFilterId').value;
-      const category = document.getElementById('myFilterCategory').value;
+    const params = new URLSearchParams();
+    params.append('userId', currentUser.id);
+    if (status && status !== 'Todos') params.append('status', status);
+    if (ticketId && ticketId !== '') params.append('ticketId', ticketId);
+    if (requester && requester !== '') params.append('requester', requester);
+    if (category && category !== 'Todas') params.append('category', category);
 
-      if (!currentUser || !currentUser.id || !currentUser.username) {
-        console.error('Usuario no autenticado o datos incompletos:', currentUser);
-        ticketList.innerHTML = '<tr><td colspan="8">Debes iniciar sesión para ver tus tickets.</td></tr>';
-        return;
-      }
+    const query = `/api/tickets?${params.toString()}`;
 
-      const params = new URLSearchParams();
-      params.append('userId', currentUser.id);
-      params.append('createdByUser', 'true');
-      if (status && status !== 'Todos') params.append('status', status);
-      if (ticketId && ticketId !== '') params.append('ticketId', ticketId);
-      if (category && category !== 'Todas') params.append('category', category);
-
-      const query = `/api/tickets?${params.toString()}`;
-      console.log('Solicitud a:', query);
-
-      try {
-        const response = await fetch(query);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const tickets = await response.json();
-        ticketList.innerHTML = '';
-        if (tickets.length === 0) {
-          ticketList.innerHTML = '<tr><td colspan="8">No has creado tickets que coincidan con este criterio.</td></tr>';
-          return;
-        }
-        tickets.forEach(ticket => {
-          const row = document.createElement('tr');
-          row.style.cursor = 'pointer';
-          row.onclick = () => showTicketDetails(ticket, false);
-          const statusClass = ticket.status === 'Pendiente' ? 'status-pending' :
-                            ticket.status === 'En Proceso' ? 'status-in-progress' :
-                            'status-resolved';
-          row.innerHTML = `
-            <td>${ticket.id}</td>
-            <td>${ticket.requester}</td>
-            <td>${ticket.created_at}</td>
-            <td>${ticket.priority}</td>
-            <td>${ticket.category || 'No especificada'}</td>
-            <td>${ticket.subcategory || 'No especificada'}</td>
-            <td class="${statusClass}">${ticket.status}</td>
-            <td>${ticket.assigned_username || 'No asignado'}</td>
-            <td><button onclick="showTicketDetails(JSON.parse(JSON.stringify(${JSON.stringify(ticket)})), false); event.stopPropagation()">Ver</button></td>
-          `;
-          ticketList.appendChild(row);
-        });
-      } catch (err) {
-        console.error('Error fetching my tickets:', err);
-        ticketList.innerHTML = '<tr><td colspan="8">Error al cargar tus tickets.</td></tr>';
-      }
+    try {
+      const response = await fetch(query);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      const tickets = await response.json();
+      // ORDENAR por fecha descendente
+      ticketsData = tickets.sort((a, b) => parsearFechaTicket(b.created_at) - parsearFechaTicket(a.created_at));
+      ticketsPaginaActual = 1;
+      renderizarPaginaTickets();
+    } catch (err) {
+      document.getElementById('ticketList').innerHTML = '<tr><td colspan="8">Error al cargar tickets.</td></tr>';
     }
+  }
+
+  function renderizarPaginaTickets() {
+    const ticketList = document.getElementById('ticketList');
+    ticketList.innerHTML = '';
+    const inicio = (ticketsPaginaActual - 1) * ticketsFilasPorPagina;
+    const fin = inicio + ticketsFilasPorPagina;
+    const pagina = ticketsData.slice(inicio, fin);
+
+    if (pagina.length === 0) {
+      ticketList.innerHTML = '<tr><td colspan="10">No hay tickets para este criterio.</td></tr>';
+      return;
+    }
+    pagina.forEach(ticket => {
+      const row = document.createElement('tr');
+      row.style.cursor = 'pointer';
+      row.onclick = () => showTicketDetails(ticket);
+      const statusClass = ticket.status === 'Pendiente' ? 'status-pending' :
+                        ticket.status === 'En Proceso' ? 'status-in-progress' :
+                        'status-resolved';
+      const isResolved = ticket.status === 'Resuelto';
+      const isAdmin = currentUser.role === 'admin';
+      const editDisabled = isResolved && !isAdmin ? 'disabled' : '';
+      row.innerHTML = `
+        <td>${ticket.id}</td>
+        <td>${ticket.requester}</td>
+        <td>${ticket.created_at}</td>
+        <td>${ticket.priority}</td>
+        <td>${ticket.category || 'No especificada'}</td>
+        <td>${ticket.subcategory || 'No especificada'}</td>
+        <td class="${statusClass}">${ticket.status}</td>
+        <td>${ticket.assigned_username || 'No asignado'}</td>
+        <td><button ${editDisabled} onclick="editTicket(${ticket.id}); event.stopPropagation()">Editar</button></td>
+        <td><button onclick="showTicketDetails(JSON.parse(JSON.stringify(${JSON.stringify(ticket)})), false); event.stopPropagation()">Ver</button></td>
+      `;
+      row.querySelector('button').dataset.ticket = JSON.stringify(ticket);
+      ticketList.appendChild(row);
+    });
+    renderizarControlesPaginacionTickets();
+  }
+
+  function renderizarControlesPaginacionTickets() {
+    let paginacionDiv = document.getElementById('ticketsPaginacion');
+    if (!paginacionDiv) {
+      paginacionDiv = document.createElement('div');
+      paginacionDiv.id = 'ticketsPaginacion';
+      paginacionDiv.style.marginTop = '10px';
+      document.getElementById('viewTicketsSection').appendChild(paginacionDiv);
+    }
+    const totalPaginas = Math.ceil(ticketsData.length / ticketsFilasPorPagina);
+    let html = '';
+    if (totalPaginas > 1) {
+      html += `<button onclick="cambiarPaginaTickets(-1)" ${ticketsPaginaActual === 1 ? 'disabled' : ''}>Anterior</button>`;
+      html += ` Página ${ticketsPaginaActual} de ${totalPaginas} `;
+      html += `<button onclick="cambiarPaginaTickets(1)" ${ticketsPaginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>`;
+    }
+    paginacionDiv.innerHTML = html;
+  }
+
+  function cambiarPaginaTickets(direccion) {
+    const totalPaginas = Math.ceil(ticketsData.length / ticketsFilasPorPagina);
+    ticketsPaginaActual += direccion;
+    if (ticketsPaginaActual < 1) ticketsPaginaActual = 1;
+    if (ticketsPaginaActual > totalPaginas) ticketsPaginaActual = totalPaginas;
+    renderizarPaginaTickets();
+  }
+
+  async function listMyTickets() {
+    const status = document.getElementById('myFilterStatus').value;
+    const ticketId = document.getElementById('myFilterId').value;
+    const category = document.getElementById('myFilterCategory').value;
+
+    if (!currentUser || !currentUser.id || !currentUser.username) {
+      document.getElementById('myTicketList').innerHTML = '<tr><td colspan="8">Debes iniciar sesión para ver tus tickets.</td></tr>';
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.append('userId', currentUser.id);
+    params.append('createdByUser', 'true');
+    if (status && status !== 'Todos') params.append('status', status);
+    if (ticketId && ticketId !== '') params.append('ticketId', ticketId);
+    if (category && category !== 'Todas') params.append('category', category);
+
+    const query = `/api/tickets?${params.toString()}`;
+
+    try {
+      const response = await fetch(query);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      const tickets = await response.json();
+      // ORDENAR por fecha descendente
+      myTicketsData = tickets.sort((a, b) => parsearFechaTicket(b.created_at) - parsearFechaTicket(a.created_at));
+      myTicketsPaginaActual = 1;
+      renderizarPaginaMyTickets();
+    } catch (err) {
+      document.getElementById('myTicketList').innerHTML = '<tr><td colspan="8">Error al cargar tus tickets.</td></tr>';
+    }
+  }
+
+  function renderizarPaginaMyTickets() {
+    const ticketList = document.getElementById('myTicketList');
+    ticketList.innerHTML = '';
+    const inicio = (myTicketsPaginaActual - 1) * myTicketsFilasPorPagina;
+    const fin = inicio + myTicketsFilasPorPagina;
+    const pagina = myTicketsData.slice(inicio, fin);
+
+    if (pagina.length === 0) {
+      ticketList.innerHTML = '<tr><td colspan="10">No has creado tickets que coincidan con este criterio.</td></tr>';
+      return;
+    }
+    pagina.forEach(ticket => {
+      const row = document.createElement('tr');
+      row.style.cursor = 'pointer';
+      row.onclick = () => showTicketDetails(ticket, false);
+      const statusClass = ticket.status === 'Pendiente' ? 'status-pending' :
+                        ticket.status === 'En Proceso' ? 'status-in-progress' :
+                        'status-resolved';
+      row.innerHTML = `
+        <td>${ticket.id}</td>
+        <td>${ticket.requester}</td>
+        <td>${ticket.created_at}</td>
+        <td>${ticket.priority}</td>
+        <td>${ticket.category || 'No especificada'}</td>
+        <td>${ticket.subcategory || 'No especificada'}</td>
+        <td class="${statusClass}">${ticket.status}</td>
+        <td>${ticket.assigned_username || 'No asignado'}</td>
+        <td><button onclick="showTicketDetails(JSON.parse(JSON.stringify(${JSON.stringify(ticket)})), false); event.stopPropagation()">Ver</button></td>
+      `;
+      ticketList.appendChild(row);
+    });
+    renderizarControlesPaginacionMyTickets();
+  }
+
+  function renderizarControlesPaginacionMyTickets() {
+    let paginacionDiv = document.getElementById('myTicketsPaginacion');
+    if (!paginacionDiv) {
+      paginacionDiv = document.createElement('div');
+      paginacionDiv.id = 'myTicketsPaginacion';
+      paginacionDiv.style.marginTop = '10px';
+      document.getElementById('myTicketsSection').appendChild(paginacionDiv);
+    }
+    const totalPaginas = Math.ceil(myTicketsData.length / myTicketsFilasPorPagina);
+    let html = '';
+    if (totalPaginas > 1) {
+      html += `<button onclick="cambiarPaginaMyTickets(-1)" ${myTicketsPaginaActual === 1 ? 'disabled' : ''}>Anterior</button>`;
+      html += ` Página ${myTicketsPaginaActual} de ${totalPaginas} `;
+      html += `<button onclick="cambiarPaginaMyTickets(1)" ${myTicketsPaginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>`;
+    }
+    paginacionDiv.innerHTML = html;
+  }
+
+  function cambiarPaginaMyTickets(direccion) {
+    const totalPaginas = Math.ceil(myTicketsData.length / myTicketsFilasPorPagina);
+    myTicketsPaginaActual += direccion;
+    if (myTicketsPaginaActual < 1) myTicketsPaginaActual = 1;
+    if (myTicketsPaginaActual > totalPaginas) myTicketsPaginaActual = totalPaginas;
+    renderizarPaginaMyTickets();
+  }
 
     async function autoAssignTicket(id) {
       try {
