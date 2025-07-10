@@ -41,6 +41,7 @@
       background: #FF0000; color: #fff; border: none; border-radius: 6px;
       padding: 0.5rem 1.2rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin: 0.5rem;
       transition: background 0.2s;
+      align-items: center;
     }
     .btn:hover, .menu-btn:hover { background: #00877A; }
     /* Modal */
@@ -126,12 +127,12 @@
   </style>
 </head>
 <body>
+  <button class="btn" onclick="window.location.href='index.html'" style="margin-bottom: 1rem;">Volver al menú principal</button>
   <h1>Inventario de Equipo de Sistemas</h1>
-    <button class="btn" onclick="window.location.href='index.html'" style="margin-bottom: 1rem;">Volver al menú principal</button>
     <!-- inventario.html -->
-    <button class="btn" onclick="window.location.href='dashboard_inventario.html'">Ir al Dashboard</button>
+  <button class="btn" onclick="window.location.href='dashboard_inventario.html'">Ir al Dashboard</button>
     <!-- Botón para abrir el modal -->
-    <button class="btn-mas" onclick="abrirModal()">+</button>
+  <button class="btn-mas" onclick="abrirModal()">+</button>
 
 <!-- Modal para agregar/editar equipo -->
 <div id="modalEquipo" class="modal">
