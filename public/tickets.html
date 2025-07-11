@@ -14,28 +14,12 @@
     <div id="ticketSystem" class="section" style="display: none;">
       <h1>Sistema de Tickets</h1>
       <p>Bienvenido, <span id="currentUser"></span> (<span id="currentDepartment"></span>)</p>
-      <button class="logout" onclick="logout()">Cerrar Sesión</button>
-
       <div class="ticket-nav">
         <button onclick="showCreateTicket()">Crear Solicitud</button>
         <button onclick="showViewTickets()">Ver Tickets</button>
         <button onclick="showMyTickets()">Mis Tickets</button>
       </div>
 
-      <!-- Cambiar Contraseña -->
-      <div id="changePasswordSection" class="form-section" style="display: none;">
-        <h2>Cambiar Contraseña</h2>
-        <div class="form-group">
-          <label for="currentPassword">Contraseña Actual *</label>
-          <input type="password" id="currentPassword" placeholder="Contraseña actual" required>
-        </div>
-        <div class="form-group">
-          <label for="newPassword">Nueva Contraseña *</label>
-          <input type="password" id="newPassword" placeholder="Nueva contraseña" required>
-        </div>
-        <button onclick="changePassword()">Cambiar Contraseña</button>
-        <p class="error" id="changePasswordError"></p>
-      </div>
 
       <!-- Crear Solicitud -->
       <div id="createTicketSection" class="form-section" style="display: none;">
@@ -318,45 +302,6 @@
       document.getElementById('myTicketsSection').style.display = 'block';
       document.getElementById('changePasswordSection').style.display = 'none';
       listMyTickets();
-    }
-
-    function showChangePassword() {
-      document.getElementById('createTicketSection').style.display = 'none';
-      document.getElementById('viewTicketsSection').style.display = 'none';
-      document.getElementById('myTicketsSection').style.display = 'none';
-      document.getElementById('changePasswordSection').style.display = 'block';
-      document.getElementById('changePasswordError').textContent = '';
-    }
-
-
-    async function changePassword() {
-      const currentPassword = document.getElementById('currentPassword').value;
-      const newPassword = document.getElementById('newPassword').value;
-      const error = document.getElementById('changePasswordError');
-
-      if (!currentPassword || !newPassword) {
-        error.textContent = 'Por favor, completa todos los campos';
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/users/${currentUser.id}/password`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ currentPassword, newPassword, userId: currentUser.id })
-        });
-        const data = await response.json();
-        if (data.error) {
-          error.textContent = data.error;
-          return;
-        }
-        alert('Contraseña cambiada exitosamente');
-        document.getElementById('currentPassword').value = '';
-        document.getElementById('newPassword').value = '';
-        showCreateTicket();
-      } catch (err) {
-        error.textContent = 'Error en el servidor';
-      }
     }
 
     async function createTicket() {
